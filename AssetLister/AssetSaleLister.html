@@ -1,0 +1,1399 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Sale Lister</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#080b0f;--surface:#0d1117;--surface2:#141b24;--border:#1c2432;--border2:#263040;
+  --accent:#00e5ff;--accent2:#39ff14;--warn:#ffb347;--danger:#ff2d55;--purple:#a855f7;
+  --text:#c8d6e5;--muted:#4a5568;--muted2:#2d3748;
+  --ag:0 0 20px rgba(0,229,255,.22);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 50%,rgba(0,229,255,.03) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(57,255,20,.025) 0%,transparent 55%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);pointer-events:none;z-index:0;}
+
+.app-layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh;position:relative;z-index:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-logo{padding:16px 16px 12px;border-bottom:1px solid var(--border);}
+.sidebar-logo h1{font-family:'Share Tech Mono',monospace;font-size:.88rem;color:var(--accent);text-shadow:0 0 16px rgba(0,229,255,.4);letter-spacing:3px;text-transform:uppercase;}
+.sidebar-logo p{color:var(--muted);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+
+.count-tiles{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:9px 13px;}
+.count-tile{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;padding:9px;text-align:center;}
+.ctn{font-family:'Share Tech Mono',monospace;font-size:1.5rem;line-height:1;color:var(--accent);}
+.ctl{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+.count-tile.global .ctn{color:var(--accent2);}
+
+.sidebar-section{padding:9px 13px 5px;}
+.sidebar-label{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:4px;}
+
+.pallets-list{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
+.pallet-item{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;transition:all .15s;}
+.pallet-item:hover{background:rgba(255,255,255,.04);border-color:var(--border2);}
+.pallet-item.active{background:rgba(0,229,255,.07);border-color:rgba(0,229,255,.25);}
+.pallet-item.damaged-pallet-item{border-color:rgba(255,45,85,.15)!important;}
+.pallet-item.damaged-pallet-item .pallet-dot{background:var(--danger)!important;box-shadow:0 0 4px var(--danger)!important;}
+.pallet-item.damaged-pallet-item .pallet-name{color:var(--danger)!important;}
+.pallet-item.damaged-pallet-item.active{background:rgba(255,45,85,.07)!important;border-color:rgba(255,45,85,.35)!important;}
+.pallet-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--muted2);}
+.pallet-item.active .pallet-dot{background:var(--accent);box-shadow:0 0 5px var(--accent);}
+.pallet-name{flex:1;font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.pallet-item.active .pallet-name{color:var(--accent);}
+.pallet-count{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);background:var(--muted2);padding:1px 5px;border-radius:7px;}
+.pallet-item.active .pallet-count{background:rgba(0,229,255,.15);color:var(--accent);}
+.pallet-del,.del-btn{opacity:0;background:none;border:none;color:var(--danger);cursor:pointer;font-size:.74rem;padding:1px 3px;border-radius:3px;transition:opacity .15s;}
+.pallet-item:hover .pallet-del,.preset-item:hover .del-btn{opacity:1;}
+.edit-btn{opacity:0;background:none;border:none;color:var(--accent);cursor:pointer;font-size:.76rem;padding:1px 3px;border-radius:3px;transition:opacity .15s;}
+.preset-item:hover .edit-btn{opacity:1;}
+
+.damaged-section-label{font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:2px;text-transform:uppercase;color:var(--danger);padding:6px 8px 3px;opacity:.7;display:flex;align-items:center;gap:5px;}
+.damaged-section-label::after{content:'';flex:1;height:1px;background:rgba(255,45,85,.2);}
+
+.preset-search{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.68rem;padding:5px 8px;outline:none;margin-bottom:6px;transition:border-color .15s;}
+.preset-search:focus{border-color:rgba(168,85,247,.4);}
+.preset-search::placeholder{color:var(--muted);}
+.preset-item{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;transition:all .15s;}
+.preset-item:hover{background:rgba(255,255,255,.04);border-color:var(--border2);}
+.preset-item.active{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.3);}
+.preset-item.damaged-preset .preset-name{color:var(--danger);}
+.preset-item.damaged-preset.active{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.3);}
+.preset-name{font-family:'Share Tech Mono',monospace;font-size:.68rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.no-weight-warn{color:var(--warn);font-size:.62rem;flex-shrink:0;}
+
+.sdiv{height:1px;background:var(--border);margin:2px 0 7px;}
+.sidebar-bottom{margin-top:auto;padding:11px 13px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+
+/* toggles */
+.toggle-switch{position:relative;width:32px;height:17px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;background:var(--muted2);border-radius:17px;cursor:pointer;transition:background .2s;}
+.toggle-track::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle-switch input:checked+.toggle-track{background:var(--warn);}
+.toggle-switch input:checked+.toggle-track::after{transform:translateX(15px);}
+
+/* buttons */
+.btn-xs{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;padding:3px 7px;border-radius:4px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-xs:hover{background:rgba(0,229,255,.14);}
+.btn-xs.p{border-color:rgba(168,85,247,.3);color:var(--purple);}
+.btn-xs.p:hover{background:rgba(168,85,247,.12);}
+.btn{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.22);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.64rem;letter-spacing:2px;text-transform:uppercase;padding:8px 13px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn:hover{background:rgba(0,229,255,.12);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-g{background:rgba(57,255,20,.07);border-color:rgba(57,255,20,.22);color:var(--accent2);}
+.btn-g:hover{background:rgba(57,255,20,.13);}
+.btn-p{background:rgba(168,85,247,.07);border-color:rgba(168,85,247,.22);color:var(--purple);}
+.btn-p:hover{background:rgba(168,85,247,.13);}
+.btn-r{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.22);color:var(--danger);}
+.btn-r:hover{background:rgba(255,45,85,.13);}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;min-height:100vh;}
+.main-header{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+.active-pallet-name{font-family:'Share Tech Mono',monospace;font-size:.92rem;color:var(--accent);letter-spacing:3px;}
+.pallet-stats-txt{font-size:.68rem;color:var(--muted);letter-spacing:1.5px;}
+.header-actions{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.main-content{flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:13px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:15px 17px;}
+.card-title{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:11px;display:flex;align-items:center;gap:7px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.card-title.collapsible{cursor:pointer;user-select:none;}
+.card-title.collapsible .caret{display:inline-block;transition:transform .2s;margin-right:2px;}
+.card-title.collapsible.collapsed .caret{transform:rotate(-90deg);}
+
+/* weight warning banner */
+.weight-warn-banner{display:none;background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.35);border-radius:7px;padding:9px 14px;margin-bottom:11px;align-items:center;gap:9px;flex-wrap:wrap;}
+.weight-warn-banner.visible{display:flex;}
+.wwb-icon{font-size:1.1rem;}
+.wwb-text{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--danger);flex:1;}
+
+/* damaged header badge */
+.damaged-header-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,45,85,.1);border:1px solid rgba(255,45,85,.3);color:var(--danger);font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;padding:2px 9px;border-radius:8px;}
+
+/* scan inputs */
+.scan-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:9px;}
+.scan-field{display:flex;flex-direction:column;gap:4px;}
+.scan-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.scan-input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:7px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:1.2rem;letter-spacing:5px;padding:10px 12px;outline:none;transition:all .15s;text-transform:uppercase;}
+.scan-input:focus{border-color:var(--accent);box-shadow:var(--ag);}
+.scan-input.active-field{border-color:rgba(0,229,255,.4);}
+.scan-input.filled-field{border-color:rgba(57,255,20,.3);color:var(--accent2);}
+.scan-input.bypassed{border-color:rgba(255,179,71,.3)!important;color:var(--warn)!important;}
+.scan-input.blocked{border-color:rgba(255,45,85,.3)!important;opacity:.5;cursor:not-allowed;}
+.scan-input::placeholder{color:var(--muted);letter-spacing:1.5px;font-size:.74rem;}
+.scan-input.flash-success{animation:fS .3s ease;}
+.scan-input.flash-error{animation:fE .3s ease;}
+@keyframes fS{0%{border-color:var(--accent2);box-shadow:0 0 22px rgba(57,255,20,.5);}100%{border-color:var(--accent);box-shadow:var(--ag);}}
+@keyframes fE{0%{border-color:var(--danger);box-shadow:0 0 22px rgba(255,45,85,.5);}100%{border-color:var(--border);box-shadow:none;}}
+
+.bypass-row{display:flex;gap:14px;align-items:center;padding:6px 0 0;}
+.bypass-item{display:flex;align-items:center;gap:6px;}
+.bypass-lbl{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+
+.status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,.25);min-height:38px;transition:all .15s;margin-bottom:9px;}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--muted);}
+.status-bar.ready .status-dot{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.status-bar.success .status-dot{background:var(--accent2);box-shadow:0 0 7px var(--accent2);}
+.status-bar.error .status-dot{background:var(--danger);box-shadow:0 0 7px var(--danger);}
+.status-bar.warn .status-dot{background:var(--warn);box-shadow:0 0 7px var(--warn);}
+.status-bar.overweight .status-dot{background:var(--danger);box-shadow:0 0 10px var(--danger);animation:pulse .6s ease-in-out infinite alternate;}
+.status-bar.pair-ready .status-dot{background:var(--purple);box-shadow:0 0 7px var(--purple);}
+.status-bar.success{border-color:rgba(57,255,20,.22);}
+.status-bar.error{border-color:rgba(255,45,85,.22);}
+.status-bar.pair-ready{border-color:rgba(168,85,247,.22);}
+.status-bar.warn{border-color:rgba(255,179,71,.22);}
+.status-bar.overweight{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.05);}
+@keyframes pulse{from{opacity:.7;}to{opacity:1;}}
+.status-text{font-family:'Share Tech Mono',monospace;font-size:.76rem;}
+
+/* preset bar */
+.preset-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;margin-bottom:11px;flex-wrap:wrap;}
+.preset-bar.active-p{background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);}
+.preset-bar.active-p.damaged{background:rgba(255,45,85,.05);border:1px solid rgba(255,45,85,.25);}
+.preset-bar.no-p{background:rgba(255,45,85,.05);border:1px solid rgba(255,45,85,.2);cursor:pointer;}
+.pb-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;}
+.active-p .pb-label{color:var(--purple);}
+.active-p.damaged .pb-label{color:var(--danger);}
+.no-p .pb-label{color:var(--danger);}
+.pb-name{font-family:'Share Tech Mono',monospace;font-size:.76rem;flex:1;}
+.pb-detail{font-size:.66rem;color:var(--muted);}
+.drive-pill{display:inline-flex;align-items:center;gap:5px;border-radius:14px;padding:2px 9px;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;border:1px solid;cursor:pointer;transition:all .15s;}
+.drive-pill.dp-ok{background:rgba(0,229,255,.07);border-color:rgba(0,229,255,.3);color:var(--accent);}
+.drive-pill.dp-none{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.3);color:var(--danger);}
+.dp-dot{width:5px;height:5px;border-radius:50%;}
+.dp-ok .dp-dot{background:var(--accent);box-shadow:0 0 4px var(--accent);}
+.dp-none .dp-dot{background:var(--danger);box-shadow:0 0 4px var(--danger);}
+
+/* scan log */
+.scan-log{max-height:148px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:7px;}
+.log-entry{display:flex;align-items:baseline;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.66rem;padding:3px 6px;border-radius:3px;border-left:2px solid transparent;}
+.log-entry.ok{border-color:var(--accent2);background:rgba(57,255,20,.03);}
+.log-entry.pair{border-color:var(--purple);background:rgba(168,85,247,.03);}
+.log-entry.warn{border-color:var(--warn);background:rgba(255,179,71,.03);}
+.log-entry.error{border-color:var(--danger);background:rgba(255,45,85,.03);}
+.log-entry.manual{border-color:var(--purple);background:rgba(168,85,247,.03);}
+.log-time{color:var(--muted);font-size:.58rem;flex-shrink:0;}
+
+/* manual entry */
+.manual-grid{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:end;margin-top:11px;}
+.mini-input{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:.84rem;padding:8px 10px;outline:none;transition:border-color .15s;width:100%;}
+.mini-input:focus{border-color:var(--purple);}
+.mini-num{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.84rem;padding:8px 8px;outline:none;text-align:center;width:62px;}
+.mini-num:focus{border-color:var(--purple);}
+.mini-lbs{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;color:var(--warn);font-family:'Share Tech Mono',monospace;font-size:.84rem;padding:8px 8px;outline:none;text-align:center;width:70px;}
+.mini-lbs:focus{border-color:var(--warn);}
+.weight-mode-toggle{display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap;}
+.weight-mode-toggle input{display:none;}
+.wmt-track{width:28px;height:15px;background:var(--muted2);border-radius:15px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.wmt-track::after{content:'';position:absolute;left:2px;top:2px;width:11px;height:11px;background:#fff;border-radius:50%;transition:transform .2s;}
+.weight-mode-toggle input:checked~.wmt-track{background:var(--warn);}
+.weight-mode-toggle input:checked~.wmt-track::after{transform:translateX(13px);}
+
+/* stats */
+.stats-strip{display:flex;gap:7px;flex-wrap:wrap;}
+.stat-chip{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:13px;padding:3px 8px;font-family:'Share Tech Mono',monospace;font-size:.64rem;}
+.sn{color:var(--accent);font-size:.82rem;}
+.sl{color:var(--muted);}
+
+/* weight bar */
+.weight-bar{display:flex;align-items:center;gap:10px;padding:7px 12px;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:6px;flex-wrap:wrap;margin-bottom:9px;transition:border-color .2s;}
+.weight-bar.overweight{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.04);}
+.wi .wl{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.wi .wv{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--accent);}
+.wi.danger .wv{color:var(--danger);}
+
+/* entry table */
+.entry-table-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--border);}
+table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
+.entry-table th{background:var(--surface2);font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.entry-table td{padding:6px 10px;border-bottom:1px solid rgba(28,36,50,.5);vertical-align:middle;}
+.entry-table tr:last-child td{border-bottom:none;}
+.entry-table tr:hover td{background:rgba(255,255,255,.02);}
+.entry-table tr.drag-over td{border-top:2px solid var(--accent);}
+.e-asset{font-family:'Share Tech Mono',monospace;color:var(--accent);letter-spacing:2px;}
+.e-serial{font-family:'Share Tech Mono',monospace;color:var(--accent2);letter-spacing:2px;}
+.e-bypass{color:var(--warn)!important;}
+.e-manual{color:var(--purple);}
+.e-damaged{color:var(--danger)!important;}
+.preset-tag{display:inline-block;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--purple);font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:1px;padding:1px 5px;border-radius:6px;}
+.preset-tag.dmg{background:rgba(255,45,85,.08);border-color:rgba(255,45,85,.25);color:var(--danger);}
+.e-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:2px 4px;border-radius:3px;transition:color .15s;}
+.e-del:hover{color:var(--danger);}
+.drag-handle{cursor:grab;color:var(--muted);font-size:.8rem;padding:0 2px;user-select:none;}
+.drag-handle:active{cursor:grabbing;}
+
+.no-pallet-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:60px;text-align:center;}
+.no-pallet-screen .big-icon{font-size:3rem;opacity:.15;}
+.no-pallet-screen h2{font-family:'Share Tech Mono',monospace;font-size:.8rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);}
+.empty-state{text-align:center;padding:30px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.66rem;letter-spacing:2px;}
+
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:20px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.5),var(--ag);}
+.modal-title{font-family:'Share Tech Mono',monospace;font-size:.76rem;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:15px;display:flex;align-items:center;justify-content:space-between;}
+.close-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;}
+.form-group{margin-bottom:10px;}
+.form-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;}
+.form-label small{font-size:.54rem;font-weight:400;}
+.form-input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:.82rem;padding:7px 10px;outline:none;transition:border-color .15s;}
+.form-input:focus{border-color:var(--accent);}
+.form-input.wb{border-color:rgba(255,179,71,.4);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.form-hint{font-size:.6rem;color:var(--muted);margin-top:2px;font-family:'Share Tech Mono',monospace;}
+.form-hint.wh{color:var(--warn);}
+.toggle-row-form{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;}
+.trf-lbl{font-family:'Share Tech Mono',monospace;font-size:.64rem;letter-spacing:1.5px;text-transform:uppercase;}
+.trf-sub{font-size:.6rem;color:var(--muted);margin-top:2px;}
+.modal-actions{display:flex;gap:6px;margin-top:14px;justify-content:flex-end;}
+.dell-serial-section{background:rgba(0,229,255,.03);border:1px solid rgba(0,229,255,.15);border-radius:6px;padding:9px 11px;margin-bottom:10px;}
+.dell-serial-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px;opacity:.7;}
+.dell-serial-row{display:flex;gap:8px;align-items:center;}
+.dell-serial-input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.82rem;letter-spacing:3px;padding:7px 10px;outline:none;transition:border-color .15s;text-transform:uppercase;}
+.dell-serial-input:focus{border-color:var(--accent);}
+.dell-serial-link{display:inline-flex;align-items:center;gap:4px;padding:7px 10px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);border-radius:6px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.62rem;text-decoration:none;transition:all .15s;white-space:nowrap;}
+.dell-serial-link:hover{background:rgba(0,229,255,.15);}
+.dell-serial-link.hidden{display:none;}
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- PRESET MODAL -->
+<div class="modal-overlay" id="presetModal">
+  <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-title"><span id="presetModalTitle">▸ Define Model Preset</span> <button class="close-btn" onclick="closePresetModal()">✕</button></div>
+    <div class="form-group">
+      <label class="form-label">Model / Preset Name <small>(used for both)</small></label>
+      <input class="form-input" id="pm_name" placeholder="e.g. Dell Latitude 5520" oninput="onMfrChange()">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Manufacturer</label>
+        <input class="form-input" id="pm_mfr" placeholder="Dell" oninput="onMfrChange()">
+      </div>
+      <div class="form-group">
+        <label class="form-label">CPU</label>
+        <input class="form-input" id="pm_cpu" placeholder="i5-1145G7">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">RAM <small>— numbers only, GB</small></label>
+        <input class="form-input" id="pm_ram" type="number" min="1" placeholder="16">
+      </div>
+      <div class="form-group" id="storageFieldGroup">
+        <label class="form-label">Storage <small>— numbers only, GB</small></label>
+        <input class="form-input" id="pm_storage" type="number" min="1" placeholder="256">
+      </div>
+    </div>
+    <div class="toggle-row-form">
+      <div><div class="trf-lbl">No Storage Device</div><div class="trf-sub">Logs as "None" — thin client, stripped unit</div></div>
+      <label class="toggle-switch"><input type="checkbox" id="pm_no_storage" onchange="toggleStorageField()"><span class="toggle-track"></span></label>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label class="form-label">Weight (lbs) <small>— optional, suggested</small></label>
+        <input class="form-input" id="pm_weight" type="number" min="0" step="0.1" placeholder="3.5" oninput="clearWeightNag()">
+        <div class="form-hint" id="weightHint">Helps calculate shipping weight</div>
+      </div>
+    </div>
+    <div class="dell-serial-section" id="dellSerialSection" style="display:none;">
+      <div class="dell-serial-label">▸ Dell Support Lookup</div>
+      <div class="dell-serial-row">
+        <input class="dell-serial-input" id="dellSerialInput" placeholder="Enter service tag…" oninput="updateDellLink()" maxlength="20">
+        <a class="dell-serial-link hidden" id="dellSupportLink" href="#" target="_blank" rel="noopener">🔗 View on Dell Support</a>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-r" onclick="closePresetModal()">Cancel</button>
+      <button class="btn btn-g" onclick="savePreset()">Save Preset</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW PALLET MODAL -->
+<div class="modal-overlay" id="palletModal">
+  <div class="modal" style="max-width:310px;">
+    <div class="modal-title">▸ New Pallet</div>
+    <div class="form-group">
+      <label class="form-label">Pallet Name</label>
+      <input class="form-input" id="newPalletName" placeholder="e.g. Pallet A1" onkeydown="if(event.key==='Enter')confirmNewPallet()">
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-r" onclick="closePalletModal()">Cancel</button>
+      <button class="btn btn-g" onclick="confirmNewPallet()">Create</button>
+    </div>
+  </div>
+</div>
+
+<!-- HTML VIEW MODAL -->
+<div class="modal-overlay" id="htmlViewModal" style="align-items:flex-start;padding:12px;overflow-y:auto;">
+  <div class="modal" style="max-width:920px;width:100%;max-height:92vh;overflow-y:auto;">
+    <div class="modal-title">▸ Pallet Summary <button class="close-btn" onclick="closeHtmlView()">✕</button></div>
+    <div id="htmlViewContent"></div>
+    <div class="modal-actions" style="margin-top:11px;">
+      <button class="btn btn-p" onclick="printHtmlView()">Print / Save PDF</button>
+      <button class="btn" onclick="closeHtmlView()">Close</button>
+    </div>
+  </div>
+</div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>Asset Lister</h1>
+      <p>Sale Pallet Builder</p>
+    </div>
+    <div class="count-tiles">
+      <div class="count-tile">
+        <div class="ctn" id="tilePalletCount">0</div>
+        <div class="ctl">Pallet Assets</div>
+      </div>
+      <div class="count-tile global">
+        <div class="ctn" id="tileGlobalCount">0</div>
+        <div class="ctl">Total Assets</div>
+      </div>
+    </div>
+
+    <!-- Regular pallets -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Pallets
+        <button class="btn-xs" onclick="openPalletModal()">+ New</button>
+      </div>
+      <div class="pallets-list" id="palletsList"></div>
+    </div>
+
+    <!-- Damaged section (always visible, auto-created) -->
+    <div class="sidebar-section" style="padding-top:4px;">
+      <div class="damaged-section-label">⚠ Damaged</div>
+      <div class="pallets-list" id="damagedPalletList"></div>
+    </div>
+
+    <div class="sdiv" style="margin:0 13px;"></div>
+
+    <!-- Presets -->
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Model Presets
+        <div style="display:flex;gap:3px;">
+          <button class="btn-xs" onclick="openPresetModal()">+ New</button>
+          <button class="btn-xs p" onclick="exportPresets()" title="Export JSON">↑</button>
+          <label class="btn-xs p" title="Import JSON" style="cursor:pointer;">↓<input type="file" accept=".json" style="display:none;" onchange="importPresets(event)"></label>
+        </div>
+      </div>
+      <input class="preset-search" id="presetSearch" placeholder="Search presets…" oninput="renderPresetList()">
+      <div class="pallets-list" id="presetsList"></div>
+    </div>
+
+    <div class="sidebar-bottom">
+      <div class="sdiv" style="margin:0;"></div>
+      <button class="btn btn-g" onclick="exportAllXLSX()" style="width:100%;">⬇ Export Spreadsheet</button>
+      <button class="btn btn-p" onclick="openHtmlView()" style="width:100%;margin-top:3px;">◈ View All as HTML</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="no-pallet-screen" id="noPalletScreen">
+      <div class="big-icon">📦</div>
+      <h2>No Pallet Selected</h2>
+      <p style="color:var(--muted);font-size:.74rem;max-width:240px;line-height:1.7;">Create a pallet or select the Damaged section to start scanning.</p>
+      <button class="btn" onclick="openPalletModal()">+ Create First Pallet</button>
+    </div>
+
+    <div id="palletWorkspace" style="display:none;flex-direction:column;">
+      <div class="main-header">
+        <div>
+          <div class="active-pallet-name" id="headerPalletName">PALLET</div>
+          <div class="pallet-stats-txt" id="headerStats">0 ENTRIES</div>
+        </div>
+        <div id="damagedHeaderBadge"></div>
+        <div class="header-actions">
+          <button class="btn btn-r" onclick="clearCurrentPallet()" style="font-size:.58rem;padding:5px 9px;">✕ Clear</button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <div id="presetBarWrap"></div>
+
+        <!-- Weight over-limit banner -->
+        <div class="weight-warn-banner" id="weightWarnBanner">
+          <span class="wwb-icon">⚠️</span>
+          <span class="wwb-text" id="weightWarnText">Pallet weight exceeds 1,200 lbs — consider starting a new pallet</span>
+          <span style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);">Scanning continues normally</span>
+        </div>
+
+        <!-- Scan card -->
+        <div class="card">
+          <div class="card-title">Asset / Serial Scan</div>
+          <div class="scan-row">
+            <div class="scan-field">
+              <label class="scan-label">Asset Tag</label>
+              <input class="scan-input active-field" id="assetInput" placeholder="Scan 6-digit number…" onkeydown="handleScanKey(event,'asset')" onblur="handleScanBlur(event,'asset')" autocomplete="off" spellcheck="false">
+            </div>
+            <div class="scan-field">
+              <label class="scan-label">Serial Number</label>
+              <input class="scan-input" id="serialInput" placeholder="Waiting for asset tag…" onkeydown="handleScanKey(event,'serial')" onblur="handleScanBlur(event,'serial')" autocomplete="off" spellcheck="false">
+            </div>
+          </div>
+          <div class="bypass-row" style="margin-bottom:9px;">
+            <div class="bypass-item">
+              <span class="bypass-lbl">Bypass Asset Tag</span>
+              <label class="toggle-switch"><input type="checkbox" id="bypassAsset" onchange="updateBypassUI()"><span class="toggle-track"></span></label>
+            </div>
+            <div class="bypass-item">
+              <span class="bypass-lbl">Bypass Serial #</span>
+              <label class="toggle-switch"><input type="checkbox" id="bypassSerial" onchange="updateBypassUI()"><span class="toggle-track"></span></label>
+            </div>
+            <div id="bypassBadgeWrap" style="margin-left:auto;"></div>
+          </div>
+          <div class="status-bar ready" id="statusBar">
+            <div class="status-dot"></div>
+            <div class="status-text" id="statusText">Select a preset first, then scan</div>
+          </div>
+          <div class="card-title collapsible" id="logToggle" onclick="toggleSection('logToggle','logBody')" style="margin-bottom:0;">
+            <span class="caret">▾</span>Scan Log
+          </div>
+          <div id="logBody">
+            <div class="scan-log" id="scanLog">
+              <div class="log-entry" style="color:var(--muted);padding:4px 6px;">Awaiting first scan…</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Manual Entry -->
+        <div class="card">
+          <div class="card-title collapsible collapsed" id="manualToggle" onclick="toggleSection('manualToggle','manualBody')" style="margin-bottom:0;">
+            <span class="caret">▾</span>Manual Entry
+          </div>
+          <div id="manualBody" style="display:none;">
+            <div class="manual-grid">
+              <div>
+                <label class="scan-label">Description</label>
+                <input class="mini-input" id="manualDesc" placeholder="e.g. 60 × USB-C chargers" onkeydown="if(event.key==='Enter')addManualEntry()">
+              </div>
+              <div>
+                <label class="scan-label">Qty</label>
+                <input class="mini-num" id="manualQty" type="number" value="1" min="1" max="9999" onkeydown="if(event.key==='Enter')addManualEntry()">
+              </div>
+              <div>
+                <label class="scan-label">Weight (lbs)</label>
+                <input class="mini-lbs" id="manualLbs" type="number" min="0" step="0.1" placeholder="0" onkeydown="if(event.key==='Enter')addManualEntry()">
+              </div>
+              <div style="display:flex;flex-direction:column;gap:4px;">
+                <label class="scan-label">Mode</label>
+                <label class="weight-mode-toggle">
+                  <input type="checkbox" id="weightModeTotal">
+                  <span class="wmt-track"></span>
+                  <span id="weightModeLabel" style="font-size:.56rem;">Per Item</span>
+                </label>
+              </div>
+              <div>
+                <label class="scan-label">&nbsp;</label>
+                <button class="btn btn-p" onclick="addManualEntry()" style="padding:8px 12px;">+ Add</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Entries table -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px;">
+            Pallet Entries
+            <div class="stats-strip" style="margin-left:3px;">
+              <div class="stat-chip"><span class="sn" id="statPairs">0</span><span class="sl">pairs</span></div>
+              <div class="stat-chip"><span class="sn" id="statManual">0</span><span class="sl">manual</span></div>
+              <div class="stat-chip"><span class="sn" id="statDupes">0</span><span class="sl">dupes</span></div>
+              <div class="stat-chip"><span class="sn" id="statErrors">0</span><span class="sl">errors</span></div>
+            </div>
+          </div>
+          <div class="weight-bar" id="weightBar">
+            <div class="wi" id="wPalletWi"><div class="wl">Pallet Weight</div><div class="wv" id="wPallet">—</div></div>
+            <div style="color:var(--border2);">|</div>
+            <div class="wi"><div class="wl">Total Shipment</div><div class="wv" id="wTotal">—</div></div>
+            <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--warn);" id="weightNote"></div>
+          </div>
+          <div class="entry-table-wrap">
+            <table class="entry-table">
+              <thead>
+                <tr>
+                  <th style="width:20px;"></th>
+                  <th>#</th>
+                  <th>Asset Tag</th>
+                  <th>Serial / Description</th>
+                  <th>Preset</th>
+                  <th></th>
+                </tr>
+              </thead>
+              <tbody id="entryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════════
+let _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+function beep(t){
+  try{
+    const ctx=ac();
+    if(t==='tag'){
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='square';o.frequency.setValueAtTime(900,ctx.currentTime);
+      g.gain.setValueAtTime(0.09,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.07);
+      o.start();o.stop(ctx.currentTime+.07);
+    }else if(t==='pair'){
+      const o1=ctx.createOscillator(),g1=ctx.createGain(),o2=ctx.createOscillator(),g2=ctx.createGain();
+      o1.connect(g1);g1.connect(ctx.destination);o2.connect(g2);g2.connect(ctx.destination);
+      o1.type='square';o1.frequency.setValueAtTime(660,ctx.currentTime);
+      g1.gain.setValueAtTime(0.09,ctx.currentTime);g1.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.065);
+      o1.start();o1.stop(ctx.currentTime+.065);
+      o2.type='square';o2.frequency.setValueAtTime(1040,ctx.currentTime+.075);
+      g2.gain.setValueAtTime(0.09,ctx.currentTime+.075);g2.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.14);
+      o2.start(ctx.currentTime+.075);o2.stop(ctx.currentTime+.14);
+    }else if(t==='error'){
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.setValueAtTime(200,ctx.currentTime);
+      g.gain.setValueAtTime(0.11,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.18);
+      o.start();o.stop(ctx.currentTime+.18);
+    }else if(t==='dupe'){
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sawtooth';o.frequency.setValueAtTime(340,ctx.currentTime);o.frequency.linearRampToValueAtTime(200,ctx.currentTime+.14);
+      g.gain.setValueAtTime(0.09,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.14);
+      o.start();o.stop(ctx.currentTime+.14);
+    }else if(t==='manual'){
+      const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+      o.type='sine';o.frequency.setValueAtTime(580,ctx.currentTime);
+      g.gain.setValueAtTime(0.07,ctx.currentTime);g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+.09);
+      o.start();o.stop(ctx.currentTime+.09);
+    }else if(t==='overweight'){
+      // Three descending stutter beeps — urgent but not panic
+      const times=[0,.12,.24];
+      times.forEach(offset=>{
+        const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);
+        o.type='sawtooth';o.frequency.setValueAtTime(380-offset*80,ctx.currentTime+offset);
+        g.gain.setValueAtTime(0.13,ctx.currentTime+offset);
+        g.gain.exponentialRampToValueAtTime(0.001,ctx.currentTime+offset+.09);
+        o.start(ctx.currentTime+offset);o.stop(ctx.currentTime+offset+.09);
+      });
+    }
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════
+let pallets=[];   // regular pallets only
+let presets=[];
+let activePalletId=null, activePresetId=null;
+let assetPending=null, dupeCount=0, errorCount=0;
+let globalAssetTags=new Set(), globalSerials=new Set();
+let storageLogDefault=true;
+
+const PALLET_WEIGHT=50;
+const WEIGHT_LIMIT=1200;
+const DAMAGED_PALLET_ID='__damaged_pallet__';
+const DAMAGED_PRESET_ID='__damaged__';
+
+// The damaged "pallet" is a special singleton
+let damagedPallet={id:DAMAGED_PALLET_ID,name:'Damaged',entries:[],isDamaged:true};
+
+function getActivePallet(){
+  if(activePalletId===DAMAGED_PALLET_ID)return damagedPallet;
+  return pallets.find(p=>p.id===activePalletId);
+}
+function getActivePreset(){return presets.find(p=>p.id===activePresetId)||( activePresetId===DAMAGED_PRESET_ID?getDamagedPreset():null);}
+function getDamagedPreset(){return{id:DAMAGED_PRESET_ID,name:'⚠ Damaged',mfr:'',cpu:'',ram:'',storage:'',noStorage:true,weight:null,isDamaged:true};}
+function getAllPresets(){return[getDamagedPreset(),...presets];}
+
+// ══════════════════════════════════════════
+//  VALIDATION
+// ══════════════════════════════════════════
+function isValidAssetTag(v){return /^\d{6}$/.test(v);}
+function isValidSerial(v){
+  if(!/^[A-Z0-9]{7}$/i.test(v))return false;
+  if(!/[A-Z]/i.test(v))return false;
+  if(!/[0-9]/.test(v))return false;
+  return true;
+}
+
+// ══════════════════════════════════════════
+//  BYPASS UI
+// ══════════════════════════════════════════
+function updateBypassUI(){
+  const ba=document.getElementById('bypassAsset').checked;
+  const bs=document.getElementById('bypassSerial').checked;
+  const wrap=document.getElementById('bypassBadgeWrap');
+  wrap.innerHTML='';
+  if(ba||bs){
+    const p=[ba&&'ASSET',bs&&'SERIAL'].filter(Boolean).join('+');
+    wrap.innerHTML=`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,179,71,.1);border:1px solid rgba(255,179,71,.3);color:var(--warn);font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;padding:2px 8px;border-radius:8px;">⚠ Bypass: ${p}</span>`;
+  }
+  document.getElementById('assetInput').placeholder=ba?'Any value accepted…':'Scan 6-digit number…';
+  updateScanBlockState();
+}
+
+function updateScanBlockState(){
+  const hasPreset=!!activePresetId;
+  const ai=document.getElementById('assetInput'),si=document.getElementById('serialInput');
+  if(!hasPreset){
+    ai.disabled=true;si.disabled=true;
+    ai.classList.add('blocked');si.classList.add('blocked');
+    setStatus('warn','Select or create a preset before scanning');
+  }else{
+    ai.disabled=false;si.disabled=false;
+    ai.classList.remove('blocked');si.classList.remove('blocked');
+    if(!assetPending)setStatus('ready','Ready — scan or type asset tag first');
+  }
+}
+
+// ══════════════════════════════════════════
+//  WEIGHT HELPERS
+// ══════════════════════════════════════════
+function calcPalletWeight(pallet){
+  if(pallet.isDamaged)return{total:0,missing:0}; // no weight for damaged
+  let total=PALLET_WEIGHT,missing=0;
+  pallet.entries.forEach(e=>{
+    if(e.type==='pair'){
+      const preset=getAllPresets().find(p=>p.id===e.presetId);
+      if(preset&&preset.weight)total+=parseFloat(preset.weight);
+      else if(!preset?.isDamaged)missing++;
+    }else if(e.type==='manual'&&e.weight){
+      total+=e.weight;
+    }
+  });
+  return{total,missing};
+}
+
+let _lastOverweightAlerted=false;
+function checkOverweightAlert(pallet){
+  if(pallet.isDamaged)return;
+  const{total}=calcPalletWeight(pallet);
+  const banner=document.getElementById('weightWarnBanner');
+  const isOver=total>WEIGHT_LIMIT;
+  banner.classList.toggle('visible',isOver);
+  if(isOver){
+    document.getElementById('weightWarnText').textContent=
+      `⚠ Pallet weight ~${total.toFixed(0)} lbs — exceeds ${WEIGHT_LIMIT} lb limit. Consider starting a new pallet.`;
+    if(!_lastOverweightAlerted){
+      beep('overweight');
+      _lastOverweightAlerted=true;
+    }
+  }else{
+    _lastOverweightAlerted=false;
+  }
+}
+
+function updateWeightBar(){
+  const pallet=getActivePallet();
+  const wb=document.getElementById('weightBar');
+  const pwi=document.getElementById('wPalletWi');
+  if(!pallet||pallet.isDamaged){
+    document.getElementById('wPallet').textContent='—';
+    document.getElementById('wTotal').textContent='—';
+    document.getElementById('weightNote').textContent='';
+    wb.classList.remove('overweight');
+    pwi.classList.remove('danger');
+    return;
+  }
+  const pw=calcPalletWeight(pallet);
+  const isOver=pw.total>WEIGHT_LIMIT;
+  document.getElementById('wPallet').textContent=pw.total.toFixed(1)+' lbs';
+  wb.classList.toggle('overweight',isOver);
+  pwi.classList.toggle('danger',isOver);
+  let shipT=0,shipM=0;
+  pallets.forEach(p=>{const w=calcPalletWeight(p);shipT+=w.total;shipM+=w.missing;});
+  document.getElementById('wTotal').textContent=shipT.toFixed(1)+' lbs';
+  document.getElementById('weightNote').textContent=shipM>0?`⚠ ${shipM} item${shipM!==1?'s':''} missing weight`:'';
+}
+
+// ══════════════════════════════════════════
+//  SCAN LOGIC
+// ══════════════════════════════════════════
+function handleScanKey(e,field){
+  if(e.key!=='Enter'&&e.key!=='Tab')return;
+  e.preventDefault();
+  const val=e.target.value.trim().toUpperCase();
+  e.target.value='';
+  if(!val)return;
+  if(!activePresetId){setStatus('error','Select a preset before scanning');flashInput(field==='asset'?'assetInput':'serialInput','error');beep('error');return;}
+  const pallet=getActivePallet();
+  if(!pallet){setStatus('warn','No pallet selected');return;}
+  const bypassAsset=document.getElementById('bypassAsset').checked;
+  const bypassSerial=document.getElementById('bypassSerial').checked;
+
+  if(field==='asset'){
+    if(!bypassAsset&&!isValidAssetTag(val)){
+      errorCount++;updateStats();
+      setStatus('error',`INVALID — "${val}" must be exactly 6 digits`);
+      logScan('error',`Invalid asset tag: ${val}`);
+      flashInput('assetInput','error');beep('error');return;
+    }
+    if(globalAssetTags.has(val)){
+      dupeCount++;updateStats();
+      setStatus('warn',`DUPLICATE — "${val}" already exists across all pallets`);
+      logScan('warn',`Duplicate asset (global): ${val}`);
+      flashInput('assetInput','error');beep('dupe');return;
+    }
+    assetPending=val;
+    document.getElementById('assetInput').value=val;
+    document.getElementById('assetInput').classList.remove('active-field');
+    document.getElementById('assetInput').classList.add('filled-field');
+    if(bypassAsset)document.getElementById('assetInput').classList.add('bypassed');
+    document.getElementById('serialInput').classList.add('active-field');
+    document.getElementById('serialInput').placeholder=bypassSerial?'Press Enter to skip serial…':'Scan 7-char serial…';
+    setStatus('pair-ready',`Asset "${val}" captured — ${bypassSerial?'press Enter in serial field to skip':'scan serial'}`);
+    flashInput('assetInput','success');beep('tag');
+    document.getElementById('serialInput').focus();
+
+  }else if(field==='serial'){
+    if(!assetPending){setStatus('warn','Scan asset tag first');return;}
+    // If bypassSerial and empty value, auto-generate a bypass token
+    const effectiveVal=(!val&&bypassSerial)?('BYP'+Date.now().toString(36).toUpperCase().slice(-5)):val;
+    if(effectiveVal!==val)e.target.value=''; // ensure cleared
+    // reassign val to effectiveVal for rest of processing
+    const serialVal=effectiveVal||val;
+    if(!bypassSerial&&!isValidSerial(serialVal)){
+      errorCount++;updateStats();
+      setStatus('error',`INVALID — "${val}" must be 7 alphanumeric with letters + numbers`);
+      logScan('error',`Invalid serial: ${val}`);
+      flashInput('serialInput','error');beep('error');return;
+    }
+    if(globalSerials.has(serialVal)){
+      dupeCount++;updateStats();
+      setStatus('warn',`DUPLICATE — serial "${serialVal}" already exists across all pallets`);
+      logScan('warn',`Duplicate serial (global): ${serialVal}`);
+      flashInput('serialInput','error');beep('dupe');return;
+    }
+    globalAssetTags.add(assetPending);globalSerials.add(serialVal);
+    const preset=getActivePreset();
+    const isDamaged=!!(preset&&preset.isDamaged);
+    const entry={
+      id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+      type:'pair',asset:assetPending,serial:serialVal,
+      bypassAsset,bypassSerial,
+      presetId:activePresetId,
+      storageNone:!storageLogDefault,
+      isDamaged
+    };
+    // Fix 1: Always route damaged preset to damagedPallet regardless of which pallet is open
+    const targetPallet=isDamaged?damagedPallet:pallet;
+    const firstManual=targetPallet.entries.findIndex(e=>e.type==='manual');
+    if(firstManual===-1)targetPallet.entries.push(entry);
+    else targetPallet.entries.splice(firstManual,0,entry);
+
+    const dmgNote=isDamaged?' [→ Damaged section]':'';
+    setStatus('success',`${isDamaged?'[DAMAGED]'+dmgNote+' ':''}PAIR LOGGED — ${assetPending} / ${serialVal}`);
+    logScan('pair',`${isDamaged?'[DMG→Damaged] ':''}Pair: ${assetPending} → ${serialVal}`);
+    flashInput('serialInput','success');beep('pair');
+
+    assetPending=null;
+    document.getElementById('assetInput').value='';
+    document.getElementById('assetInput').className='scan-input active-field';
+    document.getElementById('serialInput').className='scan-input';
+    document.getElementById('serialInput').placeholder='Waiting for asset tag…';
+    document.getElementById('assetInput').focus();
+    if(!isDamaged)checkOverweightAlert(pallet);
+    renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();
+  }
+}
+
+function handleScanBlur(e,field){
+  if(!e.target.value.trim())return;
+  // Use relatedTarget (available synchronously on blur) to know where focus is going
+  const goingTo=e.relatedTarget;
+  const assetEl=document.getElementById('assetInput');
+  const serialEl=document.getElementById('serialInput');
+  if(field==='asset'){
+    // Always process asset tag on blur — whether clicking serial or anywhere else
+    const fakeEvent={key:'Enter',preventDefault:()=>{},target:e.target};
+    handleScanKey(fakeEvent,field);
+  }else if(field==='serial'){
+    // Only process serial if focus is NOT going back to the asset field
+    if(goingTo===assetEl)return;
+    const fakeEvent={key:'Enter',preventDefault:()=>{},target:e.target};
+    handleScanKey(fakeEvent,field);
+  }
+}
+
+function setStatus(t,m){document.getElementById('statusBar').className='status-bar '+t;document.getElementById('statusText').textContent=m;}
+function flashInput(id,t){
+  const el=document.getElementById(id);
+  el.classList.remove('flash-success','flash-error');void el.offsetWidth;
+  el.classList.add(t==='success'?'flash-success':'flash-error');
+  setTimeout(()=>el.classList.remove('flash-success','flash-error'),400);
+}
+
+// ══════════════════════════════════════════
+//  SCAN LOG
+// ══════════════════════════════════════════
+function logScan(t,m){
+  const log=document.getElementById('scanLog');
+  const ts=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d=document.createElement('div');d.className='log-entry '+t;
+  d.innerHTML=`<span class="log-time">${ts}</span><span>${escHtml(m)}</span>`;
+  const ph=log.querySelector('div:not(.ok):not(.pair):not(.warn):not(.error):not(.manual)');
+  if(ph)ph.remove();
+  log.insertBefore(d,log.firstChild);
+  while(log.children.length>80)log.removeChild(log.lastChild);
+}
+
+function toggleSection(toggleId,bodyId){
+  const t=document.getElementById(toggleId),b=document.getElementById(bodyId);
+  t.classList.toggle('collapsed');b.style.display=t.classList.contains('collapsed')?'none':'';
+}
+document.addEventListener('change',e=>{if(e.target.id==='weightModeTotal')document.getElementById('weightModeLabel').textContent=e.target.checked?'Total':'Per Item';});
+
+// ══════════════════════════════════════════
+//  MANUAL ENTRY
+// ══════════════════════════════════════════
+function addManualEntry(){
+  const pallet=getActivePallet();
+  if(!pallet){alert('Select a pallet first.');return;}
+  const desc=document.getElementById('manualDesc').value.trim();
+  const qty=parseInt(document.getElementById('manualQty').value)||1;
+  const lbsRaw=parseFloat(document.getElementById('manualLbs').value)||0;
+  const totalMode=document.getElementById('weightModeTotal').checked;
+  if(!desc){document.getElementById('manualDesc').focus();return;}
+  const weightTotal=totalMode?lbsRaw:(lbsRaw*qty);
+  pallet.entries.push({
+    id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+    type:'manual',description:desc,qty,
+    weight:lbsRaw>0?weightTotal:null,
+    presetId:null // manual entries don't inherit preset
+  });
+  document.getElementById('manualDesc').value='';
+  document.getElementById('manualQty').value=1;
+  document.getElementById('manualLbs').value='';
+  logScan('manual',`Manual: ${qty}× ${desc}`);beep('manual');
+  checkOverweightAlert(pallet);
+  renderEntries();updateStats();updateHeaderStats();updateTiles();
+}
+
+// ══════════════════════════════════════════
+//  ENTRIES TABLE + DRAG
+// ══════════════════════════════════════════
+let dragSrcIdx=null;
+function renderEntries(){
+  const pallet=getActivePallet();
+  const tbody=document.getElementById('entryTableBody');
+  if(!pallet||pallet.entries.length===0){tbody.innerHTML='<tr><td colspan="6"><div class="empty-state">NO ENTRIES YET</div></td></tr>';updateWeightBar();return;}
+  tbody.innerHTML=pallet.entries.map((e,i)=>{
+    const preset=getAllPresets().find(p=>p.id===e.presetId);
+    const isDmg=e.isDamaged||preset?.isDamaged;
+    const ptag=preset?`<span class="preset-tag${isDmg?' dmg':''}">${escHtml(preset.name)}</span>`:'';
+    const ra=`draggable="true" ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event,${i})" ondrop="onDrop(event,${i})" ondragleave="onDragLeave(event)"`;
+    if(e.type==='pair'){
+      const aC='e-asset'+(e.bypassAsset?' e-bypass':'')+(isDmg?' e-damaged':'');
+      const sC='e-serial'+(e.bypassSerial?' e-bypass':'')+(isDmg?' e-damaged':'');
+      return `<tr ${ra}><td><span class="drag-handle">⠿</span></td><td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.64rem;">${i+1}</td><td class="${aC}">${escHtml(e.asset)}${e.bypassAsset?'<span style="font-size:.54rem;color:var(--warn);margin-left:2px;">[B]</span>':''}</td><td class="${sC}">${escHtml(e.serial)}${e.bypassSerial?'<span style="font-size:.54rem;color:var(--warn);margin-left:2px;">[B]</span>':''}</td><td>${ptag}</td><td><button class="e-del" onclick="deleteEntry('${e.id}')">✕</button></td></tr>`;
+    }else{
+      const wt=e.weight?` <span style="color:var(--warn);font-size:.6rem;">(${e.weight.toFixed(1)}lbs)</span>`:'';
+      return `<tr ${ra}><td><span class="drag-handle">⠿</span></td><td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.64rem;">${i+1}</td><td class="e-manual" colspan="2"><span style="color:var(--muted);font-size:.8rem;margin-right:4px;">×${e.qty}</span>${escHtml(e.description)}${wt}</td><td></td><td><button class="e-del" onclick="deleteEntry('${e.id}')">✕</button></td></tr>`;
+    }
+  }).join('');
+  updateWeightBar();
+}
+function onDragStart(e,i){dragSrcIdx=i;e.currentTarget.classList.add('dragging');}
+function onDragOver(e,i){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function onDrop(e,i){
+  e.preventDefault();e.currentTarget.classList.remove('drag-over');
+  const pallet=getActivePallet();
+  if(!pallet||dragSrcIdx===null||dragSrcIdx===i){dragSrcIdx=null;return;}
+  const[moved]=pallet.entries.splice(dragSrcIdx,1);pallet.entries.splice(i,0,moved);
+  dragSrcIdx=null;renderEntries();
+}
+function deleteEntry(id){
+  const pallet=getActivePallet();if(!pallet)return;
+  const idx=pallet.entries.findIndex(e=>String(e.id)===String(id));if(idx===-1)return;
+  const e=pallet.entries[idx];
+  if(e.type==='pair'){globalAssetTags.delete(e.asset);globalSerials.delete(e.serial);}
+  pallet.entries.splice(idx,1);
+  renderEntries();updateStats();updateHeaderStats();updateTiles();checkOverweightAlert(pallet);
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ══════════════════════════════════════════
+//  STATS + TILES
+// ══════════════════════════════════════════
+function updateStats(){
+  const p=getActivePallet();
+  document.getElementById('statPairs').textContent=p?p.entries.filter(e=>e.type==='pair').length:0;
+  document.getElementById('statManual').textContent=p?p.entries.filter(e=>e.type==='manual').length:0;
+  document.getElementById('statDupes').textContent=dupeCount;
+  document.getElementById('statErrors').textContent=errorCount;
+}
+function updateTiles(){
+  const p=getActivePallet();
+  document.getElementById('tilePalletCount').textContent=p?p.entries.filter(e=>e.type==='pair').length:0;
+  const allPairs=pallets.reduce((a,pp)=>a+pp.entries.filter(e=>e.type==='pair').length,0);
+  document.getElementById('tileGlobalCount').textContent=allPairs+damagedPallet.entries.filter(e=>e.type==='pair').length;
+}
+
+// ══════════════════════════════════════════
+//  PRESET BAR
+// ══════════════════════════════════════════
+function renderPresetBar(){
+  const wrap=document.getElementById('presetBarWrap');
+  const preset=getActivePreset();
+  if(preset){
+    const isDmg=preset.isDamaged;
+    const hasRealStorage=!preset.noStorage&&preset.storage;
+    let storagePill='';
+    if(!isDmg&&hasRealStorage){
+      storagePill=storageLogDefault
+        ?`<span class="drive-pill dp-ok" onclick="toggleStorageLog()" title="Click to log None instead"><span class="dp-dot"></span>${preset.storage} GB</span>`
+        :`<span class="drive-pill dp-none" onclick="toggleStorageLog()" title="Click to log size instead"><span class="dp-dot"></span>No Drive</span>`;
+    }else if(!isDmg&&preset.noStorage){
+      storagePill=`<span class="drive-pill dp-none" title="No storage"><span class="dp-dot"></span>No Drive</span>`;
+    }
+    const details=isDmg?'Asset + Serial only':[preset.mfr,preset.cpu,preset.ram?preset.ram+' GB RAM':''].filter(Boolean).join(' · ');
+    wrap.innerHTML=`<div class="preset-bar active-p${isDmg?' damaged':''}">
+      <span class="pb-label">Preset ▸</span>
+      <span class="pb-name" style="${isDmg?'color:var(--danger)':''}">${escHtml(preset.name)}</span>
+      <span class="pb-detail">${escHtml(details)}</span>
+      ${storagePill}
+      <button class="btn" style="padding:2px 7px;font-size:.56rem;" onclick="clearActivePreset()">✕</button>
+    </div>`;
+  }else{
+    wrap.innerHTML=`<div class="preset-bar no-p" onclick="openPresetModal()">
+      <span class="pb-label">⛔ No Preset Selected</span>
+      <span class="pb-name" style="color:var(--muted);font-size:.72rem;">Scanning is blocked — select or create a preset to continue</span>
+    </div>`;
+  }
+  updateScanBlockState();
+}
+function toggleStorageLog(){storageLogDefault=!storageLogDefault;renderPresetBar();}
+
+// ══════════════════════════════════════════
+//  PALLETS
+// ══════════════════════════════════════════
+function openPalletModal(){document.getElementById('newPalletName').value='';document.getElementById('palletModal').classList.add('open');setTimeout(()=>document.getElementById('newPalletName').focus(),50);}
+function closePalletModal(){document.getElementById('palletModal').classList.remove('open');}
+function confirmNewPallet(){
+  const name=document.getElementById('newPalletName').value.trim();
+  if(!name){document.getElementById('newPalletName').focus();return;}
+  const pallet={id:'p_'+Date.now(),name,entries:[]};
+  pallets.push(pallet);closePalletModal();selectPallet(pallet.id);renderPalletList();
+}
+
+function selectPallet(id){
+  activePalletId=id;
+  assetPending=null;dupeCount=0;errorCount=0;_lastOverweightAlerted=false;
+  rebuildGlobalSets();
+  document.getElementById('noPalletScreen').style.display='none';
+  document.getElementById('palletWorkspace').style.display='flex';
+  const pallet=getActivePallet();
+  const isDmg=pallet&&pallet.isDamaged;
+  // Damaged header badge
+  document.getElementById('damagedHeaderBadge').innerHTML=isDmg?'<span class="damaged-header-badge">⚠ Damaged Assets — No Weight Calculated</span>':'';
+  // Weight bar visibility
+  document.getElementById('weightBar').style.display=isDmg?'none':'';
+  document.getElementById('weightWarnBanner').classList.remove('visible');
+  updateHeaderStats();renderPalletList();renderDamagedPalletList();renderEntries();updateStats();updateTiles();
+  document.getElementById('assetInput').value='';document.getElementById('serialInput').value='';
+  document.getElementById('assetInput').className='scan-input active-field';
+  document.getElementById('serialInput').className='scan-input';
+  document.getElementById('serialInput').placeholder='Waiting for asset tag…';
+  document.getElementById('scanLog').innerHTML='<div class="log-entry" style="color:var(--muted);padding:4px 6px;">Switched — awaiting scan…</div>';
+  renderPresetBar();
+  if(activePresetId)document.getElementById('assetInput').focus();
+}
+
+function rebuildGlobalSets(){
+  globalAssetTags=new Set();globalSerials=new Set();
+  const all=[...pallets,damagedPallet];
+  all.forEach(p=>p.entries.forEach(e=>{if(e.type==='pair'){globalAssetTags.add(e.asset);globalSerials.add(e.serial);}}));
+}
+
+function deletePallet(id){
+  if(!confirm('Delete this pallet and all its entries?'))return;
+  pallets=pallets.filter(p=>p.id!==id);rebuildGlobalSets();
+  if(activePalletId===id){activePalletId=null;document.getElementById('palletWorkspace').style.display='none';document.getElementById('noPalletScreen').style.display='flex';}
+  renderPalletList();updateTiles();
+}
+
+function renderPalletList(){
+  const list=document.getElementById('palletsList');
+  if(pallets.length===0){list.innerHTML='<div style="color:var(--muted);font-size:.66rem;padding:4px 8px;font-family:Share Tech Mono,monospace;">No pallets yet</div>';return;}
+  list.innerHTML=pallets.map(p=>{
+    const cnt=p.entries.filter(e=>e.type==='pair').length;
+    return `<div class="pallet-item${p.id===activePalletId?' active':''}" onclick="selectPallet('${p.id}')">
+      <div class="pallet-dot"></div>
+      <span class="pallet-name">${escHtml(p.name)}</span>
+      <span class="pallet-count">${cnt}</span>
+      <button class="pallet-del" onclick="event.stopPropagation();deletePallet('${p.id}')" title="Delete">✕</button>
+    </div>`;
+  }).join('');
+}
+
+function renderDamagedPalletList(){
+  const list=document.getElementById('damagedPalletList');
+  const cnt=damagedPallet.entries.filter(e=>e.type==='pair').length;
+  const isActive=activePalletId===DAMAGED_PALLET_ID;
+  list.innerHTML=`<div class="pallet-item damaged-pallet-item${isActive?' active':''}" onclick="selectPallet('${DAMAGED_PALLET_ID}')">
+    <div class="pallet-dot"></div>
+    <span class="pallet-name">Damaged</span>
+    <span class="pallet-count" style="${isActive?'background:rgba(255,45,85,.15);color:var(--danger);':''}">${cnt}</span>
+  </div>`;
+}
+
+function updateHeaderStats(){
+  const p=getActivePallet();if(!p)return;
+  document.getElementById('headerPalletName').textContent=p.name.toUpperCase();
+  const pairs=p.entries.filter(e=>e.type==='pair').length;
+  const manual=p.entries.filter(e=>e.type==='manual').length;
+  document.getElementById('headerStats').textContent=`${pairs} PAIR${pairs!==1?'S':''} · ${manual} MANUAL`;
+}
+
+function clearCurrentPallet(){
+  const p=getActivePallet();
+  if(!p||p.entries.length===0)return;
+  if(!confirm(`Clear all entries from "${p.name}"?`))return;
+  p.entries=[];rebuildGlobalSets();assetPending=null;dupeCount=0;errorCount=0;_lastOverweightAlerted=false;
+  document.getElementById('assetInput').value='';document.getElementById('serialInput').value='';
+  document.getElementById('assetInput').className='scan-input active-field';
+  document.getElementById('serialInput').className='scan-input';document.getElementById('serialInput').placeholder='Waiting for asset tag…';
+  document.getElementById('weightWarnBanner').classList.remove('visible');
+  setStatus('ready','Ready — pallet cleared');renderEntries();updateStats();updateHeaderStats();updateTiles();
+}
+
+// ══════════════════════════════════════════
+//  PRESETS
+// ══════════════════════════════════════════
+function onMfrChange(){
+  const mfr=document.getElementById('pm_mfr').value.trim().toLowerCase();
+  document.getElementById('dellSerialSection').style.display=mfr==='dell'?'block':'none';
+}
+function updateDellLink(){
+  const s=document.getElementById('dellSerialInput').value.trim();
+  const l=document.getElementById('dellSupportLink');
+  if(s){l.href=`https://www.dell.com/support/product-details/en-us/servicetag/${encodeURIComponent(s)}/overview`;l.classList.remove('hidden');}
+  else l.classList.add('hidden');
+}
+function toggleStorageField(){
+  const n=document.getElementById('pm_no_storage').checked;
+  document.getElementById('storageFieldGroup').style.opacity=n?'.35':'1';
+  document.getElementById('pm_storage').disabled=n;
+}
+function clearWeightNag(){
+  document.getElementById('weightHint').className='form-hint';
+  document.getElementById('weightHint').textContent='Helps calculate shipping weight';
+  document.getElementById('pm_weight').classList.remove('wb');
+  document.getElementById('pm_weight').removeAttribute('data-nagged');
+}
+let editingPresetId=null;
+function openEditPresetModal(id){
+  const p=presets.find(pr=>pr.id===id);if(!p)return;
+  editingPresetId=id;
+  document.getElementById('pm_name').value=p.name||'';
+  document.getElementById('pm_mfr').value=p.mfr||'';
+  document.getElementById('pm_cpu').value=p.cpu||'';
+  document.getElementById('pm_ram').value=p.ram||'';
+  document.getElementById('pm_storage').value=p.storage||'';
+  document.getElementById('pm_weight').value=p.weight||'';
+  document.getElementById('pm_no_storage').checked=!!p.noStorage;
+  toggleStorageField();onMfrChange();clearWeightNag();
+  document.getElementById('dellSerialInput').value='';
+  document.getElementById('dellSupportLink').classList.add('hidden');
+  document.getElementById('presetModal').classList.add('open');
+  document.getElementById('presetModalTitle').textContent='▸ Edit Preset';
+  setTimeout(()=>document.getElementById('pm_name').focus(),50);
+}
+function openPresetModal(){
+  ['pm_name','pm_mfr','pm_cpu'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('pm_ram').value='';document.getElementById('pm_storage').value='';document.getElementById('pm_weight').value='';
+  document.getElementById('pm_no_storage').checked=false;
+  document.getElementById('storageFieldGroup').style.opacity='1';document.getElementById('pm_storage').disabled=false;
+  clearWeightNag();
+  document.getElementById('dellSerialSection').style.display='none';
+  document.getElementById('dellSerialInput').value='';document.getElementById('dellSupportLink').classList.add('hidden');
+  editingPresetId=null;
+  document.getElementById('presetModal').classList.add('open');
+  document.getElementById('presetModalTitle').textContent='▸ Define Model Preset';
+  setTimeout(()=>document.getElementById('pm_name').focus(),50);
+}
+function closePresetModal(){editingPresetId=null;document.getElementById('presetModal').classList.remove('open');}
+function savePreset(){
+  const name=document.getElementById('pm_name').value.trim();
+  if(!name){document.getElementById('pm_name').focus();return;}
+  const noStorage=document.getElementById('pm_no_storage').checked;
+  const wtRaw=document.getElementById('pm_weight').value.trim();
+  const weight=wtRaw?parseFloat(wtRaw):null;
+  if(!wtRaw&&!document.getElementById('pm_weight').getAttribute('data-nagged')){
+    document.getElementById('weightHint').className='form-hint wh';
+    document.getElementById('weightHint').textContent='⚠ No weight — shipping calc incomplete. Click Save again to proceed.';
+    document.getElementById('pm_weight').classList.add('wb');
+    document.getElementById('pm_weight').setAttribute('data-nagged','1');return;
+  }
+  if(editingPresetId){
+    // Edit existing preset
+    const idx=presets.findIndex(p=>p.id===editingPresetId);
+    if(idx!==-1){
+      presets[idx]={...presets[idx],name,mfr:document.getElementById('pm_mfr').value.trim(),cpu:document.getElementById('pm_cpu').value.trim(),ram:document.getElementById('pm_ram').value.trim(),storage:noStorage?'':document.getElementById('pm_storage').value.trim(),noStorage,weight};
+    }
+    closePresetModal();renderPresetList();renderPresetBar();
+  }else{
+    const preset={id:'pr_'+Date.now(),name,mfr:document.getElementById('pm_mfr').value.trim(),cpu:document.getElementById('pm_cpu').value.trim(),ram:document.getElementById('pm_ram').value.trim(),storage:noStorage?'':document.getElementById('pm_storage').value.trim(),noStorage,weight};
+    presets.push(preset);activePresetId=preset.id;storageLogDefault=!noStorage;
+    closePresetModal();renderPresetList();renderPresetBar();
+  }
+}
+function selectPreset(id){activePresetId=id;storageLogDefault=true;renderPresetList();renderPresetBar();const ai=document.getElementById('assetInput');if(ai&&!ai.disabled)setTimeout(()=>ai.focus(),50);}
+function clearActivePreset(){activePresetId=null;renderPresetList();renderPresetBar();}
+function deletePreset(id){
+  if(!confirm('Delete this preset?'))return;
+  presets=presets.filter(p=>p.id!==id);
+  if(activePresetId===id){activePresetId=null;renderPresetBar();}
+  renderPresetList();
+}
+function renderPresetList(){
+  const list=document.getElementById('presetsList');
+  const q=(document.getElementById('presetSearch').value||'').toLowerCase().trim();
+  const all=getAllPresets();
+  const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)||(p.mfr&&p.mfr.toLowerCase().includes(q))):all;
+  if(filtered.length===0){list.innerHTML=`<div style="color:var(--muted);font-size:.66rem;padding:4px 8px;font-family:Share Tech Mono,monospace;">${q?'No matches':'No presets yet'}</div>`;return;}
+  list.innerHTML=filtered.map(p=>{
+    const isBuiltin=p.isDamaged;const noW=!isBuiltin&&!p.weight;
+    return `<div class="preset-item${p.id===activePresetId?' active':''}${p.isDamaged?' damaged-preset':''}" onclick="selectPreset('${p.id}')">
+      <span class="preset-name">${escHtml(p.name)}</span>
+      ${noW?'<span class="no-weight-warn" title="No weight set">⚠</span>':''}
+      ${!isBuiltin?`<button class="edit-btn" onclick="event.stopPropagation();openEditPresetModal('${p.id}')" title="Edit preset">✎</button><button class="del-btn" onclick="event.stopPropagation();deletePreset('${p.id}')" title="Delete">✕</button>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════
+//  PRESET I/O
+// ══════════════════════════════════════════
+function exportPresets(){if(presets.length===0){alert('No custom presets to export.');return;}download('AssetPresets_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(presets,null,2),'application/json');}
+function importPresets(event){
+  const file=event.target.files[0];if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const imp=JSON.parse(e.target.result);if(!Array.isArray(imp))throw new Error('Expected JSON array');
+      let added=0;imp.forEach(p=>{if(p.name){p.id='pr_'+Date.now()+'_'+Math.random().toString(36).slice(2);presets.push(p);added++;}});
+      alert(`Imported ${added} preset${added!==1?'s':''}.`);renderPresetList();
+    }catch(err){alert('Import failed: '+err.message);}
+  };
+  reader.readAsText(file);event.target.value='';
+}
+
+// ══════════════════════════════════════════
+//  XLSX-STYLE MULTI-TAB EXPORT
+//  Uses a real .xlsx file via SheetJS (CDN)
+// ══════════════════════════════════════════
+function loadSheetJS(cb){
+  if(window.XLSX){cb();return;}
+  const s=document.createElement('script');
+  s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+  s.onload=cb;s.onerror=()=>alert('Could not load SheetJS library. Check internet connection.');
+  document.head.appendChild(s);
+}
+
+function fmtDate(){
+  const d=new Date();
+  const mm=String(d.getMonth()+1).padStart(2,'0');
+  const dd=String(d.getDate()).padStart(2,'0');
+  const yyyy=d.getFullYear();
+  return `${mm}-${dd}-${yyyy}`;
+}
+
+function exportAllXLSX(){
+  const allReg=pallets.filter(p=>p.entries.length>0||true); // include even empty
+  if(allReg.length===0&&damagedPallet.entries.length===0){alert('No data to export.');return;}
+  loadSheetJS(()=>{
+    const wb=XLSX.utils.book_new();
+
+    // ── Regular pallet sheets (one per pallet) ──
+    pallets.forEach(pallet=>{
+      const rows=[];
+      // Header row
+      rows.push(['Asset Tag','Serial Number','Manufacturer','Model','CPU','RAM','Storage']);
+      pallet.entries.forEach(e=>{
+        const preset=getAllPresets().find(p=>p.id===e.presetId);
+        if(e.type==='pair'){
+          const mfr=preset?.mfr||'';
+          const model=preset?.name||'';
+          const cpu=preset?.cpu||'';
+          const ram=preset?.ram?preset.ram+' GB':'';
+          let storage='';
+          if(preset)storage=(preset.noStorage||e.storageNone)?'None':(preset.storage?preset.storage+' GB':'');
+          rows.push([e.asset,e.serial,mfr,model,cpu,ram,storage]);
+        }
+      });
+      // Manual entries at the bottom — in Asset Tag column as "Description x qty"
+      pallet.entries.filter(e=>e.type==='manual').forEach(e=>{
+        rows.push([`${e.qty} x ${e.description}`,'','','','','','']);
+      });
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      // Column widths
+      ws['!cols']=[{wch:12},{wch:12},{wch:16},{wch:24},{wch:14},{wch:8},{wch:10}];
+      const sheetName=pallet.name.substring(0,31).replace(/[\\/?*[\]]/g,'');
+      XLSX.utils.book_append_sheet(wb,ws,sheetName);
+    });
+
+    // ── Damaged sheet (second to last) ──
+    if(damagedPallet.entries.length>0){
+      const rows=[['Asset Tag','Serial Number']];
+      damagedPallet.entries.forEach(e=>{
+        if(e.type==='pair')rows.push([e.asset,e.serial]);
+      });
+      damagedPallet.entries.filter(e=>e.type==='manual').forEach(e=>{
+        rows.push([`${e.qty} x ${e.description}`,'']);
+      });
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:12},{wch:12}];
+      XLSX.utils.book_append_sheet(wb,ws,'Damaged');
+    }
+
+    // ── Weight Summary sheet (last) ──
+    {
+      const rows=[];
+      rows.push(['Pallet','Est. Total Weight (lbs)','Notes']);
+      let grandTotal=0;
+      pallets.forEach(pallet=>{
+        const{total,missing}=calcPalletWeight(pallet);
+        rows.push([pallet.name,parseFloat(total.toFixed(1)),missing>0?`${missing} items missing weight`:'']);
+        grandTotal+=total;
+      });
+      rows.push(['']);
+      rows.push(['TOTAL SHIPMENT WEIGHT',parseFloat(grandTotal.toFixed(1)),'']);
+      rows.push(['']);
+      rows.push(['Note: Each pallet weight includes 50 lb pallet hardware. Damaged assets excluded.']);
+      const ws=XLSX.utils.aoa_to_sheet(rows);
+      ws['!cols']=[{wch:24},{wch:24},{wch:32}];
+      XLSX.utils.book_append_sheet(wb,ws,'Weight Summary');
+    }
+
+    XLSX.writeFile(wb,`Assets_Pending_Sale_${fmtDate()}.xlsx`);
+  });
+}
+
+function download(filename,content,type){
+  const blob=new Blob([content],{type});const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);
+}
+
+// ══════════════════════════════════════════
+//  HTML VIEW
+// ══════════════════════════════════════════
+function openHtmlView(){
+  if(pallets.length===0&&damagedPallet.entries.length===0){alert('No data to view.');return;}
+  document.getElementById('htmlViewContent').innerHTML=buildHtmlView();
+  document.getElementById('htmlViewModal').classList.add('open');
+}
+function closeHtmlView(){document.getElementById('htmlViewModal').classList.remove('open');}
+
+function buildHtmlView(){
+  const ts=new Date().toLocaleString();
+  let shipT=0,shipM=0;pallets.forEach(p=>{const w=calcPalletWeight(p);shipT+=w.total;shipM+=w.missing;});
+  const totalPairs=pallets.reduce((a,p)=>a+p.entries.filter(e=>e.type==='pair').length,0);
+  const dmgPairs=damagedPallet.entries.filter(e=>e.type==='pair').length;
+
+  let html=`<div style="font-family:monospace;font-size:.76rem;">
+  <div style="color:#00e5ff;font-size:.9rem;letter-spacing:3px;margin-bottom:3px;">ASSET SALE EXPORT</div>
+  <div style="color:#4a5568;margin-bottom:9px;font-size:.64rem;">${ts}</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;border:1px solid #1c2432;border-radius:7px;padding:9px 13px;background:#0d1117;margin-bottom:14px;">
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">For Sale</div><div style="color:#39ff14;font-size:1.2rem;">${totalPairs}</div></div>
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">Pallets</div><div style="color:#00e5ff;font-size:1.2rem;">${pallets.length}</div></div>
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">Est. Shipment Weight</div><div style="color:#ffb347;font-size:1.2rem;">${shipT.toFixed(1)} lbs${shipM>0?` <span style="font-size:.58rem;color:#ff6b35;">⚠ ${shipM} missing</span>`:''}</div></div>
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">Damaged (not for sale)</div><div style="color:#ff2d55;font-size:1.2rem;">${dmgPairs}</div></div>
+  </div>`;
+
+  const allPalletsForView=[...pallets];
+
+  allPalletsForView.forEach(pallet=>{
+    const pairs=pallet.entries.filter(e=>e.type==='pair').length;
+    const manual=pallet.entries.filter(e=>e.type==='manual').length;
+    const pw=calcPalletWeight(pallet);
+    html+=`<div style="border:1px solid #1c2432;border-radius:7px;margin-bottom:11px;overflow:hidden;">
+    <div style="background:#141b24;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="color:#00e5ff;font-size:.83rem;letter-spacing:2px;">${escHtml(pallet.name)}</span>
+      <span style="color:#4a5568;font-size:.64rem;">${pairs} pairs · ${manual} manual</span>
+      <span style="color:#ffb347;font-size:.64rem;margin-left:auto;">~${pw.total.toFixed(1)} lbs${pw.missing>0?' ⚠ '+pw.missing+' missing':''}</span>
+    </div>`;
+    if(pallet.entries.length===0){html+=`<div style="padding:13px;color:#4a5568;text-align:center;">— empty —</div>`;}
+    else{
+      html+=`<table style="width:100%;border-collapse:collapse;font-size:.7rem;"><thead><tr style="background:#0d1117;">
+        ${['#','Asset Tag','Serial','Preset','RAM','Storage'].map(h=>`<th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">${h}</th>`).join('')}
+      </tr></thead><tbody>`;
+      pallet.entries.forEach((e,i)=>{
+        const preset=getAllPresets().find(p=>p.id===e.presetId);
+        const pName=preset?preset.name:'—';
+        let storageTxt='—';if(preset)storageTxt=(preset.noStorage||e.storageNone)?'None':(preset.storage?preset.storage+' GB':'—');
+        const ram=preset?.ram?preset.ram+' GB':'—';
+        if(e.type==='pair'){
+          html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#4a5568;">${i+1}</td><td style="padding:5px 9px;color:#00e5ff;letter-spacing:2px;">${escHtml(e.asset)}</td><td style="padding:5px 9px;color:#39ff14;letter-spacing:2px;">${escHtml(e.serial)}</td><td style="padding:5px 9px;color:#a855f7;font-size:.64rem;">${escHtml(pName)}</td><td style="padding:5px 9px;color:#c8d6e5;">${escHtml(ram)}</td><td style="padding:5px 9px;color:#c8d6e5;">${escHtml(storageTxt)}</td></tr>`;
+        }else{
+          html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#4a5568;">${i+1}</td><td style="padding:5px 9px;color:#a855f7;" colspan="5">${escHtml(e.description)} ×${e.qty}</td></tr>`;
+        }
+      });
+      html+=`</tbody></table>`;
+    }
+    html+=`</div>`;
+  });
+
+  // Damaged section
+  if(damagedPallet.entries.length>0){
+    const dp=damagedPallet;const pairs=dp.entries.filter(e=>e.type==='pair').length;
+    html+=`<div style="border:1px solid rgba(255,45,85,.25);border-radius:7px;margin-bottom:11px;overflow:hidden;">
+    <div style="background:rgba(255,45,85,.07);padding:8px 12px;display:flex;align-items:center;gap:10px;">
+      <span style="color:#ff2d55;font-size:.83rem;letter-spacing:2px;">⚠ DAMAGED</span>
+      <span style="color:#4a5568;font-size:.64rem;">${pairs} assets — not for sale, weight excluded</span>
+    </div>
+    <table style="width:100%;border-collapse:collapse;font-size:.7rem;"><thead><tr style="background:#0d1117;"><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">#</th><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">Asset Tag</th><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">Serial</th></tr></thead><tbody>`;
+    dp.entries.forEach((e,i)=>{
+      if(e.type==='pair')html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#4a5568;">${i+1}</td><td style="padding:5px 9px;color:#ff2d55;letter-spacing:2px;">${escHtml(e.asset)}</td><td style="padding:5px 9px;color:#ff2d55;letter-spacing:2px;">${escHtml(e.serial)}</td></tr>`;
+    });
+    html+=`</tbody></table></div>`;
+  }
+
+  // Weight summary
+  html+=`<div style="border:1px solid #1c2432;border-radius:7px;overflow:hidden;">
+  <div style="background:#141b24;padding:8px 12px;"><span style="color:#ffb347;font-size:.83rem;letter-spacing:2px;">WEIGHT SUMMARY</span></div>
+  <table style="width:100%;border-collapse:collapse;font-size:.7rem;"><thead><tr style="background:#0d1117;">
+    ${['Pallet','Asset Weight','+ Pallet HW','= Total Est.','Missing'].map(h=>`<th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">${h}</th>`).join('')}
+  </tr></thead><tbody>`;
+  let gTotal=0;
+  pallets.forEach(p=>{
+    const{total,missing}=calcPalletWeight(p);gTotal+=total;
+    html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#00e5ff;">${escHtml(p.name)}</td><td style="padding:5px 9px;color:#c8d6e5;">${(total-PALLET_WEIGHT).toFixed(1)} lbs</td><td style="padding:5px 9px;color:#4a5568;">+${PALLET_WEIGHT} lbs</td><td style="padding:5px 9px;color:#ffb347;">${total.toFixed(1)} lbs</td><td style="padding:5px 9px;color:${missing>0?'#ff6b35':'#4a5568'};">${missing>0?missing+' items':'—'}</td></tr>`;
+  });
+  html+=`<tr style="background:#141b24;"><td style="padding:6px 9px;color:#ffb347;font-weight:bold;">TOTAL</td><td colspan="2" style="padding:6px 9px;"></td><td style="padding:6px 9px;color:#ffb347;font-weight:bold;">${gTotal.toFixed(1)} lbs</td><td></td></tr>`;
+  html+=`</tbody></table></div></div>`;
+  return html;
+}
+
+function printHtmlView(){
+  const c=document.getElementById('htmlViewContent').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Asset Sale Export</title><style>body{background:#080b0f;color:#c8d6e5;font-family:monospace;padding:20px;}@media print{body{background:#fff;color:#000;}}</style></head><body>${c}</body></html>`);
+  w.document.close();w.print();
+}
+
+// ══════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════
+renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();
+</script>
+</body>
+</html>
