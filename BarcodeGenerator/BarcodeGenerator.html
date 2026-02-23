@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Label Generator</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jsbarcode/3.11.5/JsBarcode.all.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;600;700;800&display=swap');
+
+  :root {
+    --bg: #0a0c10;
+    --surface: #0f1318;
+    --border: #1e2530;
+    --accent: #00e5ff;
+    --accent2: #39ff14;
+    --warn: #ff6b35;
+    --danger: #ff2d55;
+    --text: #c8d6e5;
+    --muted: #4a5568;
+    --accent-glow: 0 0 20px rgba(0,229,255,0.3);
+    --success-glow: 0 0 20px rgba(57,255,20,0.3);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Barlow', sans-serif;
+    min-height: 100vh;
+  }
+
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(0,229,255,0.03) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 20%, rgba(57,255,20,0.03) 0%, transparent 60%);
+    pointer-events: none; z-index: 0;
+  }
+
+  body::after {
+    content: '';
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.07) 2px, rgba(0,0,0,0.07) 4px);
+    pointer-events: none; z-index: 0;
+  }
+
+  .container { position: relative; z-index: 1; max-width: 960px; margin: 0 auto; padding: 32px 24px; }
+
+  .header { text-align: center; margin-bottom: 36px; }
+  .header h1 { font-family: 'Share Tech Mono', monospace; font-size: 2rem; color: var(--accent); text-shadow: 0 0 30px rgba(0,229,255,0.5); letter-spacing: 4px; text-transform: uppercase; }
+  .header p  { color: var(--muted); font-size: 0.8rem; letter-spacing: 3px; text-transform: uppercase; margin-top: 6px; }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 26px; margin-bottom: 18px; }
+
+  .card-title { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; letter-spacing: 3px; text-transform: uppercase; color: var(--muted); margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .card-title::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
+  .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 2px; margin-bottom: 8px; background: var(--border); border-radius: 8px; padding: 2px; }
+  .tab-btn { background: transparent; border: none; color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.82rem; letter-spacing: 2px; text-transform: uppercase; padding: 12px; cursor: pointer; border-radius: 6px; transition: all 0.2s; }
+  .tab-btn.active { background: var(--surface); color: var(--accent); box-shadow: var(--accent-glow); }
+  .tab-btn:hover:not(.active) { color: var(--text); background: rgba(255,255,255,0.03); }
+
+  .mode-hint { font-size: 0.72rem; color: var(--muted); letter-spacing: 1px; margin-bottom: 18px; text-align: center; }
+
+  .form-grid   { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+  .form-group  { display: flex; flex-direction: column; gap: 7px; }
+  .form-group label { font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 2px; text-transform: uppercase; color: var(--muted); }
+
+  .code-input {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--accent); font-family: 'Share Tech Mono', monospace; font-size: 1.1rem;
+    letter-spacing: 4px; padding: 12px 15px; outline: none; transition: all 0.15s;
+    text-transform: uppercase; width: 100%;
+  }
+  .code-input:focus   { border-color: var(--accent); box-shadow: var(--accent-glow); }
+  .code-input.valid   { border-color: rgba(57,255,20,0.5); }
+  .code-input.invalid { border-color: rgba(255,45,85,0.5); }
+  .code-input::placeholder { color: var(--muted); letter-spacing: 1px; font-size: 0.8rem; }
+
+  .text-input {
+    background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'Barlow', sans-serif; font-size: 0.9rem;
+    padding: 12px 15px; outline: none; transition: all 0.15s; width: 100%;
+  }
+  .text-input:focus { border-color: var(--accent); }
+  .text-input::placeholder { color: var(--muted); }
+
+  .validation-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 4px; }
+  .validation-msg { font-family: 'Share Tech Mono', monospace; font-size: 0.67rem; letter-spacing: 1px; min-height: 15px; color: var(--muted); }
+  .validation-msg.ok  { color: var(--accent2); }
+  .validation-msg.err { color: var(--danger); }
+
+  .bulk-textarea {
+    width: 100%; background: rgba(0,0,0,0.4); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--accent); font-family: 'Share Tech Mono', monospace; font-size: 0.85rem;
+    letter-spacing: 3px; padding: 14px 18px; outline: none; resize: vertical; min-height: 120px;
+    text-transform: uppercase; line-height: 1.9;
+  }
+  .bulk-textarea:focus { border-color: var(--accent); }
+  .bulk-textarea::placeholder { color: var(--muted); letter-spacing: 1px; font-size: 0.78rem; }
+  .bulk-note   { font-size: 0.72rem; color: var(--muted); margin-top: 8px; }
+  .bulk-status { font-family: 'Share Tech Mono', monospace; font-size: 0.7rem; min-height: 18px; margin-top: 5px; color: var(--muted); }
+
+  .btn { background: transparent; border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; letter-spacing: 2px; text-transform: uppercase; padding: 12px 18px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .btn:hover         { border-color: var(--muted); color: var(--accent); }
+  .btn-primary       { border-color: var(--accent); color: var(--accent); }
+  .btn-primary:hover { background: rgba(0,229,255,0.08); box-shadow: var(--accent-glow); }
+  .btn-success       { border-color: var(--accent2); color: var(--accent2); }
+  .btn-success:hover { background: rgba(57,255,20,0.08); box-shadow: var(--success-glow); }
+  .btn-danger        { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover  { background: rgba(255,45,85,0.08); }
+  .btn:disabled      { opacity: 0.3; cursor: not-allowed; }
+  .btn-row           { display: flex; gap: 10px; justify-content: flex-end; flex-wrap: wrap; margin-top: 14px; }
+
+  .settings-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .setting-box   { background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 12px 14px; }
+  .setting-box label { display: block; font-family: 'Share Tech Mono', monospace; font-size: 0.6rem; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 8px; }
+  .setting-input { width: 100%; background: transparent; border: none; border-bottom: 1px solid var(--border); color: var(--text); font-family: 'Share Tech Mono', monospace; font-size: 0.85rem; padding: 4px 0; outline: none; transition: border-color 0.15s; }
+  .setting-input:focus { border-color: var(--accent); }
+
+  .preview-grid  { display: flex; flex-wrap: wrap; gap: 22px; min-height: 80px; align-items: flex-start; }
+  .preview-empty { color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.8rem; letter-spacing: 2px; padding: 24px; width: 100%; text-align: center; border: 1px dashed var(--border); border-radius: 8px; }
+
+  .selection-bar { display: flex; align-items: center; gap: 12px; padding: 10px 14px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; font-family: 'Share Tech Mono', monospace; font-size: 0.72rem; letter-spacing: 1px; color: var(--muted); flex-wrap: wrap; }
+  .selection-bar span { color: var(--accent); }
+  .sel-btn { background: transparent; border: 1px solid var(--border); border-radius: 4px; color: var(--muted); font-family: 'Share Tech Mono', monospace; font-size: 0.65rem; letter-spacing: 1px; text-transform: uppercase; padding: 4px 10px; cursor: pointer; transition: all 0.15s; }
+  .sel-btn:hover { color: var(--accent); border-color: var(--accent); }
+
+  /* ══════════════════════════════════════════════════
+     SERVICE TAG LABEL  — matches photo layout exactly
+     ~340px wide × ~190px tall (prints ~2.4" × 1.35")
+  ══════════════════════════════════════════════════ */
+  .label-card {
+    width: 340px;
+    background: linear-gradient(160deg, #d6dade 0%, #b4bbc4 25%, #cdd1d6 55%, #a8aeb8 80%, #bec4cb 100%);
+    border-radius: 14px;
+    padding: 13px 14px 11px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    cursor: pointer;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 2px solid transparent;
+    box-shadow:
+      0 1px 0 rgba(255,255,255,0.75) inset,
+      0 -1px 0 rgba(0,0,0,0.12) inset,
+      0 4px 20px rgba(0,0,0,0.55);
+    position: relative;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  /* Metallic sheen */
+  .label-card::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(108deg, rgba(255,255,255,0.38) 0%, transparent 42%, rgba(255,255,255,0.08) 100%);
+    border-radius: 13px;
+    pointer-events: none;
+  }
+
+  .label-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 26px rgba(0,229,255,0.28), 0 1px 0 rgba(255,255,255,0.75) inset;
+    border-color: var(--accent);
+  }
+
+  .label-card.selected {
+    border-color: var(--accent2);
+    box-shadow: 0 0 22px rgba(57,255,20,0.4), 0 1px 0 rgba(255,255,255,0.75) inset;
+  }
+
+  /* Every direct child sits above the sheen */
+  .label-card > * { position: relative; z-index: 1; }
+
+  /* ── Row 1: Company name ── */
+  .lbl-company {
+    font-family: 'Barlow', sans-serif;
+    font-weight: 800;
+    font-size: 14px;
+    color: #111;
+    letter-spacing: 0.2px;
+    line-height: 1;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* ── Row 2: IT Help Desk line ── */
+  .lbl-helpdesk {
+    font-family: 'Barlow', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: #111;
+    letter-spacing: 0.2px;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  /* ── Row 3: Barcode — full label width ── */
+  .lbl-barcode-wrap {
+    width: 100%;
+    display: flex;
+    align-items: center;
+  }
+
+  .lbl-barcode-wrap svg {
+    display: block;
+    width: 100% !important;
+    height: auto !important;
+  }
+
+  /* ── Row 4: left text + right QR column ── */
+  .lbl-data-row {
+    display: flex;
+    align-items: stretch;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .lbl-data-left {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .lbl-field {
+    font-family: 'Barlow', sans-serif;
+    font-weight: 700;
+    font-size: 11px;
+    color: #111;
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+  }
+
+  .lbl-field span {
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 400;
+    letter-spacing: 2px;
+    font-size: 11px;
+  }
+
+  /* ── Right column: QR box pinned to bottom of data row ── */
+  .lbl-data-right {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: flex-end;
+    flex-shrink: 0;
+  }
+
+  /* ── QR code box ── */
+  .lbl-qr-box {
+    background: #fff;
+    border: 1px solid rgba(0,0,0,0.2);
+    border-radius: 3px;
+    padding: 2px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .lbl-qr-box canvas,
+  .lbl-qr-box img {
+    display: block !important;
+  }
+
+  /* ── Row 5: Footer — full width ── */
+  .lbl-footer {
+    font-family: 'Barlow', sans-serif;
+    font-weight: 700;
+    font-size: 10px;
+    color: #111;
+    letter-spacing: 0.2px;
+    border-top: 1px solid rgba(0,0,0,0.18);
+    padding-top: 4px;
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  /* Print */
+  @media print {
+    body { background: white !important; }
+    body::before, body::after { display: none !important; }
+    .container { padding: 4mm !important; max-width: 100% !important; }
+    .no-print { display: none !important; }
+    .preview-grid { display: flex !important; flex-wrap: wrap !important; gap: 5mm !important; padding: 0 !important; }
+    .label-card { box-shadow: none !important; border: 0.5px solid #aaa !important; page-break-inside: avoid !important; cursor: default !important; -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+    .label-card:not(.selected) { display: none !important; }
+    .preview-empty { display: none !important; }
+  }
+
+  @media (max-width: 640px) {
+    .form-grid { grid-template-columns: 1fr; }
+    .settings-grid { grid-template-columns: 1fr 1fr; }
+  }
+</style>
+  <!-- Load label-config.js from same directory if it exists -->
+  <script>
+    (function() {
+      var s = document.createElement('script');
+      s.src = 'label-config.js';
+      s.onerror = function() {}; // silently skip if missing
+      document.head.appendChild(s);
+    })();
+  </script>
+</head>
+<body>
+<div class="container">
+
+  <div class="header no-print">
+    <h1>&#9671; Asset Tag Generator</h1>
+    <p>DIY Asset tags as fast as you can type!</p>
+  </div>
+
+  <!-- Label Text Config -->
+  <div class="card no-print">
+    <div class="card-title">Label Text</div>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Company Name (Line 1)</label>
+        <input type="text" class="text-input" id="cfgCompany" value="Your Company Inc" oninput="regenerateAll()">
+      </div>
+      <div class="form-group">
+        <label>IT Help Desk Line (Line 2)</label>
+        <input type="text" class="text-input" id="cfgHelpdesk" value="IT Help Desk: 1-800-555-1234" oninput="regenerateAll()">
+      </div>
+      <div class="form-group">
+        <label>Footer Support Line</label>
+        <input type="text" class="text-input" id="cfgFooter" value="Dell Pro Tech Support: 800-456-3355" oninput="regenerateAll()">
+      </div>
+    </div>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-top:14px; flex-wrap:wrap; gap:10px;">
+      <p id="cfgStatus" style="font-size:0.72rem; color:var(--muted); font-family:'Share Tech Mono',monospace; letter-spacing:1px; min-height:18px;"></p>
+      <div style="display:flex; gap:10px;">
+        <button class="btn btn-primary" onclick="saveDefaults()">&#9660; Save as Default</button>
+        <button class="btn" onclick="exportConfig()" title="Downloads label-config.js — place it in the same folder as this HTML file">&#8595; Export Config File</button>
+      </div>
+    </div>
+    <p style="margin-top:8px; font-size:0.68rem; color:var(--muted); font-family:'Share Tech Mono',monospace; letter-spacing:1px; line-height:1.6;">
+      &#9656; <strong style="color:var(--accent)">Save as Default</strong> stores your values in the browser for this session and future visits.
+      &nbsp;&#9656; <strong style="color:var(--accent)">Export Config File</strong> downloads <code style="color:var(--accent2)">label-config.js</code> — place it in the same folder as <code style="color:var(--accent2)">BarcodeGenerator.html</code> to hardcode defaults permanently.
+    </p>
+  </div>
+
+  <!-- Input Mode -->
+  <div class="card no-print">
+    <div class="card-title">Scan / Enter Codes</div>
+
+    <div class="mode-tabs">
+      <button class="tab-btn active" onclick="switchInputMode('single')">&#9632; Single Entry</button>
+      <button class="tab-btn" onclick="switchInputMode('bulk')">&#9670; Bulk Entry</button>
+    </div>
+    <div class="mode-hint" id="modeHint">Scan or type the asset tag then the serial number</div>
+
+    <!-- Single -->
+    <div id="singlePanel">
+      <div style="display:grid; grid-template-columns:1fr 1fr auto; gap:12px; align-items:end;">
+        <div class="form-group">
+          <label>Asset Tag (6 digits)</label>
+          <input type="text" class="code-input" id="assetInput" placeholder="123456" maxlength="6" autocomplete="off" autofocus
+            oninput="validateSingleField('assetInput','assetMsg','asset')">
+        </div>
+        <div class="form-group">
+          <label>Service Tag / Serial (7 chars)</label>
+          <input type="text" class="code-input" id="serialInput" placeholder="AB12345" maxlength="7" autocomplete="off"
+            oninput="validateSingleField('serialInput','serialMsg','serial')">
+        </div>
+        <button class="btn btn-primary" onclick="addSingleLabel()" id="addBtn" style="padding:12px 14px" disabled>Add</button>
+      </div>
+      <div class="validation-row">
+        <div class="validation-msg" id="assetMsg">6-digit numeric asset tag</div>
+        <div class="validation-msg" id="serialMsg">7-char alphanumeric serial</div>
+      </div>
+    </div>
+
+    <!-- Bulk -->
+    <div id="bulkPanel" style="display:none">
+      <div class="form-group">
+        <label>One pair per line — asset tag, service tag</label>
+        <textarea class="bulk-textarea" id="bulkInput"
+          placeholder="123456,AB12345&#10;654321,XY98765&#10;112233 CD55512"
+          oninput="parseBulk()"></textarea>
+        <div class="bulk-note">Format: <code style="color:var(--accent);font-family:monospace">123456,AB12345</code> or <code style="color:var(--accent);font-family:monospace">123456 AB12345</code></div>
+        <div class="bulk-status" id="bulkStatus">—</div>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" onclick="addBulk()" id="bulkAddBtn" disabled>Generate All</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings -->
+  <div class="card no-print">
+    <div class="card-title">Label Settings</div>
+    <div class="settings-grid">
+      <div class="setting-box">
+        <label>QR Size (px)</label>
+        <input type="number" class="setting-input" id="qrSize" value="52" min="44" max="120" oninput="regenerateAll()">
+      </div>
+      <div class="setting-box">
+        <label>Barcode Height (px)</label>
+        <input type="number" class="setting-input" id="bcHeight" value="30" min="14" max="60" oninput="regenerateAll()">
+      </div>
+      <div class="setting-box">
+        <label>Label Width (px)</label>
+        <input type="number" class="setting-input" id="labelWidth" value="340" min="240" max="500" oninput="regenerateAll()">
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview -->
+  <div class="card">
+    <div class="card-title no-print">Label Preview</div>
+
+    <div class="selection-bar no-print">
+      <span id="selCount">0</span> selected of <span id="totalCount">0</span> &nbsp;|&nbsp;
+      <button class="sel-btn" onclick="selectAll()">Select All</button>
+      <button class="sel-btn" onclick="selectNone()">Deselect All</button>
+      <button class="sel-btn" onclick="clearAll()" style="color:var(--danger);border-color:var(--danger)">Clear All</button>
+      <div style="flex:1"></div>
+      <button class="btn btn-success no-print" onclick="window.print()" id="printBtn" disabled>Print Selected</button>
+    </div>
+
+    <div class="preview-grid" id="previewGrid">
+      <div class="preview-empty">No labels yet — enter an asset tag and service tag above</div>
+    </div>
+  </div>
+
+</div>
+<script>
+let labels = [];
+let bulkParsed = [];
+
+// ── Mode switch ──
+function switchInputMode(mode) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', (mode==='single'?0:1)===i));
+  document.getElementById('singlePanel').style.display = mode === 'single' ? 'block' : 'none';
+  document.getElementById('bulkPanel').style.display   = mode === 'bulk'   ? 'block' : 'none';
+  document.getElementById('modeHint').textContent = mode === 'single'
+    ? 'Scan or type the asset tag then the service tag / serial number'
+    : 'Paste asset/service tag pairs, one per line, then click Generate All';
+  if (mode === 'single') document.getElementById('assetInput').focus();
+}
+
+// ── Validation ──
+function isValidAsset(v)  { return /^[0-9]{6}$/.test(v); }
+function isValidSerial(v) { return /^[A-Z0-9]{7}$/i.test(v); }
+
+function validateSingleField(inputId, msgId, type) {
+  const el  = document.getElementById(inputId);
+  const msg = document.getElementById(msgId);
+  const val = el.value.trim().toUpperCase();
+  const max = type === 'asset' ? 6 : 7;
+
+  if (!val) {
+    el.className = 'code-input';
+    msg.textContent = type === 'asset' ? '6-digit numeric asset tag' : '7-char alphanumeric serial';
+    msg.className = 'validation-msg';
+  } else if ((type==='asset' && isValidAsset(val)) || (type==='serial' && isValidSerial(val))) {
+    el.className = 'code-input valid';
+    msg.textContent = type === 'asset' ? '✓ Valid asset tag' : '✓ Valid service tag';
+    msg.className = 'validation-msg ok';
+  } else {
+    el.className = 'code-input' + (val.length >= max ? ' invalid' : '');
+    msg.textContent = `${val.length}/${max} ${type==='asset'?'digits':'chars'}`;
+    msg.className = 'validation-msg' + (val.length >= max ? ' err' : '');
+  }
+  document.getElementById('addBtn').disabled = !(
+    isValidAsset(document.getElementById('assetInput').value.trim()) &&
+    isValidSerial(document.getElementById('serialInput').value.trim())
+  );
+}
+
+document.getElementById('assetInput').addEventListener('keydown',  e => { if (e.key==='Enter') { e.preventDefault(); document.getElementById('serialInput').focus(); } });
+document.getElementById('serialInput').addEventListener('keydown', e => { if (e.key==='Enter') { e.preventDefault(); addSingleLabel(); } });
+
+function addSingleLabel() {
+  const asset  = document.getElementById('assetInput').value.trim().toUpperCase();
+  const serial = document.getElementById('serialInput').value.trim().toUpperCase();
+  if (!isValidAsset(asset) || !isValidSerial(serial)) return;
+  labels.push({ asset, serial, selected: true });
+  renderGrid();
+  ['assetInput','serialInput'].forEach(id => { document.getElementById(id).value = ''; document.getElementById(id).className = 'code-input'; });
+  document.getElementById('assetMsg').textContent  = '6-digit numeric asset tag'; document.getElementById('assetMsg').className  = 'validation-msg';
+  document.getElementById('serialMsg').textContent = '7-char alphanumeric serial';  document.getElementById('serialMsg').className = 'validation-msg';
+  document.getElementById('addBtn').disabled = true;
+  document.getElementById('assetInput').focus();
+}
+
+// ── Bulk ──
+function parseBulk() {
+  const lines = document.getElementById('bulkInput').value.split('\n').map(l=>l.trim().toUpperCase()).filter(l=>l.length>0);
+  bulkParsed = []; let invalid = 0;
+  lines.forEach(line => {
+    const parts = line.split(/[\s,\t]+/);
+    if (parts.length >= 2 && isValidAsset(parts[0]) && isValidSerial(parts[1])) bulkParsed.push({ asset: parts[0], serial: parts[1] });
+    else invalid++;
+  });
+  const status = document.getElementById('bulkStatus');
+  status.textContent = lines.length ? `${lines.length} lines — ${bulkParsed.length} valid, ${invalid} skipped` : '—';
+  status.style.color = invalid > 0 ? 'var(--warn)' : (bulkParsed.length ? 'var(--accent2)' : '');
+  document.getElementById('bulkAddBtn').disabled = bulkParsed.length === 0;
+}
+
+function addBulk() {
+  const n = bulkParsed.length;
+  bulkParsed.forEach(p => labels.push({...p, selected: true}));
+  renderGrid();
+  document.getElementById('bulkInput').value = '';
+  document.getElementById('bulkStatus').textContent = `✓ ${n} labels added`;
+  document.getElementById('bulkStatus').style.color = 'var(--accent2)';
+  bulkParsed = []; document.getElementById('bulkAddBtn').disabled = true;
+}
+
+// ── Label management ──
+function clearAll()   { if (labels.length && !confirm('Clear all labels?')) return; labels = []; renderGrid(); }
+function selectAll()  { labels.forEach(l => l.selected = true);  renderGrid(); }
+function selectNone() { labels.forEach(l => l.selected = false); renderGrid(); }
+function toggleSelect(idx) {
+  labels[idx].selected = !labels[idx].selected;
+  document.querySelectorAll('.label-card')[idx]?.classList.toggle('selected', labels[idx].selected);
+  updateCounts();
+}
+function updateCounts() {
+  const sel = labels.filter(l=>l.selected).length;
+  document.getElementById('selCount').textContent   = sel;
+  document.getElementById('totalCount').textContent = labels.length;
+  document.getElementById('printBtn').disabled = sel === 0;
+}
+
+// ── Render ──
+function renderGrid() {
+  const grid       = document.getElementById('previewGrid');
+  const qrSize     = Math.max(28, parseInt(document.getElementById('qrSize').value)     || 48);
+  const bcHeight   = Math.max(14, parseInt(document.getElementById('bcHeight').value)   || 30);
+  const labelWidth = Math.max(240, parseInt(document.getElementById('labelWidth').value) || 340);
+
+  // Pull label text from the config inputs
+  const company   = document.getElementById('cfgCompany').value   || 'Your Company Inc';
+  const helpdesk  = document.getElementById('cfgHelpdesk').value  || 'IT Help Desk: 1-800-555-1234';
+  const footer    = document.getElementById('cfgFooter').value    || 'Dell Pro Tech Support: 800-456-3355';
+
+  if (!labels.length) {
+    grid.innerHTML = '<div class="preview-empty">No labels yet — enter an asset tag and service tag above</div>';
+    document.getElementById('totalCount').textContent = '0';
+    document.getElementById('selCount').textContent   = '0';
+    document.getElementById('printBtn').disabled = true;
+    return;
+  }
+
+  grid.innerHTML = '';
+
+  labels.forEach((item, idx) => {
+    const card = document.createElement('div');
+    card.className = 'label-card' + (item.selected ? ' selected' : '');
+    card.style.width = labelWidth + 'px';
+    card.onclick = () => toggleSelect(idx);
+
+    // ── Line 1: Company name ──
+    const companyEl = document.createElement('div');
+    companyEl.className = 'lbl-company';
+    companyEl.textContent = company;
+    card.appendChild(companyEl);
+
+    // ── Line 2: IT Help Desk ──
+    const helpdeskEl = document.createElement('div');
+    helpdeskEl.className = 'lbl-helpdesk';
+    helpdeskEl.textContent = helpdesk;
+    card.appendChild(helpdeskEl);
+
+    // ── Line 3: Barcode (encodes asset tag, short/squat) ──
+    const bcWrap = document.createElement('div');
+    bcWrap.className = 'lbl-barcode-wrap';
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.id = `bc-${idx}`;
+    bcWrap.appendChild(svg);
+    card.appendChild(bcWrap);
+
+    // ── Line 4: Asset Tag + Service Tag, QR bottom-right ──
+    const dataRow = document.createElement('div');
+    dataRow.className = 'lbl-data-row';
+
+    const dataLeft = document.createElement('div');
+    dataLeft.className = 'lbl-data-left';
+
+    const assetField = document.createElement('div');
+    assetField.className = 'lbl-field';
+    assetField.innerHTML = `Asset Tag: <span>${item.asset}</span>`;
+    dataLeft.appendChild(assetField);
+
+    const serialField = document.createElement('div');
+    serialField.className = 'lbl-field';
+    serialField.innerHTML = `Service Tag: <span>${item.serial}</span>`;
+    dataLeft.appendChild(serialField);
+
+    dataRow.appendChild(dataLeft);
+
+    // ── Right column: QR sits at bottom-right of data row ──
+    const dataRight = document.createElement('div');
+    dataRight.className = 'lbl-data-right';
+
+    const qrBox = document.createElement('div');
+    qrBox.className = 'lbl-qr-box';
+    qrBox.id = `qr-${idx}`;
+    dataRight.appendChild(qrBox);
+    dataRow.appendChild(dataRight);
+    card.appendChild(dataRow);
+
+    // ── Line 5: Footer — full width below everything ──
+    const footerEl = document.createElement('div');
+    footerEl.className = 'lbl-footer';
+    footerEl.textContent = footer;
+    card.appendChild(footerEl);
+
+    grid.appendChild(card);
+
+    // ── Generate barcode + QR ──
+    requestAnimationFrame(() => {
+      try {
+        JsBarcode(`#bc-${idx}`, item.asset, {
+          format: 'CODE128',
+          width: 2,
+          height: bcHeight,
+          displayValue: false,
+          margin: 0,
+          background: 'transparent',
+          lineColor: '#111111'
+        });
+      } catch(e) { console.warn('Barcode err', e); }
+
+      try {
+        // Render at full size, then scale the wrapper down visually
+        const QR_RENDER_SIZE = 180;
+        const el = document.getElementById(`qr-${idx}`);
+        // Size the outer box to the visual target size
+        el.style.width  = qrSize + 'px';
+        el.style.height = qrSize + 'px';
+        el.style.overflow = 'hidden';
+        el.style.position = 'relative';
+
+        // Inner div holds the full-size QR, scaled down via transform
+        const inner = document.createElement('div');
+        inner.style.position = 'absolute';
+        inner.style.top = '0';
+        inner.style.left = '0';
+        inner.style.transformOrigin = 'top left';
+        inner.style.transform = `scale(${qrSize / QR_RENDER_SIZE})`;
+        el.appendChild(inner);
+
+        new QRCode(inner, {
+          text: item.serial,
+          width: QR_RENDER_SIZE,
+          height: QR_RENDER_SIZE,
+          colorDark: '#000000',
+          colorLight: '#ffffff',
+          correctLevel: QRCode.CorrectLevel.H
+        });
+      } catch(e) { console.warn('QR err', e); }
+    });
+  });
+
+  updateCounts();
+}
+
+function regenerateAll() { if (labels.length) renderGrid(); }
+
+// ── Config: Save to browser / Export file / Auto-load ──
+
+const CONFIG_FIELDS = ['cfgCompany','cfgHelpdesk','cfgFooter','qrSize','bcHeight','labelWidth'];
+
+function getConfigValues() {
+  const cfg = {};
+  CONFIG_FIELDS.forEach(id => { const el = document.getElementById(id); if (el) cfg[id] = el.value; });
+  return cfg;
+}
+
+function applyConfig(cfg) {
+  CONFIG_FIELDS.forEach(id => { const el = document.getElementById(id); if (el && cfg[id] !== undefined) el.value = cfg[id]; });
+  regenerateAll();
+}
+
+// Called by label-config.js placed in the same folder as the HTML
+window.applyLabelConfig = function(cfg) {
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => applyConfig(cfg));
+  } else {
+    applyConfig(cfg);
+  }
+};
+
+// Save current values to localStorage — persists across browser sessions
+function saveDefaults() {
+  localStorage.setItem('labelGeneratorConfig', JSON.stringify(getConfigValues()));
+  const s = document.getElementById('cfgStatus');
+  s.textContent = '✓ Defaults saved — will auto-load next time you open this page';
+  s.style.color = 'var(--accent2)';
+  setTimeout(() => s.textContent = '', 4000);
+}
+
+// Export label-config.js — drop it next to BarcodeGenerator.html for hard-coded defaults
+function exportConfig() {
+  const json = JSON.stringify(getConfigValues(), null, 2);
+  const js = `// Label Generator — Default Configuration\n// Place this file in the same folder as BarcodeGenerator.html\n// It will be loaded automatically every time the page opens.\n// Generated: ${new Date().toLocaleString()}\n\nwindow.applyLabelConfig(${json});\n`;
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([js], { type: 'text/javascript' }));
+  a.download = 'label-config.js';
+  a.click();
+  const s = document.getElementById('cfgStatus');
+  s.textContent = '✓ label-config.js downloaded — place it in the same folder as BarcodeGenerator.html';
+  s.style.color = 'var(--accent2)';
+  setTimeout(() => s.textContent = '', 6000);
+}
+
+// On load: apply localStorage config (label-config.js via <script> in <head> takes priority if present)
+document.addEventListener('DOMContentLoaded', () => {
+  setTimeout(() => {
+    try {
+      const stored = localStorage.getItem('labelGeneratorConfig');
+      if (stored) applyConfig(JSON.parse(stored));
+    } catch(e) {}
+  }, 150);
+});
+</script>
+</body>
+</html>
