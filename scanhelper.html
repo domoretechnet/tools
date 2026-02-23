@@ -1451,7 +1451,7 @@ let pendingAssetTag = null; // waiting for serial after asset tag scanned
 const assetInput = document.getElementById('assetInput');
 
 function isValidAssetTag(val) {
-  return /^[A-Z0-9]{6}$/i.test(val);
+  return /^\d{6}$/.test(val);
 }
 
 function isValidSerial(val) {
@@ -1502,7 +1502,7 @@ assetInput.addEventListener('keydown', (e) => {
       if (!isValidAssetTag(val)) {
         assetErrorCount++;
         document.getElementById('assetErrors').textContent = assetErrorCount;
-        setStatus('assetStatus', 'assetStatusText', 'error', `INVALID — "${val}" is not a valid 6-digit asset tag`);
+        setStatus('assetStatus', 'assetStatusText', 'error', `INVALID — "${val}" must be exactly 6 digits (numbers only)`);
         logEntry('assetLog', 'error', `INVALID ASSET TAG: ${val}`);
         beep('error');
         flashInput('assetInput', 'error');
