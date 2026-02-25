@@ -15,11 +15,15 @@
     --accent2: #39ff14;
     --warn: #ff6b35;
     --danger: #ff2d55;
+    --expired: #ff9500;
+    --hunt: #bf5fff;
     --text: #c8d6e5;
     --muted: #4a5568;
     --success-glow: 0 0 20px rgba(57,255,20,0.4);
     --error-glow: 0 0 20px rgba(255,45,85,0.4);
     --accent-glow: 0 0 20px rgba(0,229,255,0.3);
+    --expired-glow: 0 0 20px rgba(255,149,0,0.4);
+    --hunt-glow: 0 0 20px rgba(191,95,255,0.5);
   }
 
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -43,7 +47,6 @@
     z-index: 0;
   }
 
-  /* Scanline effect */
   body::after {
     content: '';
     position: fixed;
@@ -89,7 +92,6 @@
     margin-top: 6px;
   }
 
-  /* Mode tabs */
   .mode-tabs {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -106,10 +108,10 @@
     border: none;
     color: var(--muted);
     font-family: 'Share Tech Mono', monospace;
-    font-size: 0.85rem;
+    font-size: 0.75rem;
     letter-spacing: 2px;
     text-transform: uppercase;
-    padding: 14px;
+    padding: 14px 8px;
     cursor: pointer;
     border-radius: 6px;
     transition: all 0.2s;
@@ -126,7 +128,6 @@
     background: rgba(255,255,255,0.03);
   }
 
-  /* Cards */
   .card {
     background: var(--surface);
     border: 1px solid var(--border);
@@ -154,7 +155,6 @@
     background: var(--border);
   }
 
-  /* Status indicator */
   .status-bar {
     display: flex;
     align-items: center;
@@ -162,7 +162,6 @@
     padding: 14px 18px;
     border-radius: 8px;
     margin-top: 12px;
-    margin-bottom: 0;
     border: 1px solid var(--border);
     background: rgba(0,0,0,0.3);
     min-height: 54px;
@@ -182,12 +181,16 @@
   .status-bar.success .status-icon { background: var(--accent2); box-shadow: 0 0 12px var(--accent2); }
   .status-bar.error .status-icon { background: var(--danger); box-shadow: 0 0 12px var(--danger); }
   .status-bar.warn .status-icon { background: var(--warn); box-shadow: 0 0 12px var(--warn); }
+  .status-bar.expired .status-icon { background: var(--expired); box-shadow: 0 0 12px var(--expired); }
   .status-bar.pair-ready .status-icon { background: #a855f7; box-shadow: 0 0 12px #a855f7; }
+  .status-bar.hunt-found .status-icon { background: var(--hunt); box-shadow: 0 0 14px var(--hunt); }
 
   .status-bar.success { border-color: rgba(57,255,20,0.3); box-shadow: var(--success-glow); }
   .status-bar.error { border-color: rgba(255,45,85,0.3); box-shadow: var(--error-glow); }
   .status-bar.warn { border-color: rgba(255,107,53,0.3); }
+  .status-bar.expired { border-color: rgba(255,149,0,0.4); box-shadow: var(--expired-glow); }
   .status-bar.pair-ready { border-color: rgba(168,85,247,0.3); }
+  .status-bar.hunt-found { border-color: rgba(191,95,255,0.5); box-shadow: var(--hunt-glow); }
 
   .status-text {
     font-family: 'Share Tech Mono', monospace;
@@ -195,7 +198,6 @@
     color: var(--text);
   }
 
-  /* Scan input */
   .scan-input-wrap {
     position: relative;
     margin-bottom: 16px;
@@ -232,25 +234,30 @@
   }
 
   .scan-input::placeholder { color: var(--muted); letter-spacing: 2px; font-size: 0.9rem; }
+  .scan-input:disabled { opacity: 0.4; cursor: not-allowed; }
 
-  .scan-input.flash-success {
-    animation: flashSuccess 0.3s ease;
-  }
-  .scan-input.flash-error {
-    animation: flashError 0.3s ease;
-  }
+  .scan-input.flash-success { animation: flashSuccess 0.3s ease; }
+  .scan-input.flash-error { animation: flashError 0.3s ease; }
+  .scan-input.flash-expired { animation: flashExpired 0.3s ease; }
+  .scan-input.flash-hunt { animation: flashHunt 0.4s ease; }
 
   @keyframes flashSuccess {
     0% { border-color: var(--accent2); box-shadow: 0 0 30px rgba(57,255,20,0.6), inset 0 0 20px rgba(57,255,20,0.1); }
     100% { border-color: var(--accent); box-shadow: var(--accent-glow); }
   }
-
   @keyframes flashError {
     0% { border-color: var(--danger); box-shadow: 0 0 30px rgba(255,45,85,0.6), inset 0 0 20px rgba(255,45,85,0.1); }
     100% { border-color: var(--border); box-shadow: none; }
   }
+  @keyframes flashExpired {
+    0% { border-color: var(--expired); box-shadow: 0 0 30px rgba(255,149,0,0.7), inset 0 0 20px rgba(255,149,0,0.15); }
+    100% { border-color: var(--accent); box-shadow: var(--accent-glow); }
+  }
+  @keyframes flashHunt {
+    0% { border-color: var(--hunt); box-shadow: 0 0 40px rgba(191,95,255,0.8), inset 0 0 20px rgba(191,95,255,0.2); }
+    100% { border-color: var(--accent); box-shadow: var(--accent-glow); }
+  }
 
-  /* Stats row */
   .stats-row {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -281,7 +288,6 @@
     margin-top: 4px;
   }
 
-  /* Asset pair display */
   .pair-display {
     display: grid;
     grid-template-columns: 1fr 1fr;
@@ -296,14 +302,8 @@
     padding: 14px;
   }
 
-  .pair-box.active {
-    border-color: rgba(168,85,247,0.5);
-    box-shadow: 0 0 15px rgba(168,85,247,0.2);
-  }
-
-  .pair-box.filled {
-    border-color: rgba(0,229,255,0.4);
-  }
+  .pair-box.active { border-color: rgba(168,85,247,0.5); box-shadow: 0 0 15px rgba(168,85,247,0.2); }
+  .pair-box.filled { border-color: rgba(0,229,255,0.4); }
 
   .pair-box-label {
     font-size: 0.65rem;
@@ -323,7 +323,6 @@
 
   .pair-box-value.has-value { color: var(--accent); }
 
-  /* Scan log */
   .scan-log {
     background: rgba(0,0,0,0.4);
     border: 1px solid var(--border);
@@ -353,8 +352,9 @@
   .log-warn { color: var(--warn); }
   .log-pair { color: #a855f7; }
   .log-code { color: var(--accent); }
+  .log-expired { color: var(--expired); }
+  .log-hunt { color: var(--hunt); }
 
-  /* File export section */
   .export-section { }
 
   .export-row {
@@ -401,7 +401,6 @@
   .filename-preview.valid { color: var(--accent2); }
   .filename-preview.invalid { color: var(--danger); }
 
-  /* Buttons */
   .btn {
     background: transparent;
     border: 1px solid var(--border);
@@ -418,35 +417,14 @@
   }
 
   .btn:hover { border-color: var(--muted); color: var(--accent); }
-
-  .btn-primary {
-    border-color: var(--accent);
-    color: var(--accent);
-  }
-
-  .btn-primary:hover {
-    background: rgba(0,229,255,0.08);
-    box-shadow: var(--accent-glow);
-  }
-
-  .btn-success {
-    border-color: var(--accent2);
-    color: var(--accent2);
-  }
-
-  .btn-success:hover {
-    background: rgba(57,255,20,0.08);
-    box-shadow: var(--success-glow);
-  }
-
-  .btn-danger {
-    border-color: var(--danger);
-    color: var(--danger);
-  }
-
-  .btn-danger:hover {
-    background: rgba(255,45,85,0.08);
-  }
+  .btn-primary { border-color: var(--accent); color: var(--accent); }
+  .btn-primary:hover { background: rgba(0,229,255,0.08); box-shadow: var(--accent-glow); }
+  .btn-success { border-color: var(--accent2); color: var(--accent2); }
+  .btn-success:hover { background: rgba(57,255,20,0.08); box-shadow: var(--success-glow); }
+  .btn-danger { border-color: var(--danger); color: var(--danger); }
+  .btn-danger:hover { background: rgba(255,45,85,0.08); }
+  .btn-hunt { border-color: var(--hunt); color: var(--hunt); }
+  .btn-hunt:hover { background: rgba(191,95,255,0.08); box-shadow: var(--hunt-glow); }
 
   .btn-row {
     display: flex;
@@ -455,25 +433,115 @@
     margin-top: 16px;
   }
 
-  .btn:disabled {
-    opacity: 0.35;
-    cursor: not-allowed;
-  }
+  .btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-  /* Mode panels */
   .mode-panel { display: none; }
   .mode-panel.active { display: block; }
 
-  /* Responsive */
-  @media (max-width: 600px) {
-    .stats-row { grid-template-columns: 1fr 1fr; }
-    .pair-display { grid-template-columns: 1fr; }
-    .export-row { grid-template-columns: 1fr; }
+  /* ========== SCAN TYPE TOGGLE ========== */
+  .scan-type-toggle {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 16px;
+    background: rgba(0,0,0,0.3);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 4px;
   }
 
-  /* ===================== AUDIT SESSION STYLES ===================== */
-  .scan-input:disabled { opacity: 0.4; cursor: not-allowed; }
+  .scan-type-btn {
+    flex: 1;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
 
+  .scan-type-btn.active {
+    background: var(--surface);
+    border-color: rgba(0,229,255,0.3);
+    color: var(--accent);
+    box-shadow: var(--accent-glow);
+  }
+
+  .scan-type-btn:hover:not(.active) {
+    color: var(--text);
+    background: rgba(255,255,255,0.03);
+  }
+
+  /* ========== WARRANTY PRELOAD CARD ========== */
+  .warranty-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-bottom: 12px;
+  }
+
+  .warranty-upload-area:hover, .warranty-upload-area.drag-over {
+    border-color: var(--accent);
+    background: rgba(0,229,255,0.04);
+  }
+
+  .warranty-upload-area p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    color: var(--muted);
+    letter-spacing: 2px;
+    margin-bottom: 8px;
+  }
+
+  .warranty-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    background: rgba(255,149,0,0.12);
+    border: 1px solid rgba(255,149,0,0.3);
+    color: var(--expired);
+    padding: 4px 10px;
+    border-radius: 4px;
+    margin-right: 6px;
+  }
+
+  .warranty-ok-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 1px;
+    background: rgba(57,255,20,0.08);
+    border: 1px solid rgba(57,255,20,0.2);
+    color: var(--accent2);
+    padding: 4px 10px;
+    border-radius: 4px;
+  }
+
+  .warranty-info {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 8px;
+  }
+
+  .warranty-info.loaded {
+    color: var(--accent2);
+  }
+
+  /* ========== SESSION LIST ========== */
   .session-list {
     display: flex;
     flex-direction: column;
@@ -598,7 +666,115 @@
     letter-spacing: 1px;
   }
 
-  /* Toast notification */
+  /* ========== HUNT MODE ========== */
+  .hunt-list-area {
+    width: 100%;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+    padding: 12px 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    resize: vertical;
+    min-height: 100px;
+  }
+  .hunt-list-area:focus { border-color: var(--hunt); }
+  .hunt-list-area::placeholder { color: var(--muted); }
+
+  .hunt-target-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding-right: 4px;
+  }
+  .hunt-target-list::-webkit-scrollbar { width: 4px; }
+  .hunt-target-list::-webkit-scrollbar-track { background: transparent; }
+  .hunt-target-list::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .hunt-target-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: rgba(0,0,0,0.35);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 8px 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.8rem;
+    letter-spacing: 1px;
+    transition: all 0.2s;
+  }
+  .hunt-target-item.found {
+    border-color: rgba(191,95,255,0.5);
+    background: rgba(191,95,255,0.06);
+    box-shadow: 0 0 10px rgba(191,95,255,0.2);
+  }
+
+  .hunt-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--muted);
+    flex-shrink: 0;
+  }
+  .hunt-target-item.found .hunt-dot {
+    background: var(--hunt);
+    box-shadow: 0 0 8px var(--hunt);
+  }
+
+  .hunt-val { flex: 1; color: var(--muted); }
+  .hunt-target-item.found .hunt-val { color: var(--hunt); }
+  .hunt-type-tag {
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    background: rgba(0,0,0,0.4);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+  .hunt-found-badge {
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    background: rgba(191,95,255,0.15);
+    border: 1px solid rgba(191,95,255,0.3);
+    color: var(--hunt);
+    padding: 2px 8px;
+    border-radius: 3px;
+    display: none;
+  }
+  .hunt-target-item.found .hunt-found-badge { display: inline-block; }
+
+  .hunt-stats-row {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin: 16px 0;
+  }
+
+  .hunt-progress-bar {
+    width: 100%;
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-bottom: 16px;
+    overflow: hidden;
+  }
+  .hunt-progress-fill {
+    height: 100%;
+    background: var(--hunt);
+    border-radius: 2px;
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px var(--hunt);
+  }
+
+  /* Toast */
   .toast {
     position: fixed;
     bottom: 28px;
@@ -621,6 +797,8 @@
   }
   .toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
   .toast.toast-error { color: var(--danger); border-color: rgba(255,45,85,0.3); }
+  .toast.toast-hunt { color: var(--hunt); border-color: rgba(191,95,255,0.4); box-shadow: var(--hunt-glow); }
+  .toast.toast-expired { color: var(--expired); border-color: rgba(255,149,0,0.4); box-shadow: var(--expired-glow); }
 
   .cross-dupe-list {
     display: flex;
@@ -677,12 +855,75 @@
   }
   .log-toggle-btn:hover { border-color: var(--accent); color: var(--accent); }
   .log-toggle-btn.open { border-color: rgba(0,229,255,0.3); color: var(--accent); }
-  #logToggleIcon { font-size: 0.7rem; transition: transform 0.2s; }
-  .log-toggle-btn.open #logToggleIcon { transform: rotate(90deg); }
+  .log-toggle-icon { font-size: 0.7rem; transition: transform 0.2s; }
+  .log-toggle-btn.open .log-toggle-icon { transform: rotate(90deg); }
+
+  .file-upload-btn {
+    display: inline-block;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    margin-top: 4px;
+  }
+  .file-upload-btn:hover { border-color: var(--accent); color: var(--accent); }
+  input[type=file] { display: none; }
+
+  /* ========== FEATURE TOGGLES (Warranty / Hunt) ========== */
+  .feature-toggle-btn {
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--muted);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.72rem;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    padding: 8px 14px;
+    cursor: pointer;
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+  .feature-toggle-btn:hover { border-color: var(--muted); color: var(--text); }
+  .feature-toggle-btn.open { border-color: rgba(0,229,255,0.3); color: var(--accent); }
+  .feature-toggle-btn.open.hunt-open { border-color: rgba(191,95,255,0.35); color: var(--hunt); }
+  .feature-toggle-icon { font-size: 0.65rem; transition: transform 0.2s; flex-shrink: 0; }
+  .feature-toggle-btn.open .feature-toggle-icon { transform: rotate(90deg); }
+
+  .feature-toggle-badge {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.62rem;
+    letter-spacing: 1px;
+    padding: 2px 7px;
+    border-radius: 3px;
+    background: rgba(255,149,0,0.12);
+    border: 1px solid rgba(255,149,0,0.3);
+    color: var(--expired);
+    margin-left: auto;
+  }
+  .feature-toggle-badge.hunt {
+    background: rgba(191,95,255,0.12);
+    border-color: rgba(191,95,255,0.3);
+    color: var(--hunt);
+  }
 
   @media (max-width: 600px) {
+    .stats-row { grid-template-columns: 1fr 1fr; }
+    .pair-display { grid-template-columns: 1fr; }
+    .export-row { grid-template-columns: 1fr; }
     .new-session-bar { grid-template-columns: 1fr; }
     .session-actions { flex-wrap: wrap; }
+    .mode-tabs { grid-template-columns: 1fr; }
   }
 </style>
 </head>
@@ -690,7 +931,7 @@
 <div class="container">
   <div class="header">
     <h1>&#9671; Scanner Helper</h1>
-    <p>Inventory Management Helper - Scanning made easy! </p>
+    <p>Inventory Management Helper - Scanning made easy!</p>
   </div>
 
   <div class="mode-tabs">
@@ -701,7 +942,7 @@
   <!-- ==================== AUDIT MODE ==================== -->
   <div id="auditPanel" class="mode-panel active">
 
-    <!-- Session Management Card (TOP) -->
+    <!-- Session Management Card -->
     <div class="card">
       <div class="card-title">Scan Sessions</div>
 
@@ -727,6 +968,11 @@
     <div class="card">
       <div class="card-title">Barcode Input</div>
 
+      <div class="scan-type-toggle">
+        <button class="scan-type-btn active" id="auditTypeSerial" onclick="setAuditScanType('serial')">&#9632; Serial Number (7 chars)</button>
+        <button class="scan-type-btn" id="auditTypeAsset" onclick="setAuditScanType('asset')">&#9670; Asset Tag (6 digits)</button>
+      </div>
+
       <div class="scan-input-wrap">
         <input
           type="text"
@@ -744,9 +990,78 @@
         <div class="status-icon"></div>
         <span class="status-text" id="auditStatusText">Create or select a scan session to begin</span>
       </div>
+
+      <!-- Warranty Toggle (inline, collapsed by default) -->
+      <div style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <button class="feature-toggle-btn" id="warrantyToggleBtn" onclick="toggleWarrantyPanel()">
+          <span class="feature-toggle-icon" id="warrantyToggleIcon">&#9656;</span>
+          Warranty Checks
+          <span class="feature-toggle-badge" id="warrantyToggleBadge" style="display:none"></span>
+        </button>
+        <div id="warrantyPanel" style="display:none;margin-top:12px">
+          <p style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">
+            Upload a .xlsx or .csv with <span style="color:var(--accent)">Serial Number</span>, <span style="color:var(--accent)">Asset Tag</span> (optional), and <span style="color:var(--accent)">Warranty End</span> (MM/DD/YYYY) columns. Expired devices alert separately — unrecognized items scan normally. Expired items are saved to a <span style="color:var(--expired)">_WarrantyEXP_</span> file on export.
+          </p>
+          <div class="warranty-upload-area" id="warrantyDropZone" onclick="document.getElementById('warrantyFileInput').click()">
+            <p>&#8593; Drop .xlsx or .csv here, or click to browse</p>
+          </div>
+          <input type="file" id="warrantyFileInput" accept=".csv,.xlsx,.xls" onchange="loadWarrantyFile(this)">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-top:8px">
+            <div class="warranty-info" id="warrantyInfo">No warranty data loaded</div>
+            <button class="btn btn-danger" onclick="clearWarrantyData()" id="clearWarrantyBtn" disabled style="padding:7px 14px;font-size:0.68rem">Clear</button>
+          </div>
+          <div style="margin-top:8px;display:flex;gap:6px;flex-wrap:wrap" id="warrantyBadges"></div>
+        </div>
+      </div>
+
+      <!-- Hunt Mode Toggle (inline, collapsed by default) -->
+      <div style="margin-top:10px;border-top:1px solid var(--border);padding-top:12px">
+        <button class="feature-toggle-btn" id="huntToggleBtn" onclick="toggleHuntPanel()">
+          <span class="feature-toggle-icon" id="huntToggleIcon">&#9656;</span>
+          Hunt Mode
+          <span class="feature-toggle-badge hunt" id="huntToggleBadge" style="display:none"></span>
+        </button>
+        <div id="huntPanel" style="display:none;margin-top:12px">
+          <p style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;color:var(--muted);letter-spacing:1px;margin-bottom:10px;">
+            Paste targets (one per line) or upload a file. Serials, asset tags, or a mix — auto-detected. Scanner will alert when a target is found.
+          </p>
+          <textarea class="hunt-list-area" id="huntPasteArea" placeholder="Paste targets here — one per line&#10;e.g. ABC1234 or 123456" rows="4"></textarea>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px;flex-wrap:wrap">
+            <button class="btn btn-hunt" onclick="loadHuntTargets()" style="padding:9px 16px;font-size:0.7rem">&#9670; Load from Text</button>
+            <label class="file-upload-btn" onclick="document.getElementById('huntFileInput').click()">&#8593; Upload File</label>
+            <input type="file" id="huntFileInput" accept=".csv,.xlsx,.xls" onchange="loadHuntFile(this)">
+          </div>
+          <div id="huntLoadInfo" class="warranty-info" style="margin-top:8px">No targets loaded</div>
+
+          <!-- Hunt progress (shown once targets loaded) -->
+          <div id="huntProgressWrap" style="display:none;margin-top:12px;padding-top:10px;border-top:1px solid var(--border)">
+            <div class="hunt-progress-bar" style="margin-bottom:10px">
+              <div class="hunt-progress-fill" id="huntProgressFill" style="width:0%"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px">
+              <div class="stat-box" style="padding:10px">
+                <div class="stat-num" id="huntTotal" style="color:var(--hunt);font-size:1.4rem">0</div>
+                <div class="stat-label">Targets</div>
+              </div>
+              <div class="stat-box" style="padding:10px">
+                <div class="stat-num" id="huntFound" style="font-size:1.4rem">0</div>
+                <div class="stat-label">Found</div>
+              </div>
+              <div class="stat-box" style="padding:10px">
+                <div class="stat-num" id="huntRemaining" style="color:var(--muted);font-size:1.4rem">0</div>
+                <div class="stat-label">Remaining</div>
+              </div>
+            </div>
+            <div id="huntTargetList" class="hunt-target-list"></div>
+            <div class="btn-row" style="margin-top:10px">
+              <button class="btn btn-danger" onclick="clearHunt()" style="font-size:0.7rem;padding:9px 16px">Clear Hunt</button>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
-    <!-- Stats + Scan Log Card (combined) -->
+    <!-- Stats + Scan Log Card -->
     <div class="card">
       <div class="card-title">Active Session Stats</div>
       <div class="stats-row" style="margin-bottom:0">
@@ -762,12 +1077,15 @@
           <div class="stat-num" id="auditErrors" style="color:var(--danger)">0</div>
           <div class="stat-label">Invalid</div>
         </div>
+        <div class="stat-box" id="expiredStatBox" style="display:none">
+          <div class="stat-num" id="auditExpired" style="color:var(--expired)">0</div>
+          <div class="stat-label">Expired</div>
+        </div>
       </div>
 
-      <!-- Collapsible scan log -->
       <div style="margin-top:16px">
         <button class="log-toggle-btn" id="logToggleBtn" onclick="toggleScanLog()">
-          <span id="logToggleIcon">&#9656;</span> Scan Log
+          <span class="log-toggle-icon">&#9656;</span> Scan Log
         </button>
         <div id="auditLogWrap" style="display:none;margin-top:10px">
           <div class="scan-log" id="auditLog">
@@ -781,7 +1099,7 @@
     <div class="card export-section">
       <div class="card-title">Export</div>
       <p style="font-size:0.78rem;color:var(--muted);letter-spacing:1px;margin-bottom:14px;font-family:'Share Tech Mono',monospace;">
-        Export individual sessions as .txt, download all as a .zip, or copy the combined list.
+        Export sessions as .txt. Sessions with expired devices auto-generate a matching <span style="color:var(--expired)">_WarrantyEXP_</span> file. Download all as .zip includes both.
       </p>
       <div class="export-multi-row">
         <button class="btn btn-primary" id="auditDownloadActiveBtn" onclick="downloadActiveSession()" disabled>&#8595; Active .txt</button>
@@ -790,7 +1108,6 @@
       </div>
       <div class="export-note" id="exportSummaryNote">No sessions to export.</div>
 
-      <!-- Cross-session duplicates (inline, hidden until dupes exist) -->
       <div id="crossDupeCard" style="display:none;margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
         <div style="font-family:'Share Tech Mono',monospace;font-size:0.7rem;letter-spacing:2px;text-transform:uppercase;color:var(--warn);margin-bottom:10px;display:flex;align-items:center;gap:8px;">
           &#9888; Cross-Session Duplicates
@@ -856,10 +1173,9 @@
         </div>
       </div>
 
-      <!-- Collapsible scan log -->
       <div style="margin-top:16px">
         <button class="log-toggle-btn" id="assetLogToggleBtn" onclick="toggleAssetLog()">
-          <span id="assetLogToggleIcon">&#9656;</span> Scan Log
+          <span class="log-toggle-icon">&#9656;</span> Scan Log
         </button>
         <div id="assetLogWrap" style="display:none;margin-top:10px">
           <div class="scan-log" id="assetLog"></div>
@@ -883,6 +1199,8 @@
     </div>
 
   </div>
+
+
 </div>
 
 <!-- Toast notification -->
@@ -900,15 +1218,17 @@ function getACtx() {
 
 function beep(type) {
   const ctx = getACtx();
-  const g = ctx.createGain();
-  g.connect(ctx.destination);
 
   const configs = {
-    success:    [{ f: 880, t: 0.08, v: 0.4 }],
-    error:      [{ f: 180, t: 0.18, v: 0.5 }],
-    duplicate:  [{ f: 440, t: 0.07 }, { f: 300, t: 0.07 }],
-    pairReady:  [{ f: 660, t: 0.07 }, { f: 880, t: 0.07 }],
-    complete:   [{ f: 660, t: 0.07 }, { f: 880, t: 0.07 }, { f: 1100, t: 0.1 }],
+    success:    [{ f: 880, t: 0.08, v: 0.4, w: 'sine' }],
+    error:      [{ f: 180, t: 0.18, v: 0.5, w: 'sawtooth' }],
+    duplicate:  [{ f: 440, t: 0.07, w: 'sine' }, { f: 300, t: 0.07, w: 'sine' }],
+    pairReady:  [{ f: 660, t: 0.07, w: 'sine' }, { f: 880, t: 0.07, w: 'sine' }],
+    complete:   [{ f: 660, t: 0.07, w: 'sine' }, { f: 880, t: 0.07, w: 'sine' }, { f: 1100, t: 0.1, w: 'sine' }],
+    // Warranty expired: two descending low tones, more ominous
+    expired:    [{ f: 440, t: 0.12, v: 0.5, w: 'square' }, { f: 280, t: 0.2, v: 0.5, w: 'square' }],
+    // Hunt found: triumphant ascending arpeggio
+    huntFound:  [{ f: 660, t: 0.07, v: 0.4, w: 'sine' }, { f: 880, t: 0.07, v: 0.4, w: 'sine' }, { f: 1320, t: 0.12, v: 0.45, w: 'sine' }],
   };
 
   const notes = configs[type] || configs.success;
@@ -920,7 +1240,7 @@ function beep(type) {
     osc.connect(gain);
     gain.connect(ctx.destination);
     osc.frequency.value = n.f;
-    osc.type = type === 'error' ? 'sawtooth' : 'sine';
+    osc.type = n.w || 'sine';
     gain.gain.setValueAtTime(n.v || 0.35, time);
     gain.gain.exponentialRampToValueAtTime(0.001, time + n.t);
     osc.start(time);
@@ -932,10 +1252,6 @@ function beep(type) {
 // ===================== HELPERS =====================
 const ILLEGAL_WIN_CHARS = /[<>:"/\\|?*\x00-\x1f]/;
 const RESERVED_NAMES = /^(CON|PRN|AUX|NUL|COM[1-9]|LPT[1-9])$/i;
-
-function sanitizeLabel(label) {
-  return label.trim();
-}
 
 function validateLabel(label) {
   if (!label) return { valid: false, reason: 'Label cannot be empty' };
@@ -953,13 +1269,23 @@ function getDateStr() {
   return `${m}-${day}-${y}`;
 }
 
+function fmtDate(d) {
+  const mm = String(d.getMonth()+1).padStart(2,'0');
+  const dd = String(d.getDate()).padStart(2,'0');
+  const yyyy = d.getFullYear();
+  const hh = String(d.getHours()).padStart(2,'0');
+  const min = String(d.getMinutes()).padStart(2,'0');
+  const ss = String(d.getSeconds()).padStart(2,'00');
+  return mm + '-' + dd + '-' + yyyy + '_' + hh + '-' + min + '-' + ss;
+}
+
 function logEntry(logId, type, message) {
   const log = document.getElementById(logId);
   const entry = document.createElement('div');
   entry.className = 'log-entry';
   const now = new Date();
   const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
-  const cls = { ok:'log-ok', error:'log-err', warn:'log-warn', pair:'log-pair', code:'log-code' };
+  const cls = { ok:'log-ok', error:'log-err', warn:'log-warn', pair:'log-pair', code:'log-code', expired:'log-expired', hunt:'log-hunt' };
   entry.innerHTML = `<span class="log-time">${ts}</span><span class="${cls[type] || ''}">${message}</span>`;
   log.prepend(entry);
 }
@@ -972,9 +1298,332 @@ function setStatus(elId, textId, state, msg) {
 
 function flashInput(id, type) {
   const el = document.getElementById(id);
-  el.classList.remove('flash-success', 'flash-error');
+  el.classList.remove('flash-success', 'flash-error', 'flash-expired', 'flash-hunt');
   void el.offsetWidth;
-  el.classList.add(type === 'success' ? 'flash-success' : 'flash-error');
+  el.classList.add('flash-' + type);
+}
+
+let _toastTimer = null;
+function showToast(msg, type) {
+  const t = document.getElementById('auditToast');
+  t.textContent = msg;
+  let cls = 'toast show';
+  if (type === 'error') cls += ' toast-error';
+  else if (type === 'hunt') cls += ' toast-hunt';
+  else if (type === 'expired') cls += ' toast-expired';
+  t.className = cls;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => {
+    t.className = 'toast' + (type === 'error' ? ' toast-error' : type === 'hunt' ? ' toast-hunt' : type === 'expired' ? ' toast-expired' : '');
+  }, 3000);
+}
+
+function escHtml(str) {
+  return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+// ===================== WARRANTY DATA =====================
+// warrantyMap: key (serial or asset tag, uppercased) → { warrantyEnd: Date, serial, assetTag }
+let warrantyMap = new Map();
+
+function parseWarrantyDate(str) {
+  if (!str) return null;
+  const m = String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  const d = new Date(parseInt(m[3]), parseInt(m[1])-1, parseInt(m[2]));
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function addWarrantyRecord(serial, assetTag, warrantyEnd) {
+  const rec = { warrantyEnd, serial: serial || '', assetTag: assetTag || '' };
+  if (serial)   warrantyMap.set(serial.toUpperCase(), rec);
+  if (assetTag) warrantyMap.set(assetTag.toUpperCase(), rec);
+}
+
+// Returns null (not in data), false (in warranty), or the record (expired)
+function checkWarranty(val) {
+  const rec = warrantyMap.get(val.toUpperCase());
+  if (!rec) return null;
+  return rec.warrantyEnd < new Date() ? rec : false;
+}
+
+function loadWarrantyFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      parseWarrantyCSV(e.target.result);
+      input.value = '';
+    };
+    reader.readAsText(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        parseWarrantyXLSX(e.target.result);
+      } catch(err) {
+        showToast('Error reading XLSX: ' + err.message, 'error');
+      }
+      input.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function parseWarrantyCSV(text) {
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length < 2) { showToast('CSV appears empty or has no data rows', 'error'); return; }
+
+  const header = lines[0].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(h => h.replace(/^"|"$/g,'').trim().toLowerCase());
+  const snIdx  = header.findIndex(h => h.includes('serial'));
+  const wIdx   = header.findIndex(h => h.includes('warranty'));
+  const atIdx  = header.findIndex(h => h.includes('asset'));
+
+  if (wIdx < 0) {
+    showToast('CSV must have a "Warranty End" column', 'error');
+    return;
+  }
+  if (snIdx < 0 && atIdx < 0) {
+    showToast('CSV must have a "Serial Number" and/or "Asset Tag" column', 'error');
+    return;
+  }
+
+  warrantyMap.clear();
+  let loaded = 0;
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim());
+    const sn = snIdx >= 0 && cols[snIdx] ? cols[snIdx].toUpperCase() : '';
+    const at = atIdx >= 0 && cols[atIdx] ? cols[atIdx].toUpperCase() : '';
+    const wd = parseWarrantyDate(cols[wIdx]);
+    if ((sn || at) && wd) { addWarrantyRecord(sn, at, wd); loaded++; }
+  }
+  updateWarrantyUI(loaded, lines[0]);
+}
+
+function parseWarrantyXLSX(buf) {
+  // Minimal XLSX parser — reads the shared strings and the first sheet
+  // We'll use a simple approach: look for the data via a lightweight parse
+  // Since we can't import SheetJS here directly, we'll parse the XML inside XLSX
+
+  const bytes = new Uint8Array(buf);
+
+  // XLSX is a zip; we need to find xl/sharedStrings.xml and xl/worksheets/sheet1.xml
+  // Use a basic zip reader
+  const files = readZipFiles(bytes);
+
+  const ssXml = files['xl/sharedStrings.xml'] || files['xl/sharedstrings.xml'] || '';
+  const sheetXml = files['xl/worksheets/sheet1.xml'] || files['xl/worksheets/Sheet1.xml'] || '';
+
+  if (!sheetXml) { showToast('Could not read XLSX sheet. Try saving as CSV.', 'error'); return; }
+
+  // Parse shared strings
+  const sharedStrings = [];
+  const siMatches = ssXml.matchAll(/<si>[\s\S]*?<\/si>/g);
+  for (const m of siMatches) {
+    const tMatch = m[0].match(/<t[^>]*>([\s\S]*?)<\/t>/g);
+    if (tMatch) {
+      sharedStrings.push(tMatch.map(t => t.replace(/<[^>]+>/g,'')).join(''));
+    } else {
+      sharedStrings.push('');
+    }
+  }
+
+  // Parse sheet rows
+  const rowMatches = [...sheetXml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)];
+  if (rowMatches.length < 2) { showToast('XLSX sheet appears empty', 'error'); return; }
+
+  function getCellValue(cellXml) {
+    const tAttr = cellXml.match(/t="([^"]+)"/);
+    const vMatch = cellXml.match(/<v>([\s\S]*?)<\/v>/);
+    if (!vMatch) return '';
+    const raw = vMatch[1];
+    if (tAttr && tAttr[1] === 's') {
+      return sharedStrings[parseInt(raw)] || '';
+    }
+    return raw;
+  }
+
+  function getRowCells(rowXml) {
+    const cells = {};
+    const cellMatches = rowXml.matchAll(/<c r="([A-Z]+)\d+"[^>]*>([\s\S]*?)<\/c>/g);
+    for (const c of cellMatches) {
+      cells[c[1]] = getCellValue(c[0]);
+    }
+    return cells;
+  }
+
+  // Find header
+  const headerCells = getRowCells(rowMatches[0][1]);
+  let snCol = null, wCol = null, atCol = null;
+  for (const [col, val] of Object.entries(headerCells)) {
+    const v = val.toLowerCase();
+    if (v.includes('serial')) snCol = col;
+    if (v.includes('warranty')) wCol = col;
+    if (v.includes('asset')) atCol = col;
+  }
+
+  if (!wCol) {
+    showToast('XLSX must have a "Warranty End" column', 'error');
+    return;
+  }
+  if (!snCol && !atCol) {
+    showToast('XLSX must have a "Serial Number" and/or "Asset Tag" column', 'error');
+    return;
+  }
+
+  warrantyMap.clear();
+  let loaded = 0;
+
+  for (let i = 1; i < rowMatches.length; i++) {
+    const cells = getRowCells(rowMatches[i][1]);
+    const sn = snCol ? (cells[snCol] || '').trim().toUpperCase() : '';
+    const at = atCol ? (cells[atCol] || '').trim().toUpperCase() : '';
+
+    let wd = null;
+    const wRaw = (cells[wCol] || '').trim();
+    if (wRaw) {
+      wd = parseWarrantyDate(wRaw);
+      if (!wd && /^\d+(\.\d+)?$/.test(wRaw)) {
+        const excelDays = parseFloat(wRaw);
+        const epoch = new Date((excelDays - 25569) * 86400 * 1000);
+        if (!isNaN(epoch.getTime())) wd = epoch;
+      }
+    }
+    if ((sn || at) && wd) { addWarrantyRecord(sn, at, wd); loaded++; }
+  }
+  updateWarrantyUI(loaded, 'XLSX');
+}
+
+// Minimal zip file reader: returns object { filename: textContent }
+function readZipFiles(bytes) {
+  const result = {};
+  const dec = new TextDecoder();
+  let i = 0;
+  while (i < bytes.length - 4) {
+    // Local file header signature
+    if (bytes[i]===0x50 && bytes[i+1]===0x4b && bytes[i+2]===0x03 && bytes[i+3]===0x04) {
+      const compression = bytes[i+8] | (bytes[i+9]<<8);
+      const compSize = bytes[i+18] | (bytes[i+19]<<8) | (bytes[i+20]<<16) | (bytes[i+21]<<24);
+      const nameLen = bytes[i+26] | (bytes[i+27]<<8);
+      const extraLen = bytes[i+28] | (bytes[i+29]<<8);
+      const name = dec.decode(bytes.slice(i+30, i+30+nameLen));
+      const dataStart = i+30+nameLen+extraLen;
+      if (compression === 0) {
+        // Stored — no compression
+        try {
+          result[name] = dec.decode(bytes.slice(dataStart, dataStart+compSize));
+        } catch(e) {}
+      } else if (compression === 8) {
+        // Deflate — try to decompress
+        try {
+          const compressed = bytes.slice(dataStart, dataStart+compSize);
+          const ds = new DecompressionStream('deflate-raw');
+          const writer = ds.writable.getWriter();
+          const reader = ds.readable.getReader();
+          writer.write(compressed);
+          writer.close();
+          // Synchronous-ish via Promise — we'll just store raw and handle async below
+          // For simplicity, we'll attempt a sync approach that may not work in all browsers
+          // Instead, fall back to storing the name so we can detect it
+          result['__deflate__' + name] = dataStart + '|' + compSize;
+        } catch(e) {}
+      }
+      i = dataStart + compSize;
+    } else {
+      i++;
+    }
+  }
+  return result;
+}
+
+function updateWarrantyUI(count, source) {
+  const info = document.getElementById('warrantyInfo');
+  const badges = document.getElementById('warrantyBadges');
+  const clearBtn = document.getElementById('clearWarrantyBtn');
+  const toggleBadge = document.getElementById('warrantyToggleBadge');
+
+  const now = new Date();
+  // Deduplicate: a record may be stored under both serial and asset tag keys
+  const seen = new Set();
+  let expired = 0, active = 0;
+  warrantyMap.forEach((rec) => {
+    const key = rec.serial + '|' + rec.assetTag;
+    if (seen.has(key)) return;
+    seen.add(key);
+    if (rec.warrantyEnd < now) expired++; else active++;
+  });
+
+  info.textContent = `${count} records — ${active} in warranty, ${expired} expired`;
+  info.className = 'warranty-info loaded';
+
+  badges.innerHTML = '';
+  if (active > 0) badges.innerHTML += `<span class="warranty-ok-badge">&#10003; ${active} In Warranty</span>`;
+  if (expired > 0) badges.innerHTML += `<span class="warranty-badge">&#9888; ${expired} Expired</span>`;
+
+  clearBtn.disabled = false;
+  document.getElementById('expiredStatBox').style.display = '';
+
+  toggleBadge.textContent = `${count} records`;
+  toggleBadge.style.display = 'inline-block';
+
+  showToast(`Warranty data loaded: ${count} records`);
+}
+
+function clearWarrantyData() {
+  warrantyMap.clear();
+  document.getElementById('warrantyInfo').textContent = 'No warranty data loaded';
+  document.getElementById('warrantyInfo').className = 'warranty-info';
+  document.getElementById('warrantyBadges').innerHTML = '';
+  document.getElementById('clearWarrantyBtn').disabled = true;
+  document.getElementById('expiredStatBox').style.display = 'none';
+  document.getElementById('warrantyToggleBadge').style.display = 'none';
+  showToast('Warranty data cleared', 'error');
+}
+
+// Drag & drop for warranty
+const warrantyDrop = document.getElementById('warrantyDropZone');
+warrantyDrop.addEventListener('dragover', e => { e.preventDefault(); warrantyDrop.classList.add('drag-over'); });
+warrantyDrop.addEventListener('dragleave', () => warrantyDrop.classList.remove('drag-over'));
+warrantyDrop.addEventListener('drop', e => {
+  e.preventDefault();
+  warrantyDrop.classList.remove('drag-over');
+  const file = e.dataTransfer.files[0];
+  if (!file) return;
+  const fakeInput = { files: [file], value: '' };
+  loadWarrantyFile(fakeInput);
+});
+
+// ===================== AUDIT MODE — SCAN TYPE =====================
+let auditScanType = 'serial'; // 'serial' or 'asset'
+
+function setAuditScanType(type) {
+  auditScanType = type;
+  document.getElementById('auditTypeSerial').classList.toggle('active', type === 'serial');
+  document.getElementById('auditTypeAsset').classList.toggle('active', type === 'asset');
+  const inp = document.getElementById('auditInput');
+  if (!inp.disabled) {
+    inp.placeholder = type === 'serial' ? 'Scan 7-char serial number...' : 'Scan 6-digit asset tag...';
+    inp.focus();
+  }
+  const session = getActiveSession();
+  if (session) {
+    setStatus('auditStatus', 'auditStatusText', 'ready',
+      `Session "${session.label}" active — scanning ${type === 'serial' ? 'Serial Numbers (7 chars)' : 'Asset Tags (6 digits)'}`);
+  }
+}
+
+function isValidBarcode(val) {
+  if (auditScanType === 'asset') {
+    return /^\d{6}$/.test(val);
+  }
+  // serial: 7 alphanumeric with at least one letter and one digit
+  if (!/^[A-Z0-9]{7}$/i.test(val)) return false;
+  if (!/[A-Z]/i.test(val)) return false;
+  if (!/[0-9]/.test(val)) return false;
+  return true;
 }
 
 // ===================== AUDIT MODE — MULTI-SESSION =====================
@@ -982,31 +1631,12 @@ let auditSessions = [];
 let activeSessionId = null;
 let auditDupeCount = 0;
 let auditErrorCount = 0;
-
-function isValidBarcode(val) {
-  if (!/^[A-Z0-9]{7}$/i.test(val)) return false;
-  if (!/[A-Z]/i.test(val)) return false;  // must have at least one letter
-  if (!/[0-9]/.test(val)) return false;   // must have at least one number
-  return true;
-}
+let auditExpiredCount = 0;
 
 function getActiveSession() {
   return auditSessions.find(s => s.id === activeSessionId) || null;
 }
 
-// ---- Toast ----
-let _toastTimer = null;
-function showToast(msg, type) {
-  const t = document.getElementById('auditToast');
-  t.textContent = msg;
-  t.className = 'toast' + (type === 'error' ? ' toast-error' : '') + ' show';
-  clearTimeout(_toastTimer);
-  _toastTimer = setTimeout(() => {
-    t.className = 'toast' + (type === 'error' ? ' toast-error' : '');
-  }, 2400);
-}
-
-// ---- Session management ----
 function generateId() {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
@@ -1026,7 +1656,11 @@ function createSession() {
   const v = validateLabel(label);
   if (!v.valid) { showToast('Invalid label: ' + v.reason, 'error'); return; }
 
-  const session = { id: generateId(), label, scanned: new Set(), dupeCount: 0, errorCount: 0, createdAt: new Date(), logEntries: [] };
+  const session = {
+    id: generateId(), label, scanned: new Set(), expiredScanned: new Set(),
+    dupeCount: 0, errorCount: 0, expiredCount: 0,
+    createdAt: new Date(), logEntries: []
+  };
   auditSessions.push(session);
   document.getElementById('newSessionLabel').value = '';
   updateNewSessionPreview();
@@ -1036,25 +1670,23 @@ function createSession() {
 }
 
 function activateSession(id) {
-  // If already active, do nothing
   if (activeSessionId === id) return;
-
   activeSessionId = id;
   const session = getActiveSession();
   if (!session) return;
 
   auditDupeCount = session.dupeCount;
   auditErrorCount = session.errorCount;
+  auditExpiredCount = session.expiredCount;
 
   document.getElementById('auditCount').textContent = session.scanned.size;
   document.getElementById('auditDupes').textContent = session.dupeCount;
   document.getElementById('auditErrors').textContent = session.errorCount;
+  document.getElementById('auditExpired').textContent = session.expiredCount;
 
-  // Rebuild log from session's stored log entries
   const log = document.getElementById('auditLog');
   log.innerHTML = '';
   if (session.logEntries && session.logEntries.length > 0) {
-    // Entries are stored oldest-first; prepend so newest shows at top
     session.logEntries.forEach(entry => {
       const div = document.createElement('div');
       div.className = 'log-entry';
@@ -1067,22 +1699,12 @@ function activateSession(id) {
 
   const inp = document.getElementById('auditInput');
   inp.disabled = false;
-  inp.placeholder = 'Awaiting scan...';
+  inp.placeholder = auditScanType === 'serial' ? 'Scan 7-char serial number...' : 'Scan 6-digit asset tag...';
   inp.focus();
 
   setStatus('auditStatus', 'auditStatusText', 'ready', 'Session "' + session.label + '" active — scan a barcode');
   renderSessionList();
   updateExportButtons();
-}
-
-function fmtDate(d) {
-  const mm = String(d.getMonth()+1).padStart(2,'0');
-  const dd = String(d.getDate()).padStart(2,'0');
-  const yyyy = d.getFullYear();
-  const hh = String(d.getHours()).padStart(2,'0');
-  const min = String(d.getMinutes()).padStart(2,'0');
-  const ss = String(d.getSeconds()).padStart(2,'00');
-  return mm + '-' + dd + '-' + yyyy + '_' + hh + '-' + min + '-' + ss;
 }
 
 function buildSessionFilename(session) {
@@ -1091,10 +1713,6 @@ function buildSessionFilename(session) {
 
 function buildSessionContent(session) {
   return [...session.scanned].join('\n');
-}
-
-function escHtml(str) {
-  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
 function renderSessionList() {
@@ -1106,17 +1724,21 @@ function renderSessionList() {
   list.innerHTML = auditSessions.map(s => {
     const isActive = s.id === activeSessionId;
     const fname = buildSessionFilename(s);
+    const expCount = s.expiredScanned ? s.expiredScanned.size : 0;
+    const expBadge = expCount > 0
+      ? `<span style="font-family:'Share Tech Mono',monospace;font-size:0.62rem;background:rgba(255,149,0,0.12);border:1px solid rgba(255,149,0,0.3);color:var(--expired);padding:2px 7px;border-radius:3px;white-space:nowrap;">&#9888; ${expCount} exp</span>`
+      : '';
     return '<div class="session-item' + (isActive ? ' active-session' : '') + '">' +
       '<div class="session-dot' + (isActive ? '' : ' inactive') + '"></div>' +
       '<div class="session-meta' + (!isActive ? ' session-meta-clickable' : '') + '"' +
-        (!isActive ? ' onclick="activateSession(\'' + s.id + '\')" title="Click to switch to this session"' : '') + '>' +
+        (!isActive ? ' onclick="activateSession(\'' + s.id + '\')" title="Click to switch"' : '') + '>' +
         '<div class="session-name">' + escHtml(s.label) + '</div>' +
         '<div class="session-sub">' + escHtml(fname) + '</div>' +
       '</div>' +
       '<span class="session-badge">' + s.scanned.size + ' items</span>' +
+      expBadge +
       '<div class="session-actions">' +
-        (isActive
-          ? '<span class="session-btn active-label">Active</span>'
+        (isActive ? '<span class="session-btn active-label">Active</span>'
           : '<button class="session-btn" onclick="activateSession(\'' + s.id + '\')">Select</button>') +
         '<button class="session-btn" onclick="downloadSession(\'' + s.id + '\')">&#8595; .txt</button>' +
         '<button class="session-btn del" onclick="deleteSession(\'' + s.id + '\')">&#10005;</button>' +
@@ -1130,20 +1752,24 @@ function deleteSession(id) {
   auditSessions = auditSessions.filter(s => s.id !== id);
   if (activeSessionId === id) {
     activeSessionId = null;
-    auditDupeCount = 0;
-    auditErrorCount = 0;
-    document.getElementById('auditCount').textContent = '0';
-    document.getElementById('auditDupes').textContent = '0';
-    document.getElementById('auditErrors').textContent = '0';
-    document.getElementById('auditLog').innerHTML = '<div class="session-empty">No active session</div>';
-    const inp = document.getElementById('auditInput');
-    inp.disabled = true;
-    inp.placeholder = 'Select a session first...';
-    setStatus('auditStatus', 'auditStatusText', 'ready', 'Create or select a scan session to begin');
+    resetAuditStats();
   }
   renderSessionList();
   updateExportButtons();
   showToast('Session deleted', 'error');
+}
+
+function resetAuditStats() {
+  auditDupeCount = 0; auditErrorCount = 0; auditExpiredCount = 0;
+  document.getElementById('auditCount').textContent = '0';
+  document.getElementById('auditDupes').textContent = '0';
+  document.getElementById('auditErrors').textContent = '0';
+  document.getElementById('auditExpired').textContent = '0';
+  document.getElementById('auditLog').innerHTML = '<div class="session-empty">No active session</div>';
+  const inp = document.getElementById('auditInput');
+  inp.disabled = true;
+  inp.placeholder = 'Select a session first...';
+  setStatus('auditStatus', 'auditStatusText', 'ready', 'Create or select a scan session to begin');
 }
 
 function clearAllSessions() {
@@ -1151,35 +1777,22 @@ function clearAllSessions() {
   if (!confirm('Clear ALL sessions? This cannot be undone.')) return;
   auditSessions = [];
   activeSessionId = null;
-  auditDupeCount = 0;
-  auditErrorCount = 0;
-  document.getElementById('auditCount').textContent = '0';
-  document.getElementById('auditDupes').textContent = '0';
-  document.getElementById('auditErrors').textContent = '0';
-  document.getElementById('auditLog').innerHTML = '<div class="session-empty">No active session</div>';
-  const inp = document.getElementById('auditInput');
-  inp.disabled = true;
-  inp.placeholder = 'Select a session first...';
-  setStatus('auditStatus', 'auditStatusText', 'ready', 'Create or select a scan session to begin');
+  resetAuditStats();
   renderSessionList();
   updateExportButtons();
   showToast('All sessions cleared', 'error');
 }
 
-// ---- Scan input ----
-// ---- Scan input ----
 function auditLogEntry(session, type, message) {
-  // Write to visible log
   logEntry('auditLog', type, message);
-  // Persist to session (grab the just-prepended element's innerHTML for replay)
   const log = document.getElementById('auditLog');
   if (log.firstChild) {
     if (!session.logEntries) session.logEntries = [];
-    // Store at start so array[0] = newest; on restore we append in order so newest ends at top
     session.logEntries.unshift(log.firstChild.innerHTML);
   }
 }
 
+// ---- Audit scan handler ----
 document.getElementById('auditInput').addEventListener('keydown', (e) => {
   if (e.key !== 'Enter') return;
   e.preventDefault();
@@ -1194,7 +1807,10 @@ document.getElementById('auditInput').addEventListener('keydown', (e) => {
     auditErrorCount++;
     session.errorCount++;
     document.getElementById('auditErrors').textContent = auditErrorCount;
-    setStatus('auditStatus', 'auditStatusText', 'error', 'INVALID — "' + val + '" must be exactly 7 alphanumeric chars with both letters and numbers');
+    const msg = auditScanType === 'serial'
+      ? `INVALID — "${val}" must be 7 alphanumeric chars with letters and digits`
+      : `INVALID — "${val}" must be exactly 6 digits`;
+    setStatus('auditStatus', 'auditStatusText', 'error', msg);
     auditLogEntry(session, 'error', 'INVALID: ' + val);
     beep('error');
     flashInput('auditInput', 'error');
@@ -1205,7 +1821,7 @@ document.getElementById('auditInput').addEventListener('keydown', (e) => {
     auditDupeCount++;
     session.dupeCount++;
     document.getElementById('auditDupes').textContent = auditDupeCount;
-    setStatus('auditStatus', 'auditStatusText', 'warn', 'DUPLICATE — "' + val + '" already scanned in this session');
+    setStatus('auditStatus', 'auditStatusText', 'warn', `DUPLICATE — "${val}" already scanned in this session`);
     auditLogEntry(session, 'warn', 'DUPE: ' + val);
     beep('duplicate');
     flashInput('auditInput', 'error');
@@ -1214,10 +1830,52 @@ document.getElementById('auditInput').addEventListener('keydown', (e) => {
 
   session.scanned.add(val);
   document.getElementById('auditCount').textContent = session.scanned.size;
-  setStatus('auditStatus', 'auditStatusText', 'success', 'OK — "' + val + '" logged to "' + session.label + '"');
-  auditLogEntry(session, 'ok', 'OK: ' + val);
-  beep('success');
-  flashInput('auditInput', 'success');
+
+  // Hunt mode check — runs regardless of warranty
+  if (huntTargets.length > 0) {
+    const huntTarget = huntTargets.find(t => t.val === val && !t.found);
+    if (huntTarget) {
+      huntTarget.found = true;
+      const remaining = huntTargets.filter(t => !t.found).length;
+      updateHuntUI();
+      const huntMsg = remaining === 0
+        ? `🎯 ALL TARGETS FOUND! Last: "${val}"`
+        : `🎯 HUNT HIT — "${val}" | ${remaining} remaining`;
+      showToast(remaining === 0 ? '🎯 ALL TARGETS FOUND!' : `🎯 Found: ${val}`, 'hunt');
+      // We'll still play the normal/expired beep, then add a brief hunt tone overlay
+      setTimeout(() => beep('huntFound'), 200);
+      // Append to audit log
+      auditLogEntry(session, 'hunt', `HUNT FOUND: ${val}${remaining === 0 ? ' — ALL DONE!' : ` (${remaining} left)`}`);
+    }
+  }
+
+  // Check warranty (works for both serial numbers and asset tags)
+  const warrantyResult = checkWarranty(val);
+
+  if (warrantyResult !== null && warrantyResult !== false) {
+    // Expired warranty — warrantyResult is the record
+    auditExpiredCount++;
+    session.expiredCount = (session.expiredCount || 0) + 1;
+    session.expiredScanned = session.expiredScanned || new Set();
+    session.expiredScanned.add(val);
+    document.getElementById('auditExpired').textContent = auditExpiredCount;
+    const endDate = warrantyResult.warrantyEnd;
+    const dateStr = endDate ? (endDate.getMonth()+1) + '/' + endDate.getDate() + '/' + endDate.getFullYear() : 'Unknown';
+    setStatus('auditStatus', 'auditStatusText', 'expired', `⚠ OUT OF WARRANTY — "${val}" expired ${dateStr}`);
+    auditLogEntry(session, 'expired', `EXPIRED WARRANTY: ${val} (ended ${dateStr})`);
+    beep('expired');
+    flashInput('auditInput', 'expired');
+    showToast(`⚠ Warranty EXPIRED: ${val}`, 'expired');
+  } else {
+    // Normal success (warrantyResult === null means not in data, false means in warranty)
+    let statusMsg = `OK — "${val}" logged to "${session.label}"`;
+    if (warrantyResult === false) statusMsg += ' ✓ In Warranty';
+    setStatus('auditStatus', 'auditStatusText', 'success', statusMsg);
+    auditLogEntry(session, 'ok', 'OK: ' + val + (warrantyResult === false ? ' [in warranty]' : ''));
+    beep('success');
+    flashInput('auditInput', 'success');
+  }
+
   renderSessionList();
   updateExportButtons();
 });
@@ -1255,8 +1913,9 @@ function updateExportButtons() {
   document.getElementById('auditCombinedBtn').disabled = totalItems === 0;
 
   const uniqueCount = getUniqueCount();
-  const combinedBtn = document.getElementById('auditCombinedBtn');
-  combinedBtn.textContent = uniqueCount > 0 ? '\u29d7 Copy ' + uniqueCount + ' Combined' : '\u29d7 Copy Combined';
+  document.getElementById('auditCombinedBtn').textContent = uniqueCount > 0
+    ? '\u29d7 Copy ' + uniqueCount + ' Combined'
+    : '\u29d7 Copy Combined';
 
   const note = document.getElementById('exportSummaryNote');
   note.textContent = total === 0
@@ -1264,6 +1923,15 @@ function updateExportButtons() {
     : total + ' session' + (total !== 1 ? 's' : '') + ' · ' + totalItems + ' total item' + (totalItems !== 1 ? 's' : '');
 
   renderCrossDupes();
+}
+
+function buildExpiredFilename(session) {
+  return 'Audit_' + session.label + '_WarrantyEXP_' + fmtDate(session.createdAt) + '-C' + (session.expiredScanned ? session.expiredScanned.size : 0) + '.txt';
+}
+
+function buildExpiredContent(session) {
+  if (!session.expiredScanned || session.expiredScanned.size === 0) return '';
+  return [...session.expiredScanned].join('\n');
 }
 
 function triggerDownload(filename, content) {
@@ -1278,7 +1946,15 @@ function downloadSession(id) {
   const session = auditSessions.find(s => s.id === id);
   if (!session || session.scanned.size === 0) { showToast('No scans in this session', 'error'); return; }
   triggerDownload(buildSessionFilename(session), buildSessionContent(session));
-  showToast('Downloaded: ' + buildSessionFilename(session));
+  // Also download expired list if any
+  if (session.expiredScanned && session.expiredScanned.size > 0) {
+    setTimeout(() => {
+      triggerDownload(buildExpiredFilename(session), buildExpiredContent(session));
+    }, 300);
+    showToast(`Downloaded + ${session.expiredScanned.size} expired items separately`);
+  } else {
+    showToast('Downloaded: ' + buildSessionFilename(session));
+  }
 }
 
 function downloadActiveSession() {
@@ -1288,20 +1964,24 @@ function downloadActiveSession() {
 
 function downloadAllZip() {
   if (auditSessions.length === 0) return;
-  const files = auditSessions.map(s => ({ name: buildSessionFilename(s), content: buildSessionContent(s) }));
+  const files = [];
+  auditSessions.forEach(s => {
+    files.push({ name: buildSessionFilename(s), content: buildSessionContent(s) });
+    if (s.expiredScanned && s.expiredScanned.size > 0) {
+      files.push({ name: buildExpiredFilename(s), content: buildExpiredContent(s) });
+    }
+  });
   const zip = buildZip(files);
   const blob = new Blob([zip], { type: 'application/zip' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
   a.download = 'AuditSessions_' + getDateStr() + '.zip';
   a.click();
-  showToast('Downloaded ' + files.length + ' sessions as .zip');
+  showToast('Downloaded ' + auditSessions.length + ' sessions as .zip');
 }
 
-// ---- Cross-session duplicate detection ----
 function getCrossSessionDupes() {
-  // Returns Map: serial -> [sessionLabels]
-  const seen = new Map(); // serial -> [label, ...]
+  const seen = new Map();
   auditSessions.forEach(s => {
     s.scanned.forEach(serial => {
       if (!seen.has(serial)) seen.set(serial, []);
@@ -1309,9 +1989,7 @@ function getCrossSessionDupes() {
     });
   });
   const dupes = new Map();
-  seen.forEach((labels, serial) => {
-    if (labels.length > 1) dupes.set(serial, labels);
-  });
+  seen.forEach((labels, serial) => { if (labels.length > 1) dupes.set(serial, labels); });
   return dupes;
 }
 
@@ -1319,12 +1997,7 @@ function renderCrossDupes() {
   const dupes = getCrossSessionDupes();
   const card = document.getElementById('crossDupeCard');
   const list = document.getElementById('crossDupeList');
-
-  if (dupes.size === 0) {
-    card.style.display = 'none';
-    return;
-  }
-
+  if (dupes.size === 0) { card.style.display = 'none'; return; }
   card.style.display = 'block';
   document.getElementById('crossDupeCount').textContent = dupes.size + ' found';
   list.innerHTML = '';
@@ -1340,20 +2013,14 @@ function renderCrossDupes() {
 
 function copyCombined() {
   if (auditSessions.length === 0) return;
-
-  // Deduplicate across sessions — first occurrence wins
   const seen = new Set();
   const lines = [];
   auditSessions.forEach(s => {
     s.scanned.forEach(serial => {
-      if (!seen.has(serial)) {
-        seen.add(serial);
-        lines.push(serial);
-      }
+      if (!seen.has(serial)) { seen.add(serial); lines.push(serial); }
     });
   });
   const combined = lines.join('\n');
-
   navigator.clipboard.writeText(combined).then(() => {
     showToast('Copied ' + lines.length + ' unique items from ' + auditSessions.length + ' sessions');
   }).catch(() => {
@@ -1367,7 +2034,366 @@ function copyCombined() {
   });
 }
 
-// ---- Pure-JS Zip builder (store, no compression) ----
+// ===================== NEW ASSET MODE =====================
+let assetPairs = [];
+let assetTagSet = new Set();
+let serialSet = new Set();
+let assetDupeCount = 0;
+let assetErrorCount = 0;
+let pendingAssetTag = null;
+
+const assetInput = document.getElementById('assetInput');
+
+function isValidAssetTag(val) { return /^\d{6}$/.test(val); }
+function isValidSerial(val) {
+  if (!/^[A-Z0-9]{7}$/i.test(val)) return false;
+  if (!/[A-Z]/i.test(val)) return false;
+  if (!/[0-9]/.test(val)) return false;
+  return true;
+}
+
+function updatePairBoxes() {
+  const tagBox = document.getElementById('assetTagBox');
+  const serialBoxEl = document.getElementById('serialBox');
+  const tagVal = document.getElementById('assetTagValue');
+  const serVal = document.getElementById('serialValue');
+  const lbl = document.getElementById('assetScanLabel');
+
+  if (!pendingAssetTag) {
+    tagBox.className = 'pair-box active';
+    serialBoxEl.className = 'pair-box';
+    tagVal.className = 'pair-box-value';
+    tagVal.textContent = '—';
+    serVal.className = 'pair-box-value';
+    serVal.textContent = '—';
+    lbl.textContent = 'Asset Tag Input';
+    assetInput.placeholder = 'Scan 6-digit asset tag...';
+  } else {
+    tagBox.className = 'pair-box filled';
+    serialBoxEl.className = 'pair-box active';
+    tagVal.className = 'pair-box-value has-value';
+    tagVal.textContent = pendingAssetTag;
+    serVal.className = 'pair-box-value';
+    serVal.textContent = '—';
+    lbl.textContent = 'Serial Number Input';
+    assetInput.placeholder = 'Scan 7-char serial number...';
+  }
+}
+
+assetInput.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const val = assetInput.value.trim().toUpperCase();
+  assetInput.value = '';
+  if (!val) return;
+
+  if (!pendingAssetTag) {
+    if (!isValidAssetTag(val)) {
+      assetErrorCount++;
+      document.getElementById('assetErrors').textContent = assetErrorCount;
+      setStatus('assetStatus', 'assetStatusText', 'error', `INVALID — "${val}" must be exactly 6 digits`);
+      logEntry('assetLog', 'error', `INVALID ASSET TAG: ${val}`);
+      beep('error'); flashInput('assetInput', 'error'); return;
+    }
+    if (assetTagSet.has(val)) {
+      assetDupeCount++;
+      document.getElementById('assetDupes').textContent = assetDupeCount;
+      setStatus('assetStatus', 'assetStatusText', 'warn', `DUPLICATE — Asset tag "${val}" already logged`);
+      logEntry('assetLog', 'warn', `DUPE ASSET TAG: ${val}`);
+      beep('duplicate'); flashInput('assetInput', 'error'); return;
+    }
+    pendingAssetTag = val;
+    setStatus('assetStatus', 'assetStatusText', 'pair-ready', `Asset tag "${val}" captured — now scan serial number`);
+    logEntry('assetLog', 'pair', `ASSET TAG: ${val} — awaiting serial`);
+    beep('pairReady'); flashInput('assetInput', 'success');
+    updatePairBoxes(); return;
+  }
+
+  if (!isValidSerial(val)) {
+    assetErrorCount++;
+    document.getElementById('assetErrors').textContent = assetErrorCount;
+    setStatus('assetStatus', 'assetStatusText', 'error', `INVALID — "${val}" must be 7 alphanumeric chars with letters and digits`);
+    logEntry('assetLog', 'error', `INVALID SERIAL: ${val}`);
+    beep('error'); flashInput('assetInput', 'error'); return;
+  }
+  if (serialSet.has(val)) {
+    assetDupeCount++;
+    document.getElementById('assetDupes').textContent = assetDupeCount;
+    setStatus('assetStatus', 'assetStatusText', 'warn', `DUPLICATE — Serial "${val}" already logged`);
+    logEntry('assetLog', 'warn', `DUPE SERIAL: ${val}`);
+    beep('duplicate'); flashInput('assetInput', 'error'); return;
+  }
+
+  assetTagSet.add(pendingAssetTag);
+  serialSet.add(val);
+  assetPairs.push({ asset: pendingAssetTag, serial: val });
+  document.getElementById('assetCount').textContent = assetPairs.length;
+  setStatus('assetStatus', 'assetStatusText', 'success', `PAIR LOGGED — ${pendingAssetTag} / ${val}`);
+  logEntry('assetLog', 'ok', `PAIR: ${pendingAssetTag} → ${val}`);
+  beep('complete'); flashInput('assetInput', 'success');
+  pendingAssetTag = null;
+  updatePairBoxes();
+  document.getElementById('assetDownloadBtn').disabled = false;
+  updateAssetPreview();
+});
+
+function updateAssetPreview() {
+  const label = document.getElementById('assetFileName').value;
+  const preview = document.getElementById('assetFilePreview');
+  const inp = document.getElementById('assetFileName');
+  if (!label) { preview.textContent = 'Enter a label to preview filename'; preview.className = 'filename-preview'; inp.classList.remove('invalid'); return; }
+  const v = validateLabel(label);
+  if (!v.valid) { preview.textContent = '✗ ' + v.reason; preview.className = 'filename-preview invalid'; inp.classList.add('invalid'); return; }
+  inp.classList.remove('invalid');
+  const fname = `New_Assets_${label}_${fmtDate(new Date())}-C${assetPairs.length}.txt`;
+  preview.textContent = fname;
+  preview.className = 'filename-preview valid';
+}
+
+function downloadAssets() {
+  const label = document.getElementById('assetFileName').value;
+  const v = validateLabel(label);
+  if (!v.valid) { alert('Fix filename label: ' + v.reason); return; }
+  if (assetPairs.length === 0) { alert('No asset pairs to export.'); return; }
+  const fname = `New_Assets_${label}_${fmtDate(new Date())}-C${assetPairs.length}.txt`;
+  const content = assetPairs.map(p => `${p.asset}\n${p.serial}`).join('\n');
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = fname;
+  a.click();
+}
+
+function clearAssets() {
+  if (assetPairs.length > 0 && !confirm('Clear all asset pairs?')) return;
+  assetPairs = []; assetTagSet.clear(); serialSet.clear();
+  assetDupeCount = 0; assetErrorCount = 0; pendingAssetTag = null;
+  document.getElementById('assetCount').textContent = '0';
+  document.getElementById('assetDupes').textContent = '0';
+  document.getElementById('assetErrors').textContent = '0';
+  document.getElementById('assetLog').innerHTML = '';
+  document.getElementById('assetDownloadBtn').disabled = true;
+  setStatus('assetStatus', 'assetStatusText', 'ready', 'Ready — scan Asset Tag first');
+  updatePairBoxes(); updateAssetPreview();
+}
+
+// ===================== HUNT MODE =====================
+let huntTargets = []; // [{val, type, found}]
+let huntFoundCount = 0;
+
+function detectType(val) {
+  val = val.trim().toUpperCase();
+  if (/^\d{6}$/.test(val)) return 'asset';
+  if (/^[A-Z0-9]{7}$/i.test(val) && /[A-Z]/i.test(val) && /[0-9]/.test(val)) return 'serial';
+  return 'unknown';
+}
+
+function loadHuntTargets() {
+  const text = document.getElementById('huntPasteArea').value;
+  const lines = text.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if (lines.length === 0) { showToast('No targets to load', 'error'); return; }
+  importHuntLines(lines);
+}
+
+function importHuntLines(lines) {
+  const newTargets = [];
+  const seen = new Set(huntTargets.map(t => t.val));
+  let added = 0, skipped = 0;
+
+  lines.forEach(raw => {
+    const val = raw.trim().toUpperCase();
+    if (!val) return;
+    if (seen.has(val)) { skipped++; return; }
+    const type = detectType(val);
+    seen.add(val);
+    newTargets.push({ val, type, found: false });
+    added++;
+  });
+
+  huntTargets = [...huntTargets, ...newTargets];
+  updateHuntUI();
+  showToast(`Added ${added} target${added !== 1 ? 's' : ''}${skipped ? `, ${skipped} dupes skipped` : ''}`);
+  document.getElementById('huntPasteArea').value = '';
+}
+
+function loadHuntFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const ext = file.name.split('.').pop().toLowerCase();
+
+  if (ext === 'csv') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+      // Try to find column with serial/asset data — skip header if present
+      const processed = [];
+      lines.forEach(line => {
+        // Split by comma, take each cell as potential target
+        line.split(',').forEach(cell => {
+          const v = cell.replace(/^"|"$/g,'').trim();
+          if (v && detectType(v) !== 'unknown') processed.push(v);
+        });
+      });
+      if (processed.length === 0) {
+        // Fallback: treat every line as a target
+        lines.forEach(l => { if (l) processed.push(l); });
+      }
+      importHuntLines(processed);
+      input.value = '';
+    };
+    reader.readAsText(file);
+  } else if (ext === 'xlsx' || ext === 'xls') {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const files = readZipFiles(new Uint8Array(e.target.result));
+        const sheetXml = files['xl/worksheets/sheet1.xml'] || files['xl/worksheets/Sheet1.xml'] || '';
+        const ssXml = files['xl/sharedStrings.xml'] || files['xl/sharedstrings.xml'] || '';
+
+        const sharedStrings = [];
+        const siMatches = ssXml.matchAll(/<si>[\s\S]*?<\/si>/g);
+        for (const m of siMatches) {
+          const tMatch = m[0].match(/<t[^>]*>([\s\S]*?)<\/t>/g);
+          sharedStrings.push(tMatch ? tMatch.map(t => t.replace(/<[^>]+>/g,'')).join('') : '');
+        }
+
+        function getCellVal(cellXml) {
+          const tAttr = cellXml.match(/t="([^"]+)"/);
+          const vMatch = cellXml.match(/<v>([\s\S]*?)<\/v>/);
+          if (!vMatch) return '';
+          if (tAttr && tAttr[1] === 's') return sharedStrings[parseInt(vMatch[1])] || '';
+          return vMatch[1];
+        }
+
+        const vals = [];
+        const cellMatches = sheetXml.matchAll(/<c r="([A-Z]+\d+)"[^>]*>([\s\S]*?)<\/c>/g);
+        for (const c of cellMatches) {
+          const v = getCellVal(c[0]).trim();
+          if (v && detectType(v) !== 'unknown') vals.push(v);
+        }
+        importHuntLines(vals);
+      } catch(err) {
+        showToast('Error reading XLSX: ' + err.message, 'error');
+      }
+      input.value = '';
+    };
+    reader.readAsArrayBuffer(file);
+  }
+}
+
+function updateHuntUI() {
+  huntFoundCount = huntTargets.filter(t => t.found).length;
+  const total = huntTargets.length;
+  const remaining = total - huntFoundCount;
+  const pct = total > 0 ? (huntFoundCount / total * 100) : 0;
+
+  document.getElementById('huntProgressWrap').style.display = total > 0 ? 'block' : 'none';
+  document.getElementById('huntTotal').textContent = total;
+  document.getElementById('huntFound').textContent = huntFoundCount;
+  document.getElementById('huntRemaining').textContent = remaining;
+  document.getElementById('huntProgressFill').style.width = pct + '%';
+  document.getElementById('huntLoadInfo').textContent = total > 0
+    ? `${total} targets loaded — ${huntFoundCount} found, ${remaining} remaining`
+    : 'No targets loaded';
+  document.getElementById('huntLoadInfo').className = total > 0 ? 'warranty-info loaded' : 'warranty-info';
+
+  updateHuntToggleBadge();
+  renderHuntTargetList();
+}
+
+function renderHuntTargetList() {
+  const list = document.getElementById('huntTargetList');
+  if (huntTargets.length === 0) {
+    list.innerHTML = '<div class="session-empty">Load targets to see the list</div>';
+    return;
+  }
+  list.innerHTML = huntTargets.map(t =>
+    `<div class="hunt-target-item${t.found ? ' found' : ''}">
+      <div class="hunt-dot"></div>
+      <span class="hunt-val">${escHtml(t.val)}</span>
+      <span class="hunt-type-tag">${t.type === 'serial' ? 'SN' : t.type === 'asset' ? 'AT' : '??'}</span>
+      <span class="hunt-found-badge">FOUND</span>
+    </div>`
+  ).join('');
+}
+
+// Hunt mode is handled inside the auditInput keydown listener below
+
+function clearHunt() {
+  if (huntTargets.length > 0 && !confirm('Clear all hunt targets? This cannot be undone.')) return;
+  huntTargets = [];
+  huntFoundCount = 0;
+  document.getElementById('huntPasteArea').value = '';
+  updateHuntUI();
+  updateHuntToggleBadge();
+}
+
+// ===================== FEATURE PANEL TOGGLES =====================
+function toggleWarrantyPanel() {
+  const panel = document.getElementById('warrantyPanel');
+  const btn = document.getElementById('warrantyToggleBtn');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.classList.toggle('open', !isOpen);
+}
+
+function toggleHuntPanel() {
+  const panel = document.getElementById('huntPanel');
+  const btn = document.getElementById('huntToggleBtn');
+  const isOpen = panel.style.display !== 'none';
+  panel.style.display = isOpen ? 'none' : 'block';
+  btn.classList.toggle('open', !isOpen);
+  if (!isOpen) btn.classList.add('hunt-open');
+  else btn.classList.remove('hunt-open');
+}
+
+function updateHuntToggleBadge() {
+  const badge = document.getElementById('huntToggleBadge');
+  const total = huntTargets.length;
+  const found = huntTargets.filter(t => t.found).length;
+  if (total === 0) { badge.style.display = 'none'; return; }
+  badge.style.display = 'inline-block';
+  badge.textContent = `${found}/${total} found`;
+}
+
+// ===================== MODE SWITCH =====================
+function switchMode(mode) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
+
+  if (mode === 'audit') {
+    document.querySelectorAll('.tab-btn')[0].classList.add('active');
+    document.getElementById('auditPanel').classList.add('active');
+    const inp = document.getElementById('auditInput');
+    if (!inp.disabled) setTimeout(() => inp.focus(), 50);
+  } else if (mode === 'newasset') {
+    document.querySelectorAll('.tab-btn')[1].classList.add('active');
+    document.getElementById('newassetPanel').classList.add('active');
+    setTimeout(() => document.getElementById('assetInput').focus(), 50);
+  }
+}
+
+// Re-focus scan inputs when clicking in the panel
+document.getElementById('auditPanel').addEventListener('click', (e) => {
+  const skip = ['newSessionLabel', 'auditFileName', 'huntPasteArea'];
+  if (!skip.includes(e.target.id)
+    && !e.target.closest('.session-btn') && !e.target.closest('.btn')
+    && !e.target.closest('.scan-type-btn') && !e.target.closest('.feature-toggle-btn')
+    && !e.target.closest('.warranty-upload-area') && !e.target.closest('.form-input')
+    && !e.target.closest('input[type=file]') && !e.target.closest('.hunt-list-area')
+    && !e.target.closest('.btn-hunt') && !e.target.closest('.file-upload-btn')) {
+    const inp = document.getElementById('auditInput');
+    if (!inp.disabled) inp.focus();
+  }
+});
+
+document.getElementById('newassetPanel').addEventListener('click', (e) => {
+  if (!['assetFileName'].includes(e.target.id)) {
+    document.getElementById('assetInput').focus();
+  }
+});
+
+// ===================== ZIP BUILDER =====================
 function buildZip(files) {
   const enc = new TextEncoder();
   const centralDir = [];
@@ -1381,12 +2407,10 @@ function buildZip(files) {
     const now = new Date();
     const dosDate = ((now.getFullYear() - 1980) << 9) | ((now.getMonth() + 1) << 5) | now.getDate();
     const dosTime = (now.getHours() << 11) | (now.getMinutes() << 5) | Math.floor(now.getSeconds() / 2);
-
     const lhSize = 30 + nameBytes.length;
     const lh = new Uint8Array(lhSize);
     const lhv = new DataView(lh.buffer);
-    lhv.setUint32(0, 0x04034b50, true);
-    lhv.setUint16(4, 20, true); lhv.setUint16(6, 0, true); lhv.setUint16(8, 0, true);
+    lhv.setUint32(0, 0x04034b50, true); lhv.setUint16(4, 20, true); lhv.setUint16(6, 0, true); lhv.setUint16(8, 0, true);
     lhv.setUint16(10, dosTime, true); lhv.setUint16(12, dosDate, true);
     lhv.setUint32(14, crc, true); lhv.setUint32(18, dataBytes.length, true); lhv.setUint32(22, dataBytes.length, true);
     lhv.setUint16(26, nameBytes.length, true); lhv.setUint16(28, 0, true);
@@ -1396,8 +2420,8 @@ function buildZip(files) {
     const cdSize = 46 + nameBytes.length;
     const cd = new Uint8Array(cdSize);
     const cdv = new DataView(cd.buffer);
-    cdv.setUint32(0, 0x02014b50, true);
-    cdv.setUint16(4, 20, true); cdv.setUint16(6, 20, true); cdv.setUint16(8, 0, true); cdv.setUint16(10, 0, true);
+    cdv.setUint32(0, 0x02014b50, true); cdv.setUint16(4, 20, true); cdv.setUint16(6, 20, true);
+    cdv.setUint16(8, 0, true); cdv.setUint16(10, 0, true);
     cdv.setUint16(12, dosTime, true); cdv.setUint16(14, dosDate, true);
     cdv.setUint32(16, crc, true); cdv.setUint32(20, dataBytes.length, true); cdv.setUint32(24, dataBytes.length, true);
     cdv.setUint16(28, nameBytes.length, true); cdv.setUint16(30, 0, true); cdv.setUint16(32, 0, true);
@@ -1436,242 +2460,10 @@ function crc32(data) {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-// Init export button state
+// Init
 updateExportButtons();
-
-// ===================== NEW ASSET MODE =====================
-let assetPairs = [];      // [{asset, serial}, ...]
-let assetTagSet = new Set();
-let serialSet = new Set();
-let assetDupeCount = 0;
-let assetErrorCount = 0;
-
-let pendingAssetTag = null; // waiting for serial after asset tag scanned
-
-const assetInput = document.getElementById('assetInput');
-
-function isValidAssetTag(val) {
-  return /^\d{6}$/.test(val);
-}
-
-function isValidSerial(val) {
-  if (!/^[A-Z0-9]{7}$/i.test(val)) return false;
-  if (!/[A-Z]/i.test(val)) return false;
-  if (!/[0-9]/.test(val)) return false;
-  return true;
-}
-
-function updatePairBoxes() {
-  const tagBox = document.getElementById('assetTagBox');
-  const serialBoxEl = document.getElementById('serialBox');
-  const tagVal = document.getElementById('assetTagValue');
-  const serVal = document.getElementById('serialValue');
-  const lbl = document.getElementById('assetScanLabel');
-
-  if (!pendingAssetTag) {
-    tagBox.className = 'pair-box active';
-    serialBoxEl.className = 'pair-box';
-    tagVal.className = 'pair-box-value';
-    tagVal.textContent = '—';
-    serVal.className = 'pair-box-value';
-    serVal.textContent = '—';
-    lbl.textContent = 'Asset Tag Input';
-    assetInput.placeholder = 'Scan 6-digit asset tag...';
-  } else {
-    tagBox.className = 'pair-box filled';
-    serialBoxEl.className = 'pair-box active';
-    tagVal.className = 'pair-box-value has-value';
-    tagVal.textContent = pendingAssetTag;
-    serVal.className = 'pair-box-value';
-    serVal.textContent = '—';
-    lbl.textContent = 'Serial Number Input';
-    assetInput.placeholder = 'Scan 7-char serial number...';
-  }
-}
-
-assetInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Enter') {
-    e.preventDefault();
-    const val = assetInput.value.trim().toUpperCase();
-    assetInput.value = '';
-
-    if (!val) return;
-
-    // Step 1: expecting asset tag
-    if (!pendingAssetTag) {
-      if (!isValidAssetTag(val)) {
-        assetErrorCount++;
-        document.getElementById('assetErrors').textContent = assetErrorCount;
-        setStatus('assetStatus', 'assetStatusText', 'error', `INVALID — "${val}" must be exactly 6 digits (numbers only)`);
-        logEntry('assetLog', 'error', `INVALID ASSET TAG: ${val}`);
-        beep('error');
-        flashInput('assetInput', 'error');
-        return;
-      }
-
-      if (assetTagSet.has(val)) {
-        assetDupeCount++;
-        document.getElementById('assetDupes').textContent = assetDupeCount;
-        setStatus('assetStatus', 'assetStatusText', 'warn', `DUPLICATE — Asset tag "${val}" already logged`);
-        logEntry('assetLog', 'warn', `DUPE ASSET TAG: ${val}`);
-        beep('duplicate');
-        flashInput('assetInput', 'error');
-        return;
-      }
-
-      pendingAssetTag = val;
-      setStatus('assetStatus', 'assetStatusText', 'pair-ready', `Asset tag "${val}" captured — now scan serial number`);
-      logEntry('assetLog', 'pair', `ASSET TAG: ${val} — awaiting serial`);
-      beep('pairReady');
-      flashInput('assetInput', 'success');
-      updatePairBoxes();
-      return;
-    }
-
-    // Step 2: expecting serial
-    if (!isValidSerial(val)) {
-      assetErrorCount++;
-      document.getElementById('assetErrors').textContent = assetErrorCount;
-      setStatus('assetStatus', 'assetStatusText', 'error', `INVALID — "${val}" must be exactly 7 alphanumeric chars with both letters and numbers`);
-      logEntry('assetLog', 'error', `INVALID SERIAL: ${val}`);
-      beep('error');
-      flashInput('assetInput', 'error');
-      return;
-    }
-
-    if (serialSet.has(val)) {
-      assetDupeCount++;
-      document.getElementById('assetDupes').textContent = assetDupeCount;
-      setStatus('assetStatus', 'assetStatusText', 'warn', `DUPLICATE — Serial "${val}" already logged`);
-      logEntry('assetLog', 'warn', `DUPE SERIAL: ${val}`);
-      beep('duplicate');
-      flashInput('assetInput', 'error');
-      return;
-    }
-
-    // Both valid! Log the pair.
-    assetTagSet.add(pendingAssetTag);
-    serialSet.add(val);
-    assetPairs.push({ asset: pendingAssetTag, serial: val });
-    document.getElementById('assetCount').textContent = assetPairs.length;
-
-    setStatus('assetStatus', 'assetStatusText', 'success', `PAIR LOGGED — ${pendingAssetTag} / ${val}`);
-    logEntry('assetLog', 'ok', `PAIR: ${pendingAssetTag} → ${val}`);
-    beep('complete');
-    flashInput('assetInput', 'success');
-
-    pendingAssetTag = null;
-    updatePairBoxes();
-    document.getElementById('assetDownloadBtn').disabled = false;
-    updateAssetPreview();
-  }
-});
-
-function updateAssetPreview() {
-  const label = document.getElementById('assetFileName').value;
-  const preview = document.getElementById('assetFilePreview');
-  const inp = document.getElementById('assetFileName');
-
-  if (!label) {
-    preview.textContent = 'Enter a label to preview filename';
-    preview.className = 'filename-preview';
-    inp.classList.remove('invalid');
-    return;
-  }
-
-  const v = validateLabel(label);
-  if (!v.valid) {
-    preview.textContent = '✗ ' + v.reason;
-    preview.className = 'filename-preview invalid';
-    inp.classList.add('invalid');
-    return;
-  }
-
-  inp.classList.remove('invalid');
-  const count = assetPairs.length;
-  const fname = `New_Assets_${label}_${fmtDate(new Date())}-C${count}.txt`;
-  preview.textContent = fname;
-  preview.className = 'filename-preview valid';
-}
-
-function downloadAssets() {
-  const label = document.getElementById('assetFileName').value;
-  const v = validateLabel(label);
-  if (!v.valid) {
-    alert('Please fix the filename label: ' + v.reason);
-    return;
-  }
-  if (assetPairs.length === 0) {
-    alert('No asset pairs to export.');
-    return;
-  }
-
-  const count = assetPairs.length;
-  const fname = `New_Assets_${label}_${fmtDate(new Date())}-C${count}.txt`;
-  const lines = assetPairs.map(p => `${p.asset}\n${p.serial}`).join('\n');
-  const content = lines;
-
-  const blob = new Blob([content], { type: 'text/plain' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = fname;
-  a.click();
-}
-
-function clearAssets() {
-  if (assetPairs.length > 0 && !confirm('Clear all asset pairs? This cannot be undone.')) return;
-  assetPairs = [];
-  assetTagSet.clear();
-  serialSet.clear();
-  assetDupeCount = 0;
-  assetErrorCount = 0;
-  pendingAssetTag = null;
-  document.getElementById('assetCount').textContent = '0';
-  document.getElementById('assetDupes').textContent = '0';
-  document.getElementById('assetErrors').textContent = '0';
-  document.getElementById('assetLog').innerHTML = '';
-  document.getElementById('assetDownloadBtn').disabled = true;
-  setStatus('assetStatus', 'assetStatusText', 'ready', 'Ready — scan Asset Tag first');
-  updatePairBoxes();
-  updateAssetPreview();
-}
-
-// ===================== MODE SWITCH =====================
-function switchMode(mode) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  document.querySelectorAll('.mode-panel').forEach(p => p.classList.remove('active'));
-
-  if (mode === 'audit') {
-    document.querySelectorAll('.tab-btn')[0].classList.add('active');
-    document.getElementById('auditPanel').classList.add('active');
-    const inp = document.getElementById('auditInput');
-    if (!inp.disabled) setTimeout(() => inp.focus(), 50);
-  } else {
-    document.querySelectorAll('.tab-btn')[1].classList.add('active');
-    document.getElementById('newassetPanel').classList.add('active');
-    setTimeout(() => document.getElementById('assetInput').focus(), 50);
-  }
-}
-
-// Init focus
-window.addEventListener('load', () => {
-  // Don't autofocus audit input since it starts disabled
-});
-
-// Re-focus scan input when clicking anywhere in the panel
-document.getElementById('auditPanel').addEventListener('click', (e) => {
-  const skipIds = ['newSessionLabel', 'auditFileName'];
-  if (!skipIds.includes(e.target.id) && !e.target.closest('.session-btn') && !e.target.closest('.btn')) {
-    const inp = document.getElementById('auditInput');
-    if (!inp.disabled) inp.focus();
-  }
-});
-
-document.getElementById('newassetPanel').addEventListener('click', (e) => {
-  if (!['assetFileName'].includes(e.target.id)) {
-    document.getElementById('assetInput').focus();
-  }
-});
+updatePairBoxes();
+updateHuntUI();
 </script>
 </body>
 </html>
