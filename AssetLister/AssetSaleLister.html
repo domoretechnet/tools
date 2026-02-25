@@ -400,6 +400,11 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
       <div class="sdiv" style="margin:0;"></div>
       <button class="btn btn-g" onclick="exportAllXLSX()" style="width:100%;">⬇ Export Spreadsheet</button>
       <button class="btn btn-p" onclick="openHtmlView()" style="width:100%;margin-top:3px;">◈ View All as HTML</button>
+      <div class="sdiv" style="margin:4px 0 2px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <span id="sessionStatus" style="font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:1px;color:var(--muted);"></span>
+        <button class="btn btn-r" onclick="clearSession()" style="font-size:.54rem;padding:4px 8px;white-space:nowrap;">✕ Clear Session</button>
+      </div>
     </div>
   </aside>
 
@@ -810,7 +815,7 @@ function handleScanKey(e,field){
     document.getElementById('serialInput').placeholder='Waiting for asset tag…';
     document.getElementById('assetInput').focus();
     if(!isDamaged)checkOverweightAlert(pallet);
-    renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();
+    renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();scheduleSave();
   }
 }
 
@@ -883,7 +888,7 @@ function addManualEntry(){
   document.getElementById('manualLbs').value='';
   logScan('manual',`Manual: ${qty}× ${desc}`);beep('manual');
   checkOverweightAlert(pallet);
-  renderEntries();updateStats();updateHeaderStats();updateTiles();
+  renderEntries();updateStats();updateHeaderStats();updateTiles();scheduleSave();
 }
 
 // ══════════════════════════════════════════
@@ -918,7 +923,7 @@ function onDrop(e,i){
   const pallet=getActivePallet();
   if(!pallet||dragSrcIdx===null||dragSrcIdx===i){dragSrcIdx=null;return;}
   const[moved]=pallet.entries.splice(dragSrcIdx,1);pallet.entries.splice(i,0,moved);
-  dragSrcIdx=null;renderEntries();
+  dragSrcIdx=null;renderEntries();scheduleSave();
 }
 function deleteEntry(id){
   const pallet=getActivePallet();if(!pallet)return;
@@ -926,7 +931,7 @@ function deleteEntry(id){
   const e=pallet.entries[idx];
   if(e.type==='pair'){globalAssetTags.delete(e.asset);globalSerials.delete(e.serial);}
   pallet.entries.splice(idx,1);
-  renderEntries();updateStats();updateHeaderStats();updateTiles();checkOverweightAlert(pallet);
+  renderEntries();updateStats();updateHeaderStats();updateTiles();checkOverweightAlert(pallet);scheduleSave();
 }
 function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
@@ -991,7 +996,7 @@ function confirmNewPallet(){
   const name=document.getElementById('newPalletName').value.trim();
   if(!name){document.getElementById('newPalletName').focus();return;}
   const pallet={id:'p_'+Date.now(),name,entries:[]};
-  pallets.push(pallet);closePalletModal();selectPallet(pallet.id);renderPalletList();
+  pallets.push(pallet);closePalletModal();selectPallet(pallet.id);renderPalletList();scheduleSave();
 }
 
 function selectPallet(id){
@@ -1027,7 +1032,7 @@ function deletePallet(id){
   if(!confirm('Delete this pallet and all its entries?'))return;
   pallets=pallets.filter(p=>p.id!==id);rebuildGlobalSets();
   if(activePalletId===id){activePalletId=null;document.getElementById('palletWorkspace').style.display='none';document.getElementById('noPalletScreen').style.display='flex';}
-  renderPalletList();updateTiles();
+  renderPalletList();updateTiles();scheduleSave();
 }
 
 function renderPalletList(){
@@ -1072,7 +1077,7 @@ function clearCurrentPallet(){
   document.getElementById('assetInput').className='scan-input active-field';
   document.getElementById('serialInput').className='scan-input';document.getElementById('serialInput').placeholder='Waiting for asset tag…';
   document.getElementById('weightWarnBanner').classList.remove('visible');
-  setStatus('ready','Ready — pallet cleared');renderEntries();updateStats();updateHeaderStats();updateTiles();
+  setStatus('ready','Ready — pallet cleared');renderEntries();updateStats();updateHeaderStats();updateTiles();scheduleSave();
 }
 
 // ══════════════════════════════════════════
@@ -1149,11 +1154,11 @@ function savePreset(){
     if(idx!==-1){
       presets[idx]={...presets[idx],name,mfr:document.getElementById('pm_mfr').value.trim(),cpu:document.getElementById('pm_cpu').value.trim(),ram:document.getElementById('pm_ram').value.trim(),storage:noStorage?'':document.getElementById('pm_storage').value.trim(),noStorage,weight};
     }
-    closePresetModal();renderPresetList();renderPresetBar();
+    closePresetModal();renderPresetList();renderPresetBar();scheduleSave();
   }else{
     const preset={id:'pr_'+Date.now(),name,mfr:document.getElementById('pm_mfr').value.trim(),cpu:document.getElementById('pm_cpu').value.trim(),ram:document.getElementById('pm_ram').value.trim(),storage:noStorage?'':document.getElementById('pm_storage').value.trim(),noStorage,weight};
     presets.push(preset);activePresetId=preset.id;storageLogDefault=!noStorage;
-    closePresetModal();renderPresetList();renderPresetBar();
+    closePresetModal();renderPresetList();renderPresetBar();scheduleSave();
   }
 }
 function selectPreset(id){activePresetId=id;storageLogDefault=true;renderPresetList();renderPresetBar();const ai=document.getElementById('assetInput');if(ai&&!ai.disabled)setTimeout(()=>ai.focus(),50);}
@@ -1162,7 +1167,7 @@ function deletePreset(id){
   if(!confirm('Delete this preset?'))return;
   presets=presets.filter(p=>p.id!==id);
   if(activePresetId===id){activePresetId=null;renderPresetBar();}
-  renderPresetList();
+  renderPresetList();scheduleSave();
 }
 function renderPresetList(){
   const list=document.getElementById('presetsList');
@@ -1191,7 +1196,7 @@ function importPresets(event){
     try{
       const imp=JSON.parse(e.target.result);if(!Array.isArray(imp))throw new Error('Expected JSON array');
       let added=0;imp.forEach(p=>{if(p.name){p.id='pr_'+Date.now()+'_'+Math.random().toString(36).slice(2);presets.push(p);added++;}});
-      alert(`Imported ${added} preset${added!==1?'s':''}.`);renderPresetList();
+      alert(`Imported ${added} preset${added!==1?'s':''}.`);renderPresetList();scheduleSave();
     }catch(err){alert('Import failed: '+err.message);}
   };
   reader.readAsText(file);event.target.value='';
@@ -1391,9 +1396,109 @@ function printHtmlView(){
 }
 
 // ══════════════════════════════════════════
+//  SESSION PERSISTENCE (cookies)
+// ══════════════════════════════════════════
+const SESSION_COOKIE='assetListerSession';
+const COOKIE_MAX_AGE=400*24*60*60; // 400 days (browser max)
+
+function saveSession(){
+  try{
+    const data={pallets,presets,damagedPallet,activePalletId,activePresetId,savedAt:Date.now()};
+    const json=JSON.stringify(data);
+    const encoded=encodeURIComponent(json);
+    if(encoded.length<3900){
+      document.cookie=SESSION_COOKIE+'='+encoded+';max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';
+      for(let i=0;i<10;i++)document.cookie=SESSION_COOKIE+'_'+i+'=;max-age=0;path=/';
+    }else{
+      // fallback to localStorage, with a cookie pointer
+      try{
+        localStorage.setItem(SESSION_COOKIE,json);
+        document.cookie=SESSION_COOKIE+'=__ls__;max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';
+      }catch(e){
+        // chunk into multiple cookies
+        const chunks=[];
+        for(let i=0;i<encoded.length;i+=3800)chunks.push(encoded.slice(i,i+3800));
+        document.cookie=SESSION_COOKIE+'=__chunks_'+chunks.length+'___;max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';
+        chunks.forEach((c,i)=>{
+          document.cookie=SESSION_COOKIE+'_'+i+'='+c+';max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';
+        });
+      }
+    }
+    updateSessionStatus(data.savedAt);
+  }catch(e){console.warn('Session save failed:',e);}
+}
+
+function getCookieVal(name){
+  const m=document.cookie.split('; ').find(r=>r.startsWith(name+'='));
+  return m?decodeURIComponent(m.split('=').slice(1).join('=')):null;
+}
+
+function loadSession(){
+  try{
+    const val=getCookieVal(SESSION_COOKIE);
+    if(!val)return false;
+    let json=null;
+    if(val==='__ls__'){
+      json=localStorage.getItem(SESSION_COOKIE);
+    }else if(val.startsWith('__chunks_')){
+      const count=parseInt(val.match(/__chunks_(\d+)___/)[1]);
+      let combined='';
+      for(let i=0;i<count;i++){const c=getCookieVal(SESSION_COOKIE+'_'+i);if(!c)return false;combined+=c;}
+      json=decodeURIComponent(combined);
+    }else{
+      json=val;
+    }
+    if(!json)return false;
+    const data=JSON.parse(json);
+    if(data.pallets)pallets=data.pallets;
+    if(data.presets)presets=data.presets;
+    if(data.damagedPallet)damagedPallet=data.damagedPallet;
+    // Rebuild global sets
+    globalAssetTags=new Set();globalSerials=new Set();
+    [...pallets,damagedPallet].forEach(p=>p.entries.forEach(e=>{
+      if(e.type==='pair'){if(e.asset&&e.asset!=='—')globalAssetTags.add(e.asset);if(e.serial&&e.serial!=='—')globalSerials.add(e.serial);}
+    }));
+    renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();
+    if(data.activePalletId){const p=data.activePalletId===DAMAGED_PALLET_ID?damagedPallet:pallets.find(x=>x.id===data.activePalletId);if(p)selectPallet(data.activePalletId);}
+    if(data.activePresetId&&getAllPresets().find(x=>x.id===data.activePresetId)){activePresetId=data.activePresetId;renderPresetBar();}
+    updateSessionStatus(data.savedAt);
+    return true;
+  }catch(e){console.warn('Session load failed:',e);return false;}
+}
+
+function clearSession(){
+  if(!confirm('Clear session? All pallets, entries, and presets will be erased. This cannot be undone.'))return;
+  document.cookie=SESSION_COOKIE+'=;max-age=0;path=/';
+  for(let i=0;i<10;i++)document.cookie=SESSION_COOKIE+'_'+i+'=;max-age=0;path=/';
+  try{localStorage.removeItem(SESSION_COOKIE);}catch(e){}
+  pallets=[];presets=[];damagedPallet={id:DAMAGED_PALLET_ID,name:'Damaged',entries:[],isDamaged:true};
+  activePalletId=null;activePresetId=null;globalAssetTags=new Set();globalSerials=new Set();
+  dupeCount=0;errorCount=0;assetPending=null;
+  renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();
+  updateSessionStatus();
+}
+
+function updateSessionStatus(savedAt){
+  const el=document.getElementById('sessionStatus');
+  if(!el)return;
+  if(!savedAt){el.textContent='No saved session';el.style.color='var(--muted)';return;}
+  const d=new Date(savedAt);
+  const t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});
+  const isToday=d.toDateString()===new Date().toDateString();
+  el.textContent='Saved '+(isToday?'today':'on '+d.toLocaleDateString())+' '+t;
+  el.style.color='var(--accent2)';
+}
+
+let _saveTimer=null;
+function scheduleSave(){clearTimeout(_saveTimer);_saveTimer=setTimeout(saveSession,800);}
+
+// ══════════════════════════════════════════
 //  INIT
 // ══════════════════════════════════════════
-renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();
+if(!loadSession()){
+  renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();
+  updateSessionStatus();
+}
 </script>
 </body>
 </html>
