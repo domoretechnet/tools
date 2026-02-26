@@ -447,6 +447,7 @@
     border: 1px solid var(--border);
     border-radius: 8px;
     padding: 4px;
+    align-items: center;
   }
 
   .scan-type-btn {
@@ -474,6 +475,150 @@
   .scan-type-btn:hover:not(.active) {
     color: var(--text);
     background: rgba(255,255,255,0.03);
+  }
+
+  /* ========== LOCK PILL ========== */
+  .lock-pill {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 20px;
+    border: 1px solid var(--border);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.65rem;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--muted);
+    white-space: nowrap;
+    flex-shrink: 0;
+    user-select: none;
+  }
+
+  .lock-pill:hover {
+    border-color: rgba(0,229,255,0.4);
+    color: var(--text);
+  }
+
+  .lock-pill.locked {
+    border-color: rgba(0,229,255,0.6);
+    background: rgba(0,229,255,0.08);
+    color: var(--accent);
+    box-shadow: 0 0 10px rgba(0,229,255,0.2);
+  }
+
+  .lock-pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--muted);
+    transition: all 0.2s;
+    flex-shrink: 0;
+  }
+
+  .lock-pill.locked .lock-pill-dot {
+    background: var(--accent);
+    box-shadow: 0 0 6px var(--accent);
+  }
+
+  .lock-pill-icon {
+    font-size: 0.7rem;
+    line-height: 1;
+  }
+
+  /* ========== QUICK SESSION MODAL ========== */
+  .quick-session-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.75);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    animation: overlayIn 0.15s ease;
+  }
+
+  @keyframes overlayIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+
+  .quick-session-modal {
+    background: var(--surface);
+    border: 1px solid var(--accent);
+    border-radius: 14px;
+    padding: 28px 32px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 0 60px rgba(0,229,255,0.15), 0 24px 60px rgba(0,0,0,0.6);
+    animation: modalIn 0.2s cubic-bezier(.16,1,.3,1);
+    position: relative;
+    margin: 16px;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.94) translateY(10px); }
+    to { opacity: 1; transform: scale(1) translateY(0); }
+  }
+
+  .quick-session-modal h3 {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.75rem;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+
+  .quick-session-modal p {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-bottom: 18px;
+  }
+
+  .quick-session-input {
+    width: 100%;
+    background: rgba(0,0,0,0.5);
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    color: var(--accent);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 1.1rem;
+    letter-spacing: 3px;
+    padding: 14px 16px;
+    outline: none;
+    box-shadow: var(--accent-glow), inset 0 0 0 1px rgba(0,229,255,0.05);
+    margin-bottom: 8px;
+  }
+
+  .quick-session-input::placeholder {
+    color: var(--muted);
+    font-size: 0.85rem;
+    letter-spacing: 1px;
+  }
+
+  .quick-session-preview {
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 0.68rem;
+    color: var(--muted);
+    min-height: 18px;
+    margin-bottom: 16px;
+    letter-spacing: 1px;
+  }
+
+  .quick-session-preview.valid { color: var(--accent2); }
+  .quick-session-preview.invalid { color: var(--danger); }
+
+  .quick-session-btns {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
   }
 
   /* ========== WARRANTY PRELOAD CARD ========== */
@@ -924,6 +1069,8 @@
     .new-session-bar { grid-template-columns: 1fr; }
     .session-actions { flex-wrap: wrap; }
     .mode-tabs { grid-template-columns: 1fr; }
+    .scan-type-toggle { flex-wrap: wrap; }
+    .lock-pill { font-size: 0.6rem; padding: 5px 10px; }
   }
 </style>
 </head>
@@ -971,6 +1118,12 @@
       <div class="scan-type-toggle">
         <button class="scan-type-btn active" id="auditTypeSerial" onclick="setAuditScanType('serial')">&#9632; Serial Number (7 chars)</button>
         <button class="scan-type-btn" id="auditTypeAsset" onclick="setAuditScanType('asset')">&#9670; Asset Tag (6 digits)</button>
+        <!-- Lock pill — only visible when asset tab is active -->
+        <button class="lock-pill" id="assetLockPill" onclick="toggleAssetLock()" title="Lock Asset Tag mode so it doesn't snap back after each scan" style="display:none">
+          <div class="lock-pill-dot"></div>
+          <span class="lock-pill-icon" id="lockPillIcon">&#128275;</span>
+          <span id="lockPillLabel">Lock</span>
+        </button>
       </div>
 
       <div class="scan-input-wrap">
@@ -1206,6 +1359,29 @@
 <!-- Toast notification -->
 <div class="toast" id="auditToast"></div>
 
+<!-- Quick Session Modal (shown when scanning with no active session) -->
+<div class="quick-session-overlay" id="quickSessionOverlay" style="display:none" onclick="quickSessionOverlayClick(event)">
+  <div class="quick-session-modal">
+    <h3>&#9671; Name This Session</h3>
+    <p>No active session — enter a label to create one and continue scanning.</p>
+    <input
+      type="text"
+      class="quick-session-input"
+      id="quickSessionInput"
+      placeholder="e.g. Laptops, Row A Monitors..."
+      maxlength="50"
+      oninput="updateQuickSessionPreview()"
+      onkeydown="quickSessionKeydown(event)"
+      autocomplete="off"
+    >
+    <div class="quick-session-preview" id="quickSessionPreview">Enter a label to preview filename</div>
+    <div class="quick-session-btns">
+      <button class="btn btn-danger" onclick="closeQuickSession()">Cancel</button>
+      <button class="btn btn-primary" id="quickSessionConfirmBtn" onclick="confirmQuickSession()">&#9670; Create &amp; Continue</button>
+    </div>
+  </div>
+</div>
+
 <script>
 // ===================== AUDIO ENGINE =====================
 const AudioCtx = window.AudioContext || window.webkitAudioContext;
@@ -1225,9 +1401,7 @@ function beep(type) {
     duplicate:  [{ f: 440, t: 0.07, w: 'sine' }, { f: 300, t: 0.07, w: 'sine' }],
     pairReady:  [{ f: 660, t: 0.07, w: 'sine' }, { f: 880, t: 0.07, w: 'sine' }],
     complete:   [{ f: 660, t: 0.07, w: 'sine' }, { f: 880, t: 0.07, w: 'sine' }, { f: 1100, t: 0.1, w: 'sine' }],
-    // Warranty expired: two descending low tones, more ominous
     expired:    [{ f: 440, t: 0.12, v: 0.5, w: 'square' }, { f: 280, t: 0.2, v: 0.5, w: 'square' }],
-    // Hunt found: triumphant ascending arpeggio
     huntFound:  [{ f: 660, t: 0.07, v: 0.4, w: 'sine' }, { f: 880, t: 0.07, v: 0.4, w: 'sine' }, { f: 1320, t: 0.12, v: 0.45, w: 'sine' }],
   };
 
@@ -1284,7 +1458,7 @@ function logEntry(logId, type, message) {
   const entry = document.createElement('div');
   entry.className = 'log-entry';
   const now = new Date();
-  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'0')}`;
+  const ts = `${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}:${String(now.getSeconds()).padStart(2,'00')}`;
   const cls = { ok:'log-ok', error:'log-err', warn:'log-warn', pair:'log-pair', code:'log-code', expired:'log-expired', hunt:'log-hunt' };
   entry.innerHTML = `<span class="log-time">${ts}</span><span class="${cls[type] || ''}">${message}</span>`;
   log.prepend(entry);
@@ -1323,7 +1497,6 @@ function escHtml(str) {
 }
 
 // ===================== WARRANTY DATA =====================
-// warrantyMap: key (serial or asset tag, uppercased) → { warrantyEnd: Date, serial, assetTag }
 let warrantyMap = new Map();
 
 function parseWarrantyDate(str) {
@@ -1340,7 +1513,6 @@ function addWarrantyRecord(serial, assetTag, warrantyEnd) {
   if (assetTag) warrantyMap.set(assetTag.toUpperCase(), rec);
 }
 
-// Returns null (not in data), false (in warranty), or the record (expired)
 function checkWarranty(val) {
   const rec = warrantyMap.get(val.toUpperCase());
   if (!rec) return null;
@@ -1404,14 +1576,7 @@ function parseWarrantyCSV(text) {
 }
 
 function parseWarrantyXLSX(buf) {
-  // Minimal XLSX parser — reads the shared strings and the first sheet
-  // We'll use a simple approach: look for the data via a lightweight parse
-  // Since we can't import SheetJS here directly, we'll parse the XML inside XLSX
-
   const bytes = new Uint8Array(buf);
-
-  // XLSX is a zip; we need to find xl/sharedStrings.xml and xl/worksheets/sheet1.xml
-  // Use a basic zip reader
   const files = readZipFiles(bytes);
 
   const ssXml = files['xl/sharedStrings.xml'] || files['xl/sharedstrings.xml'] || '';
@@ -1419,7 +1584,6 @@ function parseWarrantyXLSX(buf) {
 
   if (!sheetXml) { showToast('Could not read XLSX sheet. Try saving as CSV.', 'error'); return; }
 
-  // Parse shared strings
   const sharedStrings = [];
   const siMatches = ssXml.matchAll(/<si>[\s\S]*?<\/si>/g);
   for (const m of siMatches) {
@@ -1431,7 +1595,6 @@ function parseWarrantyXLSX(buf) {
     }
   }
 
-  // Parse sheet rows
   const rowMatches = [...sheetXml.matchAll(/<row[^>]*>([\s\S]*?)<\/row>/g)];
   if (rowMatches.length < 2) { showToast('XLSX sheet appears empty', 'error'); return; }
 
@@ -1455,7 +1618,6 @@ function parseWarrantyXLSX(buf) {
     return cells;
   }
 
-  // Find header
   const headerCells = getRowCells(rowMatches[0][1]);
   let snCol = null, wCol = null, atCol = null;
   for (const [col, val] of Object.entries(headerCells)) {
@@ -1497,13 +1659,11 @@ function parseWarrantyXLSX(buf) {
   updateWarrantyUI(loaded, 'XLSX');
 }
 
-// Minimal zip file reader: returns object { filename: textContent }
 function readZipFiles(bytes) {
   const result = {};
   const dec = new TextDecoder();
   let i = 0;
   while (i < bytes.length - 4) {
-    // Local file header signature
     if (bytes[i]===0x50 && bytes[i+1]===0x4b && bytes[i+2]===0x03 && bytes[i+3]===0x04) {
       const compression = bytes[i+8] | (bytes[i+9]<<8);
       const compSize = bytes[i+18] | (bytes[i+19]<<8) | (bytes[i+20]<<16) | (bytes[i+21]<<24);
@@ -1512,22 +1672,11 @@ function readZipFiles(bytes) {
       const name = dec.decode(bytes.slice(i+30, i+30+nameLen));
       const dataStart = i+30+nameLen+extraLen;
       if (compression === 0) {
-        // Stored — no compression
         try {
           result[name] = dec.decode(bytes.slice(dataStart, dataStart+compSize));
         } catch(e) {}
       } else if (compression === 8) {
-        // Deflate — try to decompress
         try {
-          const compressed = bytes.slice(dataStart, dataStart+compSize);
-          const ds = new DecompressionStream('deflate-raw');
-          const writer = ds.writable.getWriter();
-          const reader = ds.readable.getReader();
-          writer.write(compressed);
-          writer.close();
-          // Synchronous-ish via Promise — we'll just store raw and handle async below
-          // For simplicity, we'll attempt a sync approach that may not work in all browsers
-          // Instead, fall back to storing the name so we can detect it
           result['__deflate__' + name] = dataStart + '|' + compSize;
         } catch(e) {}
       }
@@ -1546,7 +1695,6 @@ function updateWarrantyUI(count, source) {
   const toggleBadge = document.getElementById('warrantyToggleBadge');
 
   const now = new Date();
-  // Deduplicate: a record may be stored under both serial and asset tag keys
   const seen = new Set();
   let expired = 0, active = 0;
   warrantyMap.forEach((rec) => {
@@ -1570,6 +1718,7 @@ function updateWarrantyUI(count, source) {
   toggleBadge.style.display = 'inline-block';
 
   showToast(`Warranty data loaded: ${count} records`);
+  saveState();
 }
 
 function clearWarrantyData() {
@@ -1581,9 +1730,9 @@ function clearWarrantyData() {
   document.getElementById('expiredStatBox').style.display = 'none';
   document.getElementById('warrantyToggleBadge').style.display = 'none';
   showToast('Warranty data cleared', 'error');
+  saveState();
 }
 
-// Drag & drop for warranty
 const warrantyDrop = document.getElementById('warrantyDropZone');
 warrantyDrop.addEventListener('dragover', e => { e.preventDefault(); warrantyDrop.classList.add('drag-over'); });
 warrantyDrop.addEventListener('dragleave', () => warrantyDrop.classList.remove('drag-over'));
@@ -1596,13 +1745,25 @@ warrantyDrop.addEventListener('drop', e => {
   loadWarrantyFile(fakeInput);
 });
 
-// ===================== AUDIT MODE — SCAN TYPE =====================
+// ===================== AUDIT MODE — SCAN TYPE + LOCK =====================
 let auditScanType = 'serial'; // 'serial' or 'asset'
+let assetLockEnabled = false; // when true, stay in asset mode after scan
 
 function setAuditScanType(type) {
   auditScanType = type;
   document.getElementById('auditTypeSerial').classList.toggle('active', type === 'serial');
   document.getElementById('auditTypeAsset').classList.toggle('active', type === 'asset');
+
+  // Show/hide lock pill
+  const pill = document.getElementById('assetLockPill');
+  pill.style.display = type === 'asset' ? 'flex' : 'none';
+
+  // If switching away from asset, reset lock
+  if (type === 'serial') {
+    assetLockEnabled = false;
+    updateLockPillUI();
+  }
+
   const inp = document.getElementById('auditInput');
   if (!inp.disabled) {
     inp.placeholder = type === 'serial' ? 'Scan 7-char serial number...' : 'Scan 6-digit asset tag...';
@@ -1611,7 +1772,47 @@ function setAuditScanType(type) {
   const session = getActiveSession();
   if (session) {
     setStatus('auditStatus', 'auditStatusText', 'ready',
-      `Session "${session.label}" active — scanning ${type === 'serial' ? 'Serial Numbers (7 chars)' : 'Asset Tags (6 digits)'}`);
+      `Session "${session.label}" active — scanning ${type === 'serial' ? 'Serial Numbers (7 chars)' : 'Asset Tags (6 digits)'}${type === 'asset' && assetLockEnabled ? ' [LOCKED]' : type === 'asset' ? ' [one-shot]' : ''}`);
+  }
+}
+
+function toggleAssetLock() {
+  assetLockEnabled = !assetLockEnabled;
+  updateLockPillUI();
+  const session = getActiveSession();
+  if (session) {
+    setStatus('auditStatus', 'auditStatusText', 'ready',
+      `Session "${session.label}" active — Asset Tag mode${assetLockEnabled ? ' [LOCKED — stays after each scan]' : ' [one-shot — reverts after scan]'}`);
+  }
+  showToast(assetLockEnabled ? '🔒 Asset Tag mode LOCKED' : '🔓 Asset Tag mode one-shot');
+}
+
+function updateLockPillUI() {
+  const pill = document.getElementById('assetLockPill');
+  const icon = document.getElementById('lockPillIcon');
+  const label = document.getElementById('lockPillLabel');
+  if (assetLockEnabled) {
+    pill.classList.add('locked');
+    icon.textContent = '🔒';
+    label.textContent = 'Locked';
+  } else {
+    pill.classList.remove('locked');
+    icon.textContent = '🔓';
+    label.textContent = 'Lock';
+  }
+}
+
+// After a successful asset tag scan, revert to serial unless locked
+function maybeRevertToSerial() {
+  if (auditScanType === 'asset' && !assetLockEnabled) {
+    auditScanType = 'serial';
+    document.getElementById('auditTypeSerial').classList.add('active');
+    document.getElementById('auditTypeAsset').classList.remove('active');
+    document.getElementById('assetLockPill').style.display = 'none';
+    const inp = document.getElementById('auditInput');
+    if (!inp.disabled) {
+      inp.placeholder = 'Scan 7-char serial number...';
+    }
   }
 }
 
@@ -1619,11 +1820,93 @@ function isValidBarcode(val) {
   if (auditScanType === 'asset') {
     return /^\d{6}$/.test(val);
   }
-  // serial: 7 alphanumeric with at least one letter and one digit
   if (!/^[A-Z0-9]{7}$/i.test(val)) return false;
   if (!/[A-Z]/i.test(val)) return false;
   if (!/[0-9]/.test(val)) return false;
   return true;
+}
+
+// ===================== QUICK SESSION MODAL =====================
+let _quickSessionPendingVal = null; // value that triggered the modal
+
+function showQuickSessionModal(pendingVal) {
+  _quickSessionPendingVal = pendingVal;
+  const overlay = document.getElementById('quickSessionOverlay');
+  const input = document.getElementById('quickSessionInput');
+  overlay.style.display = 'flex';
+  input.value = '';
+  updateQuickSessionPreview();
+  setTimeout(() => input.focus(), 80);
+}
+
+function closeQuickSession() {
+  document.getElementById('quickSessionOverlay').style.display = 'none';
+  _quickSessionPendingVal = null;
+  // Re-focus scan input
+  setTimeout(() => {
+    const inp = document.getElementById('auditInput');
+    if (!inp.disabled) inp.focus();
+    else document.getElementById('auditInput').focus();
+  }, 50);
+}
+
+function quickSessionOverlayClick(e) {
+  if (e.target === document.getElementById('quickSessionOverlay')) closeQuickSession();
+}
+
+function updateQuickSessionPreview() {
+  const label = document.getElementById('quickSessionInput').value.trim();
+  const preview = document.getElementById('quickSessionPreview');
+  if (!label) { preview.textContent = 'Enter a label to preview filename'; preview.className = 'quick-session-preview'; return; }
+  const v = validateLabel(label);
+  if (!v.valid) { preview.textContent = '✗ ' + v.reason; preview.className = 'quick-session-preview invalid'; return; }
+  preview.textContent = `Audit_${label}_${getDateStr()}-C0.txt`;
+  preview.className = 'quick-session-preview valid';
+}
+
+function quickSessionKeydown(e) {
+  if (e.key === 'Enter') {
+    e.preventDefault();
+    confirmQuickSession();
+  } else if (e.key === 'Escape') {
+    closeQuickSession();
+  }
+}
+
+function confirmQuickSession() {
+  const label = document.getElementById('quickSessionInput').value.trim();
+  const v = validateLabel(label);
+  if (!v.valid) {
+    showToast('Invalid label: ' + v.reason, 'error');
+    document.getElementById('quickSessionInput').focus();
+    return;
+  }
+
+  // Create the session
+  const session = {
+    id: generateId(), label, scanned: new Set(), expiredScanned: new Set(),
+    dupeCount: 0, errorCount: 0, expiredCount: 0,
+    createdAt: new Date(), logEntries: []
+  };
+  auditSessions.push(session);
+  renderSessionList();
+  activateSession(session.id);
+
+  // Close modal
+  document.getElementById('quickSessionOverlay').style.display = 'none';
+
+  // Now process the pending scan value if there is one
+  if (_quickSessionPendingVal) {
+    const pendingVal = _quickSessionPendingVal;
+    _quickSessionPendingVal = null;
+    // Slight delay so the session activates and input enables first
+    setTimeout(() => processScan(pendingVal), 60);
+  } else {
+    _quickSessionPendingVal = null;
+  }
+
+  saveState();
+  showToast('Session "' + label + '" created');
 }
 
 // ===================== AUDIT MODE — MULTI-SESSION =====================
@@ -1666,6 +1949,7 @@ function createSession() {
   updateNewSessionPreview();
   renderSessionList();
   activateSession(session.id);
+  saveState();
   showToast('Session "' + label + '" created');
 }
 
@@ -1705,6 +1989,7 @@ function activateSession(id) {
   setStatus('auditStatus', 'auditStatusText', 'ready', 'Session "' + session.label + '" active — scan a barcode');
   renderSessionList();
   updateExportButtons();
+  saveState();
 }
 
 function buildSessionFilename(session) {
@@ -1757,6 +2042,7 @@ function deleteSession(id) {
   renderSessionList();
   updateExportButtons();
   showToast('Session deleted', 'error');
+  saveState();
 }
 
 function resetAuditStats() {
@@ -1781,6 +2067,7 @@ function clearAllSessions() {
   renderSessionList();
   updateExportButtons();
   showToast('All sessions cleared', 'error');
+  saveState();
 }
 
 function auditLogEntry(session, type, message) {
@@ -1792,16 +2079,10 @@ function auditLogEntry(session, type, message) {
   }
 }
 
-// ---- Audit scan handler ----
-document.getElementById('auditInput').addEventListener('keydown', (e) => {
-  if (e.key !== 'Enter') return;
-  e.preventDefault();
+// ---- Core scan processing (separated from event handler so modal can call it) ----
+function processScan(val) {
   const session = getActiveSession();
   if (!session) return;
-
-  const val = e.target.value.trim().toUpperCase();
-  e.target.value = '';
-  if (!val) return;
 
   if (!isValidBarcode(val)) {
     auditErrorCount++;
@@ -1831,29 +2112,23 @@ document.getElementById('auditInput').addEventListener('keydown', (e) => {
   session.scanned.add(val);
   document.getElementById('auditCount').textContent = session.scanned.size;
 
-  // Hunt mode check — runs regardless of warranty
+  // Hunt mode check
   if (huntTargets.length > 0) {
     const huntTarget = huntTargets.find(t => t.val === val && !t.found);
     if (huntTarget) {
       huntTarget.found = true;
       const remaining = huntTargets.filter(t => !t.found).length;
       updateHuntUI();
-      const huntMsg = remaining === 0
-        ? `🎯 ALL TARGETS FOUND! Last: "${val}"`
-        : `🎯 HUNT HIT — "${val}" | ${remaining} remaining`;
       showToast(remaining === 0 ? '🎯 ALL TARGETS FOUND!' : `🎯 Found: ${val}`, 'hunt');
-      // We'll still play the normal/expired beep, then add a brief hunt tone overlay
       setTimeout(() => beep('huntFound'), 200);
-      // Append to audit log
       auditLogEntry(session, 'hunt', `HUNT FOUND: ${val}${remaining === 0 ? ' — ALL DONE!' : ` (${remaining} left)`}`);
     }
   }
 
-  // Check warranty (works for both serial numbers and asset tags)
+  // Check warranty
   const warrantyResult = checkWarranty(val);
 
   if (warrantyResult !== null && warrantyResult !== false) {
-    // Expired warranty — warrantyResult is the record
     auditExpiredCount++;
     session.expiredCount = (session.expiredCount || 0) + 1;
     session.expiredScanned = session.expiredScanned || new Set();
@@ -1867,7 +2142,6 @@ document.getElementById('auditInput').addEventListener('keydown', (e) => {
     flashInput('auditInput', 'expired');
     showToast(`⚠ Warranty EXPIRED: ${val}`, 'expired');
   } else {
-    // Normal success (warrantyResult === null means not in data, false means in warranty)
     let statusMsg = `OK — "${val}" logged to "${session.label}"`;
     if (warrantyResult === false) statusMsg += ' ✓ In Warranty';
     setStatus('auditStatus', 'auditStatusText', 'success', statusMsg);
@@ -1876,8 +2150,31 @@ document.getElementById('auditInput').addEventListener('keydown', (e) => {
     flashInput('auditInput', 'success');
   }
 
+  // After a successful asset scan, revert to serial unless locked
+  maybeRevertToSerial();
+
   renderSessionList();
   updateExportButtons();
+  saveState();
+}
+
+// ---- Audit scan input handler ----
+document.getElementById('auditInput').addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+
+  const val = e.target.value.trim().toUpperCase();
+  e.target.value = '';
+  if (!val) return;
+
+  // If no active session, show the quick-create modal and hold the value
+  if (!getActiveSession()) {
+    // Enable input briefly so we can capture future scans
+    showQuickSessionModal(val);
+    return;
+  }
+
+  processScan(val);
 });
 
 function toggleScanLog() {
@@ -1946,7 +2243,6 @@ function downloadSession(id) {
   const session = auditSessions.find(s => s.id === id);
   if (!session || session.scanned.size === 0) { showToast('No scans in this session', 'error'); return; }
   triggerDownload(buildSessionFilename(session), buildSessionContent(session));
-  // Also download expired list if any
   if (session.expiredScanned && session.expiredScanned.size > 0) {
     setTimeout(() => {
       triggerDownload(buildExpiredFilename(session), buildExpiredContent(session));
@@ -2135,6 +2431,7 @@ assetInput.addEventListener('keydown', (e) => {
   updatePairBoxes();
   document.getElementById('assetDownloadBtn').disabled = false;
   updateAssetPreview();
+  saveState();
 });
 
 function updateAssetPreview() {
@@ -2175,10 +2472,11 @@ function clearAssets() {
   document.getElementById('assetDownloadBtn').disabled = true;
   setStatus('assetStatus', 'assetStatusText', 'ready', 'Ready — scan Asset Tag first');
   updatePairBoxes(); updateAssetPreview();
+  saveState();
 }
 
 // ===================== HUNT MODE =====================
-let huntTargets = []; // [{val, type, found}]
+let huntTargets = [];
 let huntFoundCount = 0;
 
 function detectType(val) {
@@ -2214,6 +2512,7 @@ function importHuntLines(lines) {
   updateHuntUI();
   showToast(`Added ${added} target${added !== 1 ? 's' : ''}${skipped ? `, ${skipped} dupes skipped` : ''}`);
   document.getElementById('huntPasteArea').value = '';
+  saveState();
 }
 
 function loadHuntFile(input) {
@@ -2225,17 +2524,14 @@ function loadHuntFile(input) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const lines = e.target.result.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
-      // Try to find column with serial/asset data — skip header if present
       const processed = [];
       lines.forEach(line => {
-        // Split by comma, take each cell as potential target
         line.split(',').forEach(cell => {
           const v = cell.replace(/^"|"$/g,'').trim();
           if (v && detectType(v) !== 'unknown') processed.push(v);
         });
       });
       if (processed.length === 0) {
-        // Fallback: treat every line as a target
         lines.forEach(l => { if (l) processed.push(l); });
       }
       importHuntLines(processed);
@@ -2317,8 +2613,6 @@ function renderHuntTargetList() {
   ).join('');
 }
 
-// Hunt mode is handled inside the auditInput keydown listener below
-
 function clearHunt() {
   if (huntTargets.length > 0 && !confirm('Clear all hunt targets? This cannot be undone.')) return;
   huntTargets = [];
@@ -2326,6 +2620,7 @@ function clearHunt() {
   document.getElementById('huntPasteArea').value = '';
   updateHuntUI();
   updateHuntToggleBadge();
+  saveState();
 }
 
 // ===================== FEATURE PANEL TOGGLES =====================
@@ -2373,15 +2668,15 @@ function switchMode(mode) {
   }
 }
 
-// Re-focus scan inputs when clicking in the panel
 document.getElementById('auditPanel').addEventListener('click', (e) => {
-  const skip = ['newSessionLabel', 'auditFileName', 'huntPasteArea'];
+  const skip = ['newSessionLabel', 'auditFileName', 'huntPasteArea', 'quickSessionInput'];
   if (!skip.includes(e.target.id)
     && !e.target.closest('.session-btn') && !e.target.closest('.btn')
     && !e.target.closest('.scan-type-btn') && !e.target.closest('.feature-toggle-btn')
     && !e.target.closest('.warranty-upload-area') && !e.target.closest('.form-input')
     && !e.target.closest('input[type=file]') && !e.target.closest('.hunt-list-area')
-    && !e.target.closest('.btn-hunt') && !e.target.closest('.file-upload-btn')) {
+    && !e.target.closest('.btn-hunt') && !e.target.closest('.file-upload-btn')
+    && !e.target.closest('.lock-pill') && !e.target.closest('.quick-session-modal')) {
     const inp = document.getElementById('auditInput');
     if (!inp.disabled) inp.focus();
   }
@@ -2460,7 +2755,142 @@ function crc32(data) {
   return (crc ^ 0xFFFFFFFF) >>> 0;
 }
 
-// Init
+// ===================== PERSISTENCE (localStorage) =====================
+const STORAGE_KEY = 'scanner_helper_v1';
+
+function saveState() {
+  try {
+    const data = {
+      activeSessionId,
+      sessions: auditSessions.map(s => ({
+        id: s.id,
+        label: s.label,
+        createdAt: s.createdAt.toISOString(),
+        scanned: [...s.scanned],
+        expiredScanned: s.expiredScanned ? [...s.expiredScanned] : [],
+        dupeCount: s.dupeCount,
+        errorCount: s.errorCount,
+        expiredCount: s.expiredCount || 0,
+        logEntries: s.logEntries || []
+      })),
+      // New Asset Mode
+      assetPairs,
+      // Hunt targets (persist loaded targets + found state)
+      huntTargets,
+      // Warranty map (persist as array of records)
+      warrantyRecords: (() => {
+        const seen = new Set();
+        const out = [];
+        warrantyMap.forEach(rec => {
+          const key = rec.serial + '|' + rec.assetTag;
+          if (!seen.has(key)) { seen.add(key); out.push({ serial: rec.serial, assetTag: rec.assetTag, warrantyEnd: rec.warrantyEnd.toISOString() }); }
+        });
+        return out;
+      })()
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  } catch(e) {
+    console.warn('Failed to save state:', e);
+  }
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return;
+    const data = JSON.parse(raw);
+
+    // Restore sessions
+    if (Array.isArray(data.sessions)) {
+      auditSessions = data.sessions.map(s => ({
+        id: s.id,
+        label: s.label,
+        createdAt: new Date(s.createdAt),
+        scanned: new Set(s.scanned || []),
+        expiredScanned: new Set(s.expiredScanned || []),
+        dupeCount: s.dupeCount || 0,
+        errorCount: s.errorCount || 0,
+        expiredCount: s.expiredCount || 0,
+        logEntries: s.logEntries || []
+      }));
+    }
+
+    // Restore active session
+    if (data.activeSessionId && auditSessions.find(s => s.id === data.activeSessionId)) {
+      activeSessionId = data.activeSessionId;
+      const session = getActiveSession();
+      if (session) {
+        auditDupeCount = session.dupeCount;
+        auditErrorCount = session.errorCount;
+        auditExpiredCount = session.expiredCount;
+        document.getElementById('auditCount').textContent = session.scanned.size;
+        document.getElementById('auditDupes').textContent = session.dupeCount;
+        document.getElementById('auditErrors').textContent = session.errorCount;
+        document.getElementById('auditExpired').textContent = session.expiredCount;
+
+        const log = document.getElementById('auditLog');
+        log.innerHTML = '';
+        if (session.logEntries && session.logEntries.length > 0) {
+          session.logEntries.forEach(entry => {
+            const div = document.createElement('div');
+            div.className = 'log-entry';
+            div.innerHTML = entry;
+            log.appendChild(div);
+          });
+        }
+
+        const inp = document.getElementById('auditInput');
+        inp.disabled = false;
+        inp.placeholder = auditScanType === 'serial' ? 'Scan 7-char serial number...' : 'Scan 6-digit asset tag...';
+        setStatus('auditStatus', 'auditStatusText', 'ready', 'Session "' + session.label + '" restored — scan a barcode');
+      }
+    }
+
+    // Restore New Asset Mode pairs
+    if (Array.isArray(data.assetPairs) && data.assetPairs.length > 0) {
+      assetPairs = data.assetPairs;
+      assetPairs.forEach(p => { assetTagSet.add(p.asset); serialSet.add(p.serial); });
+      document.getElementById('assetCount').textContent = assetPairs.length;
+      document.getElementById('assetDownloadBtn').disabled = false;
+      updateAssetPreview();
+    }
+
+    // Restore hunt targets
+    if (Array.isArray(data.huntTargets) && data.huntTargets.length > 0) {
+      huntTargets = data.huntTargets;
+    }
+
+    // Restore warranty map
+    if (Array.isArray(data.warrantyRecords) && data.warrantyRecords.length > 0) {
+      data.warrantyRecords.forEach(r => {
+        const end = new Date(r.warrantyEnd);
+        if (!isNaN(end.getTime())) addWarrantyRecord(r.serial, r.assetTag, end);
+      });
+      if (warrantyMap.size > 0) {
+        const count = data.warrantyRecords.length;
+        updateWarrantyUI(count, 'restored');
+      }
+    }
+
+    // Show expired stat box if we have warranty data
+    if (warrantyMap.size > 0) {
+      document.getElementById('expiredStatBox').style.display = '';
+    }
+
+    renderSessionList();
+    updateExportButtons();
+    updateHuntUI();
+
+    if (auditSessions.length > 0) {
+      showToast(`Restored ${auditSessions.length} session${auditSessions.length !== 1 ? 's' : ''} from last visit`);
+    }
+  } catch(e) {
+    console.warn('Failed to restore state:', e);
+  }
+}
+
+// ===================== INIT =====================
+loadState();
 updateExportButtons();
 updatePairBoxes();
 updateHuntUI();
