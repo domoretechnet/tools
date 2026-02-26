@@ -1501,7 +1501,9 @@ let warrantyMap = new Map();
 
 function parseWarrantyDate(str) {
   if (!str) return null;
-  const m = String(str).trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  // Strip optional time portion: "9/28/2028  8:00:00 AM" -> "9/28/2028"
+  const cleaned = String(str).trim().replace(/\s+\d{1,2}:\d{2}(:\d{2})?(\s*(AM|PM))?$/i, '').trim();
+  const m = cleaned.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
   if (!m) return null;
   const d = new Date(parseInt(m[3]), parseInt(m[1])-1, parseInt(m[2]));
   return isNaN(d.getTime()) ? null : d;
@@ -1511,6 +1513,13 @@ function addWarrantyRecord(serial, assetTag, warrantyEnd) {
   const rec = { warrantyEnd, serial: serial || '', assetTag: assetTag || '' };
   if (serial)   warrantyMap.set(serial.toUpperCase(), rec);
   if (assetTag) warrantyMap.set(assetTag.toUpperCase(), rec);
+}
+
+// Extract the first 6-digit sequence from a mixed asset tag string like "AB123456" -> "123456"
+function extractAssetTag(raw) {
+  if (!raw) return '';
+  const m = String(raw).match(/\d{6}/);
+  return m ? m[0] : '';
 }
 
 function checkWarranty(val) {
@@ -1568,7 +1577,7 @@ function parseWarrantyCSV(text) {
   for (let i = 1; i < lines.length; i++) {
     const cols = lines[i].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(c => c.replace(/^"|"$/g,'').trim());
     const sn = snIdx >= 0 && cols[snIdx] ? cols[snIdx].toUpperCase() : '';
-    const at = atIdx >= 0 && cols[atIdx] ? cols[atIdx].toUpperCase() : '';
+    const at = atIdx >= 0 && cols[atIdx] ? extractAssetTag(cols[atIdx]) : '';
     const wd = parseWarrantyDate(cols[wIdx]);
     if ((sn || at) && wd) { addWarrantyRecord(sn, at, wd); loaded++; }
   }
@@ -1642,7 +1651,7 @@ function parseWarrantyXLSX(buf) {
   for (let i = 1; i < rowMatches.length; i++) {
     const cells = getRowCells(rowMatches[i][1]);
     const sn = snCol ? (cells[snCol] || '').trim().toUpperCase() : '';
-    const at = atCol ? (cells[atCol] || '').trim().toUpperCase() : '';
+    const at = atCol ? extractAssetTag(cells[atCol] || '') : '';
 
     let wd = null;
     const wRaw = (cells[wCol] || '').trim();
