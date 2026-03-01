@@ -1,0 +1,2892 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Asset Lister + OCR</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Barlow:wght@300;400;500;600;700&display=swap');
+:root{
+  --bg:#080b0f;--surface:#0d1117;--surface2:#141b24;--border:#1c2432;--border2:#263040;
+  --accent:#00e5ff;--accent2:#39ff14;--warn:#ffb347;--danger:#ff2d55;--purple:#a855f7;
+  --text:#c8d6e5;--muted:#4a5568;--muted2:#2d3748;
+  --ag:0 0 20px rgba(0,229,255,.22);
+  --ocr-accent:#e8ff00;
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{background:var(--bg);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(ellipse at 15% 50%,rgba(0,229,255,.03) 0%,transparent 55%),radial-gradient(ellipse at 85% 15%,rgba(57,255,20,.025) 0%,transparent 55%);pointer-events:none;z-index:0;}
+body::after{content:'';position:fixed;inset:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,0,0,.07) 2px,rgba(0,0,0,.07) 4px);pointer-events:none;z-index:0;}
+
+.app-layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh;position:relative;z-index:1;}
+
+/* ── SIDEBAR ── */
+.sidebar{background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:sticky;top:0;height:100vh;overflow-y:auto;}
+.sidebar-logo{padding:16px 16px 12px;border-bottom:1px solid var(--border);}
+.sidebar-logo h1{font-family:'Share Tech Mono',monospace;font-size:.88rem;color:var(--accent);text-shadow:0 0 16px rgba(0,229,255,.4);letter-spacing:3px;text-transform:uppercase;}
+.sidebar-logo p{color:var(--muted);font-size:.6rem;letter-spacing:2px;text-transform:uppercase;margin-top:3px;}
+.count-tiles{display:grid;grid-template-columns:1fr 1fr;gap:5px;padding:9px 13px;}
+.count-tile{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;padding:9px;text-align:center;}
+.ctn{font-family:'Share Tech Mono',monospace;font-size:1.5rem;line-height:1;color:var(--accent);}
+.ctl{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-top:2px;}
+.count-tile.global .ctn{color:var(--accent2);}
+.sidebar-section{padding:9px 13px 5px;}
+.sidebar-label{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;gap:4px;}
+.pallets-list{display:flex;flex-direction:column;gap:2px;margin-bottom:4px;}
+.pallet-item{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;transition:all .15s;}
+.pallet-item:hover{background:rgba(255,255,255,.04);border-color:var(--border2);}
+.pallet-item.active{background:rgba(0,229,255,.07);border-color:rgba(0,229,255,.25);}
+.pallet-item.damaged-pallet-item{border-color:rgba(255,45,85,.15)!important;}
+.pallet-item.damaged-pallet-item .pallet-dot{background:var(--danger)!important;box-shadow:0 0 4px var(--danger)!important;}
+.pallet-item.damaged-pallet-item .pallet-name{color:var(--danger)!important;}
+.pallet-item.damaged-pallet-item.active{background:rgba(255,45,85,.07)!important;border-color:rgba(255,45,85,.35)!important;}
+.pallet-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;background:var(--muted2);}
+.pallet-item.active .pallet-dot{background:var(--accent);box-shadow:0 0 5px var(--accent);}
+.pallet-name{flex:1;font-family:'Share Tech Mono',monospace;font-size:.7rem;letter-spacing:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--text);}
+.pallet-item.active .pallet-name{color:var(--accent);}
+.pallet-count{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);background:var(--muted2);padding:1px 5px;border-radius:7px;}
+.pallet-item.active .pallet-count{background:rgba(0,229,255,.15);color:var(--accent);}
+.pallet-del,.del-btn{opacity:0;background:none;border:none;color:var(--danger);cursor:pointer;font-size:.74rem;padding:1px 3px;border-radius:3px;transition:opacity .15s;}
+.pallet-item:hover .pallet-del,.preset-item:hover .del-btn{opacity:1;}
+.edit-btn{opacity:0;background:none;border:none;color:var(--accent);cursor:pointer;font-size:.76rem;padding:1px 3px;border-radius:3px;transition:opacity .15s;}
+.preset-item:hover .edit-btn{opacity:1;}
+.damaged-section-label{font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:2px;text-transform:uppercase;color:var(--danger);padding:6px 8px 3px;opacity:.7;display:flex;align-items:center;gap:5px;}
+.damaged-section-label::after{content:'';flex:1;height:1px;background:rgba(255,45,85,.2);}
+.preset-search{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.68rem;padding:5px 8px;outline:none;margin-bottom:6px;transition:border-color .15s;}
+.preset-search:focus{border-color:rgba(168,85,247,.4);}
+.preset-search::placeholder{color:var(--muted);}
+.preset-item{display:flex;align-items:center;gap:5px;padding:6px 8px;border-radius:5px;border:1px solid transparent;cursor:pointer;transition:all .15s;}
+.preset-item:hover{background:rgba(255,255,255,.04);border-color:var(--border2);}
+.preset-item.active{background:rgba(168,85,247,.08);border-color:rgba(168,85,247,.3);}
+.preset-item.damaged-preset .preset-name{color:var(--danger);}
+.preset-item.damaged-preset.active{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.3);}
+.preset-name{font-family:'Share Tech Mono',monospace;font-size:.68rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.no-weight-warn{color:var(--warn);font-size:.62rem;flex-shrink:0;}
+.sdiv{height:1px;background:var(--border);margin:2px 0 7px;}
+.sidebar-bottom{margin-top:auto;padding:11px 13px;border-top:1px solid var(--border);display:flex;flex-direction:column;gap:4px;}
+
+/* toggles */
+.toggle-switch{position:relative;width:32px;height:17px;flex-shrink:0;}
+.toggle-switch input{opacity:0;width:0;height:0;}
+.toggle-track{position:absolute;inset:0;background:var(--muted2);border-radius:17px;cursor:pointer;transition:background .2s;}
+.toggle-track::after{content:'';position:absolute;left:2px;top:2px;width:13px;height:13px;background:#fff;border-radius:50%;transition:transform .2s;}
+.toggle-switch input:checked+.toggle-track{background:var(--warn);}
+.toggle-switch input:checked+.toggle-track::after{transform:translateX(15px);}
+
+/* buttons */
+.btn-xs{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;padding:3px 7px;border-radius:4px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn-xs:hover{background:rgba(0,229,255,.14);}
+.btn-xs.p{border-color:rgba(168,85,247,.3);color:var(--purple);}
+.btn-xs.p:hover{background:rgba(168,85,247,.12);}
+.btn{background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.22);color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.64rem;letter-spacing:2px;text-transform:uppercase;padding:8px 13px;border-radius:6px;cursor:pointer;transition:all .15s;white-space:nowrap;}
+.btn:hover{background:rgba(0,229,255,.12);}
+.btn:disabled{opacity:.35;cursor:not-allowed;}
+.btn-g{background:rgba(57,255,20,.07);border-color:rgba(57,255,20,.22);color:var(--accent2);}
+.btn-g:hover{background:rgba(57,255,20,.13);}
+.btn-p{background:rgba(168,85,247,.07);border-color:rgba(168,85,247,.22);color:var(--purple);}
+.btn-p:hover{background:rgba(168,85,247,.13);}
+.btn-r{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.22);color:var(--danger);}
+.btn-r:hover{background:rgba(255,45,85,.13);}
+.btn-y{background:rgba(232,255,0,.07);border-color:rgba(232,255,0,.25);color:var(--ocr-accent);}
+.btn-y:hover{background:rgba(232,255,0,.13);}
+
+/* ── MAIN ── */
+.main{display:flex;flex-direction:column;min-height:100vh;}
+.main-header{padding:13px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:11px;flex-wrap:wrap;}
+.active-pallet-name{font-family:'Share Tech Mono',monospace;font-size:.92rem;color:var(--accent);letter-spacing:3px;}
+.pallet-stats-txt{font-size:.68rem;color:var(--muted);letter-spacing:1.5px;}
+.header-actions{margin-left:auto;display:flex;gap:6px;align-items:center;}
+.main-content{flex:1;padding:16px 20px;display:flex;flex-direction:column;gap:13px;}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:15px 17px;}
+.card-title{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);margin-bottom:11px;display:flex;align-items:center;gap:7px;}
+.card-title::after{content:'';flex:1;height:1px;background:var(--border);}
+.card-title.collapsible{cursor:pointer;user-select:none;}
+.card-title.collapsible .caret{display:inline-block;transition:transform .2s;margin-right:2px;}
+.card-title.collapsible.collapsed .caret{transform:rotate(-90deg);}
+
+/* weight warning banner */
+.weight-warn-banner{display:none;background:rgba(255,45,85,.08);border:1px solid rgba(255,45,85,.35);border-radius:7px;padding:9px 14px;margin-bottom:11px;align-items:center;gap:9px;flex-wrap:wrap;}
+.weight-warn-banner.visible{display:flex;}
+.wwb-icon{font-size:1.1rem;}
+.wwb-text{font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--danger);flex:1;}
+.damaged-header-badge{display:inline-flex;align-items:center;gap:5px;background:rgba(255,45,85,.1);border:1px solid rgba(255,45,85,.3);color:var(--danger);font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;padding:2px 9px;border-radius:8px;}
+
+/* scan inputs */
+.scan-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:9px;}
+.scan-field{display:flex;flex-direction:column;gap:4px;}
+.scan-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.scan-input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:7px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:1.2rem;letter-spacing:5px;padding:10px 12px;outline:none;transition:all .15s;text-transform:uppercase;}
+.scan-input:focus{border-color:var(--accent);box-shadow:var(--ag);}
+.scan-input.active-field{border-color:rgba(0,229,255,.4);}
+.scan-input.filled-field{border-color:rgba(57,255,20,.3);color:var(--accent2);}
+.scan-input.bypassed{border-color:rgba(255,179,71,.3)!important;color:var(--warn)!important;}
+.scan-input.blocked{border-color:rgba(255,45,85,.3)!important;opacity:.5;cursor:not-allowed;}
+.scan-input::placeholder{color:var(--muted);letter-spacing:1.5px;font-size:.74rem;}
+.scan-input.flash-success{animation:fS .3s ease;}
+.scan-input.flash-error{animation:fE .3s ease;}
+@keyframes fS{0%{border-color:var(--accent2);box-shadow:0 0 22px rgba(57,255,20,.5);}100%{border-color:var(--accent);box-shadow:var(--ag);}}
+@keyframes fE{0%{border-color:var(--danger);box-shadow:0 0 22px rgba(255,45,85,.5);}100%{border-color:var(--border);box-shadow:none;}}
+.bypass-row{display:flex;gap:14px;align-items:center;padding:6px 0 0;}
+.bypass-item{display:flex;align-items:center;gap:6px;}
+.bypass-lbl{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.status-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:6px;border:1px solid var(--border);background:rgba(0,0,0,.25);min-height:38px;transition:all .15s;margin-bottom:9px;}
+.status-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--muted);}
+.status-bar.ready .status-dot{background:var(--accent);box-shadow:0 0 6px var(--accent);}
+.status-bar.success .status-dot{background:var(--accent2);box-shadow:0 0 7px var(--accent2);}
+.status-bar.error .status-dot{background:var(--danger);box-shadow:0 0 7px var(--danger);}
+.status-bar.warn .status-dot{background:var(--warn);box-shadow:0 0 7px var(--warn);}
+.status-bar.overweight .status-dot{background:var(--danger);box-shadow:0 0 10px var(--danger);animation:pulse .6s ease-in-out infinite alternate;}
+.status-bar.pair-ready .status-dot{background:var(--purple);box-shadow:0 0 7px var(--purple);}
+.status-bar.success{border-color:rgba(57,255,20,.22);}
+.status-bar.error{border-color:rgba(255,45,85,.22);}
+.status-bar.pair-ready{border-color:rgba(168,85,247,.22);}
+.status-bar.warn{border-color:rgba(255,179,71,.22);}
+.status-bar.overweight{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.04);}
+@keyframes pulse{from{opacity:.7;}to{opacity:1;}}
+.status-text{font-family:'Share Tech Mono',monospace;font-size:.76rem;}
+
+/* preset bar */
+.preset-bar{display:flex;align-items:center;gap:8px;padding:8px 12px;border-radius:7px;margin-bottom:11px;flex-wrap:wrap;}
+.preset-bar.active-p{background:rgba(168,85,247,.06);border:1px solid rgba(168,85,247,.2);}
+.preset-bar.active-p.damaged{background:rgba(255,45,85,.05);border:1px solid rgba(255,45,85,.25);}
+.preset-bar.no-p{background:rgba(255,45,85,.05);border:1px solid rgba(255,45,85,.2);cursor:pointer;}
+.pb-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;}
+.active-p .pb-label{color:var(--purple);}
+.active-p.damaged .pb-label{color:var(--danger);}
+.no-p .pb-label{color:var(--danger);}
+.pb-name{font-family:'Share Tech Mono',monospace;font-size:.76rem;flex:1;}
+.pb-detail{font-size:.66rem;color:var(--muted);}
+.drive-pill{display:inline-flex;align-items:center;gap:5px;border-radius:14px;padding:2px 9px;font-family:'Share Tech Mono',monospace;font-size:.6rem;letter-spacing:1.5px;text-transform:uppercase;border:1px solid;cursor:pointer;transition:all .15s;}
+.drive-pill.dp-ok{background:rgba(0,229,255,.07);border-color:rgba(0,229,255,.3);color:var(--accent);}
+.drive-pill.dp-none{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.3);color:var(--danger);}
+.dp-dot{width:5px;height:5px;border-radius:50%;}
+.dp-ok .dp-dot{background:var(--accent);box-shadow:0 0 4px var(--accent);}
+.dp-none .dp-dot{background:var(--danger);box-shadow:0 0 4px var(--danger);}
+
+/* scan log */
+.scan-log{max-height:148px;overflow-y:auto;display:flex;flex-direction:column;gap:2px;margin-top:7px;}
+.log-entry{display:flex;align-items:baseline;gap:6px;font-family:'Share Tech Mono',monospace;font-size:.66rem;padding:3px 6px;border-radius:3px;border-left:2px solid transparent;}
+.log-entry.ok{border-color:var(--accent2);background:rgba(57,255,20,.03);}
+.log-entry.pair{border-color:var(--purple);background:rgba(168,85,247,.03);}
+.log-entry.warn{border-color:var(--warn);background:rgba(255,179,71,.03);}
+.log-entry.error{border-color:var(--danger);background:rgba(255,45,85,.03);}
+.log-entry.manual{border-color:var(--purple);background:rgba(168,85,247,.03);}
+.log-entry.ocr{border-color:var(--ocr-accent);background:rgba(232,255,0,.03);}
+.log-time{color:var(--muted);font-size:.58rem;flex-shrink:0;}
+
+/* manual entry */
+.manual-grid{display:grid;grid-template-columns:1fr auto auto auto auto;gap:8px;align-items:end;margin-top:11px;}
+.mini-input{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:.84rem;padding:8px 10px;outline:none;transition:border-color .15s;width:100%;}
+.mini-input:focus{border-color:var(--purple);}
+.mini-num{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.84rem;padding:8px 8px;outline:none;text-align:center;width:62px;}
+.mini-num:focus{border-color:var(--purple);}
+.mini-lbs{background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:6px;color:var(--warn);font-family:'Share Tech Mono',monospace;font-size:.84rem;padding:8px 8px;outline:none;text-align:center;width:70px;}
+.mini-lbs:focus{border-color:var(--warn);}
+.weight-mode-toggle{display:flex;align-items:center;gap:5px;font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:1px;text-transform:uppercase;color:var(--muted);cursor:pointer;user-select:none;white-space:nowrap;}
+.weight-mode-toggle input{display:none;}
+.wmt-track{width:28px;height:15px;background:var(--muted2);border-radius:15px;position:relative;cursor:pointer;transition:background .2s;flex-shrink:0;}
+.wmt-track::after{content:'';position:absolute;left:2px;top:2px;width:11px;height:11px;background:#fff;border-radius:50%;transition:transform .2s;}
+.weight-mode-toggle input:checked~.wmt-track{background:var(--warn);}
+.weight-mode-toggle input:checked~.wmt-track::after{transform:translateX(13px);}
+
+/* stats */
+.stats-strip{display:flex;gap:7px;flex-wrap:wrap;}
+.stat-chip{display:flex;align-items:center;gap:4px;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:13px;padding:3px 8px;font-family:'Share Tech Mono',monospace;font-size:.64rem;}
+.sn{color:var(--accent);font-size:.82rem;}
+.sl{color:var(--muted);}
+
+/* weight bar */
+.weight-bar{display:flex;align-items:center;gap:10px;padding:7px 12px;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:6px;flex-wrap:wrap;margin-bottom:9px;transition:border-color .2s;}
+.weight-bar.overweight{border-color:rgba(255,45,85,.4);background:rgba(255,45,85,.04);}
+.wi .wl{font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);}
+.wi .wv{font-family:'Share Tech Mono',monospace;font-size:.8rem;color:var(--accent);}
+.wi.danger .wv{color:var(--danger);}
+
+/* entry table */
+.entry-table-wrap{overflow-x:auto;border-radius:6px;border:1px solid var(--border);}
+table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
+.entry-table th{background:var(--surface2);font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);padding:7px 10px;text-align:left;border-bottom:1px solid var(--border);}
+.entry-table td{padding:6px 10px;border-bottom:1px solid rgba(28,36,50,.5);vertical-align:middle;}
+.entry-table tr:last-child td{border-bottom:none;}
+.entry-table tr:hover td{background:rgba(255,255,255,.02);}
+.entry-table tr.drag-over td{border-top:2px solid var(--accent);}
+.e-asset{font-family:'Share Tech Mono',monospace;color:var(--ocr-accent);letter-spacing:2px;}
+.e-serial{font-family:'Share Tech Mono',monospace;color:var(--accent2);letter-spacing:2px;}
+.e-bypass{color:var(--warn)!important;}
+.e-manual{color:var(--purple);}
+.e-damaged{color:var(--danger)!important;}
+.preset-tag{display:inline-block;background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);color:var(--purple);font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:1px;padding:1px 5px;border-radius:6px;}
+.preset-tag.dmg{background:rgba(255,45,85,.08);border-color:rgba(255,45,85,.25);color:var(--danger);}
+.source-badge{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1px;padding:1px 4px;border-radius:4px;border:1px solid;}
+.source-badge.scan{background:rgba(0,229,255,.08);border-color:rgba(0,229,255,.25);color:var(--accent);}
+.source-badge.ocr-badge{background:rgba(232,255,0,.08);border-color:rgba(232,255,0,.25);color:var(--ocr-accent);}
+.e-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.78rem;padding:2px 4px;border-radius:3px;transition:color .15s;}
+.e-del:hover{color:var(--danger);}
+.drag-handle{cursor:grab;color:var(--muted);font-size:.8rem;padding:0 2px;user-select:none;}
+.drag-handle:active{cursor:grabbing;}
+
+.no-pallet-screen{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:13px;padding:60px;text-align:center;}
+.no-pallet-screen .big-icon{font-size:3rem;opacity:.15;}
+.no-pallet-screen h2{font-family:'Share Tech Mono',monospace;font-size:.8rem;letter-spacing:3px;text-transform:uppercase;color:var(--muted);}
+.empty-state{text-align:center;padding:30px;color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.66rem;letter-spacing:2px;}
+
+/* modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.78);z-index:100;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:20px;width:100%;max-width:440px;box-shadow:0 20px 60px rgba(0,0,0,.5),var(--ag);}
+.modal-title{font-family:'Share Tech Mono',monospace;font-size:.76rem;letter-spacing:3px;text-transform:uppercase;color:var(--accent);margin-bottom:15px;display:flex;align-items:center;justify-content:space-between;}
+.close-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:.9rem;}
+.form-group{margin-bottom:10px;}
+.form-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:4px;}
+.form-label small{font-size:.54rem;font-weight:400;}
+.form-input{width:100%;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Barlow',sans-serif;font-size:.82rem;padding:7px 10px;outline:none;transition:border-color .15s;}
+.form-input:focus{border-color:var(--accent);}
+.form-input.wb{border-color:rgba(255,179,71,.4);}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;}
+.form-hint{font-size:.6rem;color:var(--muted);margin-top:2px;font-family:'Share Tech Mono',monospace;}
+.form-hint.wh{color:var(--warn);}
+.toggle-row-form{display:flex;align-items:center;justify-content:space-between;background:rgba(0,0,0,.3);border:1px solid var(--border);border-radius:6px;padding:8px 10px;margin-bottom:10px;}
+.trf-lbl{font-family:'Share Tech Mono',monospace;font-size:.64rem;letter-spacing:1.5px;text-transform:uppercase;}
+.trf-sub{font-size:.6rem;color:var(--muted);margin-top:2px;}
+.modal-actions{display:flex;gap:6px;margin-top:14px;justify-content:flex-end;}
+.dell-serial-section{background:rgba(0,229,255,.03);border:1px solid rgba(0,229,255,.15);border-radius:6px;padding:9px 11px;margin-bottom:10px;}
+.dell-serial-label{font-family:'Share Tech Mono',monospace;font-size:.58rem;letter-spacing:2px;text-transform:uppercase;color:var(--accent);margin-bottom:6px;opacity:.7;}
+.dell-serial-row{display:flex;gap:8px;align-items:center;}
+.dell-serial-input{flex:1;background:rgba(0,0,0,.4);border:1px solid var(--border);border-radius:6px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.82rem;letter-spacing:3px;padding:7px 10px;outline:none;transition:border-color .15s;text-transform:uppercase;}
+.dell-serial-input:focus{border-color:var(--accent);}
+.dell-serial-link{display:inline-flex;align-items:center;gap:4px;padding:7px 10px;background:rgba(0,229,255,.08);border:1px solid rgba(0,229,255,.25);border-radius:6px;color:var(--accent);font-family:'Share Tech Mono',monospace;font-size:.62rem;text-decoration:none;transition:all .15s;white-space:nowrap;}
+.dell-serial-link:hover{background:rgba(0,229,255,.15);}
+.dell-serial-link.hidden{display:none;}
+
+/* ── OCR PANEL STYLES ── */
+.ocr-layout{display:grid;grid-template-columns:160px 1fr 290px;gap:0;border:none;overflow:hidden;height:100%;}
+.ocr-images{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
+.ocr-images-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
+.ocr-thumb-list{flex:1;overflow-y:auto;padding:5px;}
+.ocr-storage{padding:5px 10px;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--muted);}
+.ocr-storage-track{height:2px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden;}
+.ocr-storage-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .5s;}
+.thumb-wrapper{position:relative;margin-bottom:4px;}
+.image-thumb{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;border:2px solid transparent;cursor:pointer;display:block;transition:border-color .15s;background:var(--surface2);}
+.image-thumb:hover{border-color:var(--muted);}
+.image-thumb.active{border-color:var(--ocr-accent);}
+.image-thumb.active-asset{border-color:var(--ocr-accent);box-shadow:0 0 0 1px var(--ocr-accent);}
+.image-thumb.active-serial{border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2);}
+.image-thumb.active-both{border-color:var(--accent2);box-shadow:0 0 0 1px var(--ocr-accent),0 0 0 3px var(--accent2);}
+.image-thumb.assigned-asset{border-color:var(--ocr-accent);}
+.image-thumb.assigned-serial{border-color:var(--accent2);}
+.image-thumb.assigned-both{border-color:var(--accent2);}
+.thumb-badge{position:absolute;top:3px;right:3px;font-family:'Share Tech Mono',monospace;font-size:.5rem;padding:1px 4px;border-radius:2px;pointer-events:none;}
+.thumb-badge.at{background:var(--ocr-accent);color:#000;}
+.thumb-badge.sn{background:var(--accent);color:#000;}
+.thumb-badge.both{background:var(--accent2);color:#000;}
+.thumb-assign-bar{position:absolute;bottom:0;left:0;right:0;display:flex;opacity:0;transition:opacity .15s;pointer-events:none;}
+.thumb-wrapper:hover .thumb-assign-bar{opacity:1;pointer-events:all;}
+.thumb-assign-btn{flex:1;border:none;font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:1px;padding:3px 0;cursor:pointer;font-weight:700;}
+.thumb-assign-btn.at{background:rgba(232,255,0,.85);color:#000;}
+.thumb-assign-btn.at:hover{background:rgba(232,255,0,1);}
+.thumb-assign-btn.sn{background:rgba(0,229,255,.85);color:#000;}
+.thumb-assign-btn.sn:hover{background:rgba(0,229,255,1);}
+.thumb-del-btn{position:absolute;top:3px;right:3px;background:rgba(255,45,85,.85);border:none;color:#fff;border-radius:3px;font-size:.55rem;padding:2px 4px;cursor:pointer;opacity:0;transition:opacity .15s;font-family:'Share Tech Mono',monospace;}
+.thumb-wrapper:hover .thumb-del-btn{opacity:1;}
+/* Field indicator badge on thumb */
+.thumb-field-badge{position:absolute;top:3px;left:3px;font-family:'Share Tech Mono',monospace;font-size:.48rem;padding:1px 4px;border-radius:2px;pointer-events:none;}
+.thumb-field-badge.for-asset{background:rgba(232,255,0,.85);color:#000;}
+.thumb-field-badge.for-serial{background:rgba(0,229,255,.85);color:#000;}
+.thumb-field-badge.for-both{background:rgba(57,255,20,.85);color:#000;}
+
+/* Image pair grouping */
+.thumb-group{border-radius:5px;margin-bottom:6px;overflow:hidden;border:1px solid var(--border);}
+.thumb-group-inprogress{border-color:rgba(232,255,0,.35);background:rgba(232,255,0,.04);}
+.thumb-group-finalized{border-color:rgba(0,229,255,.2);background:rgba(0,229,255,.02);}
+.thumb-group .thumb-wrapper{margin-bottom:0;border-radius:0;}
+.thumb-group .thumb-wrapper+.thumb-wrapper{border-top:1px solid var(--border);}
+.thumb-group-label{font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:3px 6px;background:rgba(0,0,0,.3);text-overflow:ellipsis;overflow:hidden;white-space:nowrap;}
+.thumb-group-label.inprogress{color:var(--ocr-accent);background:rgba(232,255,0,.08);}
+.thumb-group-label.autopair{color:var(--muted);background:rgba(255,255,255,.03);font-size:.44rem;}
+.thumb-group.thumb-group-autopair{border-color:rgba(255,255,255,.08);}
+.thumb-group .image-thumb{border-radius:0;}
+
+.ocr-canvas-wrap{display:flex;flex-direction:column;background:#060809;overflow:hidden;}
+.ocr-toolbar{padding:7px 10px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.ocr-split-area{flex:1;display:flex;position:relative;overflow:hidden;}
+.ocr-pane{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
+.ocr-pane-label{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;padding:4px 8px;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.asset-pane-label{color:var(--ocr-accent);background:rgba(232,255,0,.06);border-bottom:1px solid rgba(232,255,0,.15);}
+.serial-pane-label{color:var(--accent2);background:rgba(0,229,255,.05);border-bottom:1px solid rgba(0,229,255,.12);}
+.ocr-pane.mode-active .asset-pane-label{background:rgba(232,255,0,.16);border-bottom-color:rgba(232,255,0,.4);}
+.ocr-pane.mode-active .serial-pane-label{background:rgba(0,229,255,.14);border-bottom-color:rgba(0,229,255,.35);}
+.ocr-pane-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:crosshair;}
+.ocr-pane-canvas-wrap canvas{max-width:100%;max-height:100%;display:block;cursor:crosshair;}
+.ocr-pane-divider{width:1px;background:var(--border);flex-shrink:0;}
+.ocr-drop-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:.4;pointer-events:none;}
+.ocr-drop-hint .drop-text{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);text-align:center;line-height:1.7;}
+.ocr-drop-hint .drop-icon{font-size:22px;}
+.ocr-pane-canvas-wrap.has-image .ocr-drop-hint{display:none;}
+.ocr-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--ocr-accent);letter-spacing:.1em;pointer-events:none;opacity:0;transition:opacity .2s;z-index:10;}
+.ocr-overlay.visible{opacity:1;}
+.ocr-progress{height:2px;background:var(--border);flex-shrink:0;}
+.ocr-progress-fill{height:100%;background:var(--ocr-accent);width:0;transition:width .3s;}
+/* OCR mode toggle */
+.ocr-mode-toggle{display:flex;border:1px solid var(--border);border-radius:5px;overflow:hidden;flex-shrink:0;}
+.omt-btn{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1px;padding:3px 9px;background:transparent;border:none;color:var(--muted);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.omt-btn.active{background:var(--surface2);color:var(--ocr-accent);}
+/* Dual mode group offset bar */
+.ocr-offset-bar{display:flex;align-items:center;gap:6px;padding:4px 10px;background:rgba(232,255,0,.04);border-bottom:1px solid rgba(232,255,0,.1);flex-shrink:0;font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted);}
+.ocr-offset-bar button{background:none;border:1px solid var(--border);border-radius:3px;color:var(--text);font-family:inherit;font-size:.55rem;padding:1px 6px;cursor:pointer;}
+.ocr-offset-bar button:hover{border-color:var(--ocr-accent);color:var(--ocr-accent);}
+.ocr-offset-val{color:var(--ocr-accent);min-width:16px;text-align:center;}
+/* Session group label in thumbs */
+.session-thumb-label{font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:5px 6px 2px;opacity:.6;}
+
+/* OCR draw mode selector */
+.ocr-draw-mode-bar{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.draw-mode-btn{font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
+.draw-mode-btn:hover{border-color:var(--border2);color:var(--text);}
+.draw-mode-btn.active-asset{border-color:var(--ocr-accent);background:rgba(232,255,0,.1);color:var(--ocr-accent);}
+.draw-mode-btn.active-serial{border-color:var(--accent);background:rgba(0,229,255,.08);color:var(--accent);}
+.draw-mode-hint{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);margin-left:auto;}
+
+.ocr-right{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
+.ocr-right-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.ocr-fields{padding:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ocr-field{margin-bottom:8px;}
+.ocr-field-label{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
+.ocr-field-label.asset{color:var(--ocr-accent);}
+.ocr-field-label.serial{color:var(--accent);}
+.field-fmt{font-size:.48rem;color:var(--muted);letter-spacing:0;}
+.ocr-field-preview{width:100%;height:52px;border-radius:3px 3px 0 0;background:var(--surface2);display:block;margin-bottom:0;}
+.ocr-field-preview.empty{border:1px dashed var(--border);border-bottom:none;}
+.ocr-field input{
+  width:100%;background:var(--surface2);
+  border:1px solid var(--border);border-top:1px solid rgba(255,255,255,.06);
+  border-radius:0 0 3px 3px;
+  color:var(--text);
+  font-family:'Share Tech Mono',monospace;
+  font-size:1.55rem;
+  font-weight:700;
+  padding:6px 10px 7px;
+  outline:none;
+  transition:border-color .15s,color .15s;
+  text-transform:uppercase;
+  letter-spacing:0.22em;
+  text-align:center;
+  box-sizing:border-box;
+}
+.ocr-field input:focus{border-color:var(--ocr-accent);background:rgba(232,255,0,.04);}
+.ocr-field input.valid{border-color:var(--accent2);background:rgba(0,229,255,.04);}
+.ocr-field input.invalid{border-color:var(--danger);}
+.ocr-field input.tav-active{border-color:var(--warn);color:var(--warn);}
+.ocr-field input::placeholder{font-size:1rem;letter-spacing:0.15em;opacity:.3;font-weight:400;}
+.field-error{font-size:.52rem;color:var(--danger);margin-top:2px;font-family:'Share Tech Mono',monospace;min-height:12px;}
+.tav-row{display:flex;align-items:center;gap:4px;margin-top:3px;}
+.tav-btn{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:.05em;text-transform:uppercase;padding:2px 6px;border-radius:3px;cursor:pointer;border:1px solid var(--border);background:transparent;color:var(--muted);transition:all .15s;}
+.tav-btn:hover{border-color:var(--warn);color:var(--warn);}
+.tav-btn.active{border-color:var(--warn);background:rgba(255,179,71,.1);color:var(--warn);}
+.tav-lock{font-size:.7rem;padding:2px 5px;border-radius:3px;cursor:pointer;border:1px solid transparent;background:transparent;color:var(--muted);transition:all .15s;}
+.tav-lock.locked{color:var(--warn);border-color:var(--warn);background:rgba(255,179,71,.1);}
+.tav-label{font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted);}
+.tav-label.active{color:var(--warn);}
+/* Unified TAV row in scan mode */
+.tav-unified-row{display:flex;gap:12px;align-items:center;padding:5px 0 8px;flex-wrap:wrap;}
+.tav-field-group{display:flex;align-items:center;gap:4px;}
+.tav-field-name{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:1.5px;text-transform:uppercase;margin-right:2px;}
+.tav-field-name.asset-tav{color:var(--ocr-accent);}
+.tav-field-name.serial-tav{color:var(--accent2);}
+/* OCR right panel fields */
+.ocr-right-fields{display:flex;flex-direction:column;gap:8px;padding:8px 10px;}
+.ocr-right-field{display:flex;flex-direction:column;gap:3px;}
+
+/* OCR image-field link indicator */
+.img-field-link{display:flex;align-items:center;gap:4px;font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted);margin-top:2px;}
+.img-field-link .ifl-dot{width:5px;height:5px;border-radius:50%;background:var(--muted2);}
+.img-field-link.linked-asset .ifl-dot{background:var(--ocr-accent);}
+.img-field-link.linked-serial .ifl-dot{background:var(--accent);}
+.img-field-link.linked-asset{color:var(--ocr-accent);}
+.img-field-link.linked-serial{color:var(--accent);}
+
+.ocr-actions{padding:8px 10px;border-bottom:1px solid var(--border);display:flex;flex-direction:column;gap:5px;flex-shrink:0;}
+.sel-preview{font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--accent);background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:3px 8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.ocr-assign-row{display:flex;gap:4px;}
+.ocr-pairs-list{flex:1;overflow-y:auto;padding:6px;}
+.ocr-pair-card{background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:6px 8px;margin-bottom:5px;font-family:'Share Tech Mono',monospace;font-size:.6rem;display:flex;justify-content:space-between;align-items:flex-start;}
+.opc-at{color:var(--ocr-accent);margin-bottom:1px;}
+.opc-sn{color:var(--accent);}
+.opc-pallet{color:var(--muted);font-size:.52rem;margin-top:2px;}
+.opc-del{color:var(--muted);cursor:pointer;font-size:.8rem;padding:0 0 0 5px;}
+.opc-del:hover{color:var(--danger);}
+.opc-edit{color:var(--muted);cursor:pointer;font-size:.8rem;padding:0 0 0 5px;}
+.opc-edit:hover{color:var(--warn);}
+
+/* ── OCR TOP PANEL ── */
+.ocr-top-panel{border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;overflow:hidden;transition:max-height .3s ease;}
+.ocr-top-panel.collapsed{max-height:0;}
+.ocr-top-panel.expanded{max-height:400px;}
+.ocr-top-panel-inner{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:0;}
+.ocr-panel-col{padding:10px 12px;border-right:1px solid var(--border);}
+.ocr-panel-col:last-child{border-right:none;}
+.ocr-panel-col-title{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);margin-bottom:6px;display:flex;align-items:center;justify-content:space-between;}
+.ocr-pallet-list-inline{display:flex;flex-direction:column;gap:2px;max-height:130px;overflow-y:auto;}
+.ocr-preset-list-inline{display:flex;flex-direction:column;gap:2px;max-height:130px;overflow-y:auto;}
+.ocr-inline-item{display:flex;align-items:center;gap:5px;padding:4px 7px;border-radius:4px;border:1px solid transparent;cursor:pointer;transition:all .15s;font-family:'Share Tech Mono',monospace;font-size:.65rem;}
+.ocr-inline-item:hover{background:rgba(255,255,255,.04);border-color:var(--border2);}
+.ocr-inline-item.active{background:rgba(0,229,255,.07);border-color:rgba(0,229,255,.25);color:var(--accent);}
+.ocr-inline-item.preset-active{background:rgba(168,85,247,.07);border-color:rgba(168,85,247,.25);color:var(--purple);}
+.ocr-inline-item.damaged-active{background:rgba(255,45,85,.07);border-color:rgba(255,45,85,.25);color:var(--danger);}
+.ocr-inline-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;background:var(--muted2);}
+.ocr-inline-item.active .ocr-inline-dot{background:var(--accent);}
+.ocr-inline-item.preset-active .ocr-inline-dot{background:var(--purple);}
+.ocr-inline-item.damaged-active .ocr-inline-dot{background:var(--danger);}
+.ocr-preset-search-inline{width:100%;background:rgba(0,0,0,.35);border:1px solid var(--border);border-radius:4px;color:var(--text);font-family:'Share Tech Mono',monospace;font-size:.6rem;padding:4px 7px;outline:none;margin-bottom:4px;transition:border-color .15s;}
+.ocr-preset-search-inline:focus{border-color:rgba(168,85,247,.4);}
+.ocr-preset-search-inline::placeholder{color:var(--muted);}
+
+/* ── RECYCLING BIN ── */
+.recycle-bin-btn{position:relative;display:inline-flex;align-items:center;gap:5px;}
+.recycle-count-badge{position:absolute;top:-5px;right:-5px;background:var(--danger);color:#fff;font-family:'Share Tech Mono',monospace;font-size:.45rem;width:14px;height:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;pointer-events:none;}
+.recycle-count-badge.hidden{display:none;}
+.bin-modal{background:var(--surface);border:1px solid var(--border2);border-radius:10px;padding:20px;width:100%;max-width:600px;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.5);}
+.bin-entry{display:flex;align-items:flex-start;gap:10px;padding:8px 10px;border-radius:5px;border:1px solid var(--border);margin-bottom:5px;background:rgba(0,0,0,.25);}
+.bin-entry-info{flex:1;font-family:'Share Tech Mono',monospace;font-size:.62rem;}
+.bin-entry-type{font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:2px;}
+.bin-entry-main{color:var(--text);margin-bottom:1px;}
+.bin-entry-sub{color:var(--muted);font-size:.55rem;}
+.bin-entry-time{color:var(--muted);font-size:.5rem;margin-top:2px;}
+.bin-actions{display:flex;gap:4px;flex-shrink:0;}
+.bin-restore-btn{background:rgba(57,255,20,.07);border:1px solid rgba(57,255,20,.25);color:var(--accent2);font-family:'Share Tech Mono',monospace;font-size:.5rem;padding:3px 7px;border-radius:3px;cursor:pointer;transition:all .15s;}
+.bin-restore-btn:hover{background:rgba(57,255,20,.14);}
+.bin-perm-del-btn{background:rgba(255,45,85,.07);border:1px solid rgba(255,45,85,.25);color:var(--danger);font-family:'Share Tech Mono',monospace;font-size:.5rem;padding:3px 7px;border-radius:3px;cursor:pointer;transition:all .15s;}
+.bin-perm-del-btn:hover{background:rgba(255,45,85,.14);}
+
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:var(--surface);}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--muted);}
+</style>
+</head>
+<body>
+
+<!-- PRESET MODAL -->
+<div class="modal-overlay" id="presetModal">
+  <div class="modal" style="max-width:480px;max-height:90vh;overflow-y:auto;">
+    <div class="modal-title"><span id="presetModalTitle">▸ Define Model Preset</span> <button class="close-btn" onclick="closePresetModal()">✕</button></div>
+    <div class="form-group"><label class="form-label">Model / Preset Name <small>(used for both)</small></label><input class="form-input" id="pm_name" placeholder="e.g. Dell Latitude 5520" oninput="onMfrChange()"></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Manufacturer</label><input class="form-input" id="pm_mfr" placeholder="Dell" oninput="onMfrChange()"></div>
+      <div class="form-group"><label class="form-label">CPU</label><input class="form-input" id="pm_cpu" placeholder="i5-1145G7"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">RAM <small>— numbers only, GB</small></label><input class="form-input" id="pm_ram" type="number" min="1" placeholder="16"></div>
+      <div class="form-group" id="storageFieldGroup"><label class="form-label">Storage <small>— numbers only, GB</small></label><input class="form-input" id="pm_storage" type="number" min="1" placeholder="256"></div>
+    </div>
+    <div class="toggle-row-form">
+      <div><div class="trf-lbl">No Storage Device</div><div class="trf-sub">Logs as "None" — thin client, stripped unit</div></div>
+      <label class="toggle-switch"><input type="checkbox" id="pm_no_storage" onchange="toggleStorageField()"><span class="toggle-track"></span></label>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Weight (lbs) <small>— optional, suggested</small></label><input class="form-input" id="pm_weight" type="number" min="0" step="0.1" placeholder="3.5" oninput="clearWeightNag()"><div class="form-hint" id="weightHint">Helps calculate shipping weight</div></div>
+    </div>
+    <div class="dell-serial-section" id="dellSerialSection" style="display:none;">
+      <div class="dell-serial-label">▸ Dell Support Lookup</div>
+      <div class="dell-serial-row"><input class="dell-serial-input" id="dellSerialInput" placeholder="Enter service tag…" oninput="updateDellLink()" maxlength="20"><a class="dell-serial-link hidden" id="dellSupportLink" href="#" target="_blank" rel="noopener">🔗 View on Dell Support</a></div>
+    </div>
+    <div class="modal-actions"><button class="btn btn-r" onclick="closePresetModal()">Cancel</button><button class="btn btn-g" onclick="savePreset()">Save Preset</button></div>
+  </div>
+</div>
+
+<!-- NEW PALLET MODAL -->
+<div class="modal-overlay" id="palletModal">
+  <div class="modal" style="max-width:310px;">
+    <div class="modal-title">▸ New Pallet</div>
+    <div class="form-group"><label class="form-label">Pallet Name</label><input class="form-input" id="newPalletName" placeholder="e.g. Pallet A1" onkeydown="if(event.key==='Enter')confirmNewPallet()"></div>
+    <div class="modal-actions"><button class="btn btn-r" onclick="closePalletModal()">Cancel</button><button class="btn btn-g" onclick="confirmNewPallet()">Create</button></div>
+  </div>
+</div>
+
+<!-- HTML VIEW MODAL -->
+<div class="modal-overlay" id="htmlViewModal" style="align-items:flex-start;padding:12px;overflow-y:auto;">
+  <div class="modal" style="max-width:960px;width:100%;max-height:92vh;overflow-y:auto;">
+    <div class="modal-title">▸ Pallet Summary <button class="close-btn" onclick="closeHtmlView()">✕</button></div>
+    <div id="htmlViewContent"></div>
+    <div class="modal-actions" style="margin-top:11px;"><button class="btn btn-p" onclick="printHtmlView()">Print / Save PDF</button><button class="btn" onclick="closeHtmlView()">Close</button></div>
+  </div>
+</div>
+
+<!-- RECYCLING BIN MODAL -->
+<div class="modal-overlay" id="recycleBinModal">
+  <div class="bin-modal">
+    <div class="modal-title" style="color:var(--danger);">
+      <span>🗑 Recycling Bin (<span id="binCountLabel">0</span>)</span>
+      <div style="display:flex;gap:6px;">
+        <button class="btn btn-g" onclick="restoreAllFromBin()" style="font-size:.54rem;padding:4px 9px;">↩ Restore All</button>
+        <button class="btn btn-r" onclick="emptyBin()" style="font-size:.54rem;padding:4px 9px;">✕ Empty Bin</button>
+        <button class="close-btn" onclick="closeRecycleBin()">✕</button>
+      </div>
+    </div>
+    <div id="binList"></div>
+    <div id="binEmpty" style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.68rem;text-align:center;padding:20px;display:none;">Bin is empty</div>
+  </div>
+</div>
+
+<div class="app-layout">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <h1>Asset Lister</h1>
+      <p>Sale Pallet Builder + OCR</p>
+    </div>
+    <div class="count-tiles">
+      <div class="count-tile"><div class="ctn" id="tilePalletCount">0</div><div class="ctl">Pallet Assets</div></div>
+      <div class="count-tile global"><div class="ctn" id="tileGlobalCount">0</div><div class="ctl">Total Assets</div></div>
+    </div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">Pallets <button class="btn-xs" onclick="openPalletModal()">+ New</button></div>
+      <div class="pallets-list" id="palletsList"></div>
+    </div>
+    <div class="sidebar-section" style="padding-top:4px;">
+      <div class="damaged-section-label">⚠ Damaged</div>
+      <div class="pallets-list" id="damagedPalletList"></div>
+    </div>
+    <div class="sdiv" style="margin:0 13px;"></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">
+        Model Presets
+        <div style="display:flex;gap:3px;">
+          <button class="btn-xs" onclick="openPresetModal()">+ New</button>
+          <button class="btn-xs p" onclick="exportPresets()" title="Export JSON">↑</button>
+          <label class="btn-xs p" title="Import JSON" style="cursor:pointer;">↓<input type="file" accept=".json" style="display:none;" onchange="importPresets(event)"></label>
+        </div>
+      </div>
+      <input class="preset-search" id="presetSearch" placeholder="Search presets…" oninput="renderPresetList()">
+      <div class="pallets-list" id="presetsList"></div>
+    </div>
+    <div class="sidebar-bottom">
+      <div class="sdiv" style="margin:0;"></div>
+      <button class="btn btn-g" onclick="exportAllXLSX()" style="width:100%;">⬇ Export Spreadsheet</button>
+      <button class="btn btn-y" onclick="exportOcrZip()" style="width:100%;margin-top:3px;">📷 Export OCR ZIP</button>
+      <button class="btn btn-p" onclick="openHtmlView()" style="width:100%;margin-top:3px;">◈ View All as HTML</button>
+      <div class="sdiv" style="margin:4px 0 2px;"></div>
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:6px;">
+        <span id="sessionStatus" style="font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:1px;color:var(--muted);"></span>
+        <div style="display:flex;gap:4px;">
+          <div class="recycle-bin-btn">
+            <button class="btn btn-r" onclick="openRecycleBin()" style="font-size:.54rem;padding:4px 8px;" title="Recycling Bin">🗑</button>
+            <span class="recycle-count-badge hidden" id="recycleBadge">0</span>
+          </div>
+          <button class="btn btn-r" onclick="clearSession()" style="font-size:.54rem;padding:4px 8px;">✕ Clear</button>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="no-pallet-screen" id="noPalletScreen">
+      <div class="big-icon">📦</div>
+      <h2>No Pallet Selected</h2>
+      <p style="color:var(--muted);font-size:.74rem;max-width:240px;line-height:1.7;">Create a pallet or select the Damaged section to start scanning.</p>
+      <button class="btn" onclick="openPalletModal()">+ Create First Pallet</button>
+    </div>
+
+    <div id="palletWorkspace" style="display:none;flex-direction:column;">
+      <div class="main-header">
+        <div>
+          <div class="active-pallet-name" id="headerPalletName">PALLET</div>
+          <div class="pallet-stats-txt" id="headerStats">0 ENTRIES</div>
+        </div>
+        <div id="damagedHeaderBadge"></div>
+        <div class="header-actions">
+          <button class="btn btn-y" id="ocrToggleBtn" onclick="switchMode(currentMode==='ocr'?'scan':'ocr')" style="font-size:.58rem;padding:5px 10px;">📷 OCR Mode</button>
+          <button class="btn btn-r" onclick="clearCurrentPallet()" style="font-size:.58rem;padding:5px 9px;">✕ Clear Pallet</button>
+        </div>
+      </div>
+
+      <div class="main-content">
+        <!-- SCAN MODE -->
+        <div class="mode-panel active" id="panelScan">
+          <div id="presetBarWrap"></div>
+          <div class="weight-warn-banner" id="weightWarnBanner">
+            <span class="wwb-icon">⚠️</span>
+            <span class="wwb-text" id="weightWarnText">Pallet weight exceeds 1,200 lbs</span>
+            <span style="font-family:'Share Tech Mono',monospace;font-size:.6rem;color:var(--muted);">Scanning continues normally</span>
+          </div>
+          <div class="card">
+            <div class="card-title">Asset / Serial Scan</div>
+            <div class="scan-row">
+              <div class="scan-field"><label class="scan-label">Asset Tag</label><input class="scan-input active-field" id="assetInput" placeholder="Scan 6-digit number…" onkeydown="handleScanKey(event,'asset')" onblur="handleScanBlur(event,'asset')" autocomplete="off" spellcheck="false"></div>
+              <div class="scan-field"><label class="scan-label">Serial Number</label><input class="scan-input" id="serialInput" placeholder="Waiting for asset tag…" onkeydown="handleScanKey(event,'serial')" onblur="handleScanBlur(event,'serial')" autocomplete="off" spellcheck="false"></div>
+            </div>
+            <div class="tav-unified-row">
+              <div class="tav-field-group">
+                <span class="tav-field-name asset-tav">Asset Tag</span>
+                <button class="tav-btn" id="scanTavBtnAt" onclick="toggleScanTAV('asset')">TAV</button>
+                <button class="tav-lock" id="scanTavLockAt" onclick="toggleScanTAVLock('asset')">🔓</button>
+                <span class="tav-label" id="scanTavLabelAt">take any value</span>
+              </div>
+              <div class="tav-field-group">
+                <span class="tav-field-name serial-tav">Serial #</span>
+                <button class="tav-btn" id="scanTavBtnSn" onclick="toggleScanTAV('serial')">TAV</button>
+                <button class="tav-lock" id="scanTavLockSn" onclick="toggleScanTAVLock('serial')">🔓</button>
+                <span class="tav-label" id="scanTavLabelSn">take any value</span>
+              </div>
+              <div id="bypassBadgeWrap" style="margin-left:auto;"></div>
+            </div>
+            <div class="status-bar ready" id="statusBar"><div class="status-dot"></div><div class="status-text" id="statusText">Select a preset first, then scan</div></div>
+            <div class="card-title collapsible" id="logToggle" onclick="toggleSection('logToggle','logBody')" style="margin-bottom:0;"><span class="caret">▾</span>Scan Log</div>
+            <div id="logBody"><div class="scan-log" id="scanLog"><div class="log-entry" style="color:var(--muted);padding:4px 6px;">Awaiting first scan…</div></div></div>
+          </div>
+          <div class="card">
+            <div class="card-title collapsible collapsed" id="manualToggle" onclick="toggleSection('manualToggle','manualBody')" style="margin-bottom:0;"><span class="caret">▾</span>Manual Entry</div>
+            <div id="manualBody" style="display:none;">
+              <div class="manual-grid">
+                <div><label class="scan-label">Description</label><input class="mini-input" id="manualDesc" placeholder="e.g. 60 × USB-C chargers" onkeydown="if(event.key==='Enter')addManualEntry()"></div>
+                <div><label class="scan-label">Qty</label><input class="mini-num" id="manualQty" type="number" value="1" min="1" max="9999" onkeydown="if(event.key==='Enter')addManualEntry()"></div>
+                <div><label class="scan-label">Weight (lbs)</label><input class="mini-lbs" id="manualLbs" type="number" min="0" step="0.1" placeholder="0" onkeydown="if(event.key==='Enter')addManualEntry()"></div>
+                <div style="display:flex;flex-direction:column;gap:4px;"><label class="scan-label">Mode</label><label class="weight-mode-toggle"><input type="checkbox" id="weightModeTotal"><span class="wmt-track"></span><span id="weightModeLabel" style="font-size:.56rem;">Per Item</span></label></div>
+                <div><label class="scan-label">&nbsp;</label><button class="btn btn-p" onclick="addManualEntry()" style="padding:8px 12px;">+ Add</button></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- OCR FULL-SCREEN OVERLAY -->
+        <div class="mode-panel" id="panelOcr" style="position:fixed;inset:0;z-index:50;background:var(--bg);overflow:hidden;padding:0;display:none;flex-direction:column;">
+          <div style="display:flex;align-items:center;gap:10px;padding:6px 14px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap;">
+            <div style="font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--ocr-accent);letter-spacing:3px;flex-shrink:0;">📷 OCR</div>
+            <!-- Session selector -->
+            <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+              <span style="font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Session</span>
+              <select id="ocrSessionSelect" onchange="ocrSwitchSession(this.value)" style="font-family:'Share Tech Mono',monospace;font-size:.58rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:2px 5px;max-width:120px;cursor:pointer;"></select>
+              <button onclick="ocrNewSession()" class="btn-xs" style="font-size:.48rem;padding:2px 6px;" title="New session">+</button>
+              <button onclick="ocrRenameSession()" class="btn-xs" style="font-size:.48rem;padding:2px 6px;" title="Rename session">✎</button>
+            </div>
+            <!-- Mode toggle -->
+            <div class="ocr-mode-toggle" id="ocrModeToggle">
+              <button id="modeToggleSingle" class="omt-btn active" onclick="setOcrMode('single')">⬜ Single</button>
+              <button id="modeToggleDual" class="omt-btn" onclick="setOcrMode('dual')">⬛⬛ Dual</button>
+            </div>
+            <button class="btn" id="ocrPanelToggleBtn" onclick="toggleOcrTopPanel()" style="font-size:.52rem;padding:3px 8px;border-color:rgba(0,229,255,.3);">⊞ Pallets</button>
+            <div id="ocrActiveInfo" style="font-family:'Share Tech Mono',monospace;font-size:.6rem;display:flex;gap:8px;align-items:center;"></div>
+            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+              <button class="btn btn-g" onclick="switchMode('scan')" style="font-size:.56rem;padding:4px 10px;">◀ Scan Mode</button>
+            </div>
+          </div>
+          <!-- Expandable top panel -->
+          <div class="ocr-top-panel collapsed" id="ocrTopPanel">
+            <div class="ocr-top-panel-inner">
+              <div class="ocr-panel-col">
+                <div class="ocr-panel-col-title">
+                  <span>Pallets</span>
+                  <button class="btn-xs" onclick="openPalletModal()" style="font-size:.5rem;padding:2px 5px;">+ New</button>
+                </div>
+                <div class="ocr-pallet-list-inline" id="ocrPalletListInline"></div>
+              </div>
+              <div class="ocr-panel-col">
+                <div class="ocr-panel-col-title">
+                  <span>Model Preset</span>
+                  <button class="btn-xs p" onclick="openPresetModal()" style="font-size:.5rem;padding:2px 5px;">+ New</button>
+                </div>
+                <input class="ocr-preset-search-inline" id="ocrPresetSearchInline" placeholder="Search presets…" oninput="renderOcrInlinePresets()">
+                <div class="ocr-preset-list-inline" id="ocrPresetListInline"></div>
+              </div>
+            </div>
+          </div>
+          <!-- OCR body -->
+          <div style="flex:1;overflow:hidden;display:flex;">
+          <div class="ocr-layout" style="flex:1;height:100%;border:none;border-radius:0;">
+            <!-- Left: image thumbnails -->
+            <div class="ocr-images">
+              <div class="ocr-images-header">
+                <span id="ocrSidebarSessionLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Images</span>
+                <label class="btn-xs" style="cursor:pointer;flex-shrink:0;">+<input type="file" id="ocrFileInput" multiple accept="image/*,.heic,.HEIC" style="display:none;"></label>
+              </div>
+              <!-- Dual mode: group offset control -->
+              <div class="ocr-offset-bar" id="ocrOffsetBar" style="display:none;">
+                <span>Pair start:</span>
+                <button onclick="adjustGroupOffset(-1)">◀</button>
+                <span class="ocr-offset-val" id="ocrOffsetVal">1</span>
+                <button onclick="adjustGroupOffset(1)">▶</button>
+                <span style="margin-left:4px;opacity:.6;">img # where AT begins</span>
+              </div>
+              <div class="ocr-thumb-list" id="ocrThumbList"
+                ondragover="event.preventDefault()" ondrop="ocrHandleDrop(event)"></div>
+              <div class="ocr-storage">
+                <span id="ocrStorageLabel">Storage: —</span>
+                <div class="ocr-storage-track"><div class="ocr-storage-fill" id="ocrStorageFill" style="width:0%"></div></div>
+              </div>
+            </div>
+
+            <!-- Center: dual-pane canvas -->
+            <div class="ocr-canvas-wrap">
+              <!-- Draw mode selector bar -->
+              <div class="ocr-draw-mode-bar">
+                <span style="font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Draw for:</span>
+                <button class="draw-mode-btn" id="drawModeAssetBtn" onclick="setDrawMode('asset')">✏ Asset Tag</button>
+                <button class="draw-mode-btn" id="drawModeSerialBtn" onclick="setDrawMode('serial')">✏ Serial #</button>
+                <span class="draw-mode-hint" id="drawModeHint">Select a mode then draw a box on the image</span>
+              </div>
+              <div class="ocr-toolbar" id="ocrToolbar">
+                <span class="sel-preview" id="selPreview">— draw a region on either image —</span>
+              </div>
+              <div class="ocr-progress"><div class="ocr-progress-fill" id="ocrProgressFill"></div></div>
+              <!-- Split canvas area -->
+              <div class="ocr-split-area" id="ocrSplitArea">
+                <!-- Pane A: Asset Tag image -->
+                <div class="ocr-pane" id="ocrPaneAsset" onclick="setDrawMode('asset')">
+                  <div class="ocr-pane-label asset-pane-label" id="ocrPaneLabelAsset">AT — no image</div>
+                  <div class="ocr-pane-canvas-wrap" id="ocrPaneAssetWrap">
+                    <div class="ocr-drop-hint" id="ocrDropA" ondragover="event.preventDefault()" ondrop="ocrHandleDrop(event)" onclick="event.stopPropagation();document.getElementById('ocrFileInput').click()">
+                      <div class="drop-icon" style="font-size:24px;">📷</div>
+                      <div class="drop-text">Drop or click<br>to add images</div>
+                    </div>
+                    <canvas id="ocrCanvasAsset" style="display:none;cursor:crosshair;"></canvas>
+                  </div>
+                </div>
+                <!-- Divider -->
+                <div class="ocr-pane-divider" id="ocrPaneDivider"></div>
+                <!-- Pane B: Serial Number image -->
+                <div class="ocr-pane" id="ocrPaneSerial" onclick="setDrawMode('serial')">
+                  <div class="ocr-pane-label serial-pane-label" id="ocrPaneLabelSerial">SN — no image</div>
+                  <div class="ocr-pane-canvas-wrap" id="ocrPaneSerialWrap">
+                    <div class="ocr-drop-hint" id="ocrDropB" ondragover="event.preventDefault()" ondrop="ocrHandleDrop(event)" onclick="event.stopPropagation();document.getElementById('ocrFileInput').click()">
+                      <div class="drop-icon" style="font-size:24px;">📷</div>
+                      <div class="drop-text">Drop or click<br>to add images</div>
+                    </div>
+                    <canvas id="ocrCanvasSerial" style="display:none;cursor:crosshair;"></canvas>
+                  </div>
+                </div>
+                <div class="ocr-overlay" id="ocrOverlay">RUNNING OCR…</div>
+              </div>
+            </div>
+
+            <!-- Right: pair builder -->
+            <div class="ocr-right">
+              <!-- Edit mode banner -->
+              <div id="ocrEditBanner" style="display:none;align-items:center;gap:8px;padding:5px 12px;background:rgba(255,179,71,.08);border-bottom:1px solid rgba(255,179,71,.25);flex-shrink:0;">
+                <span style="font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--warn);">✎ EDITING</span>
+                <span class="oeb-values" style="font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--text);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+                <button onclick="cancelOcrEdit()" style="font-family:'Share Tech Mono',monospace;font-size:.48rem;padding:2px 6px;border-radius:3px;border:1px solid rgba(255,179,71,.4);background:transparent;color:var(--warn);cursor:pointer;white-space:nowrap;">✕ Cancel</button>
+              </div>
+
+              <!-- Fields -->
+              <div class="ocr-right-fields">
+                <!-- Asset Tag -->
+                <div class="ocr-field">
+                  <div class="ocr-field-label asset">Asset Tag <span class="field-fmt">6 digits</span></div>
+                  <canvas class="ocr-field-preview empty" id="atPreview" width="270" height="52"></canvas>
+                  <div class="img-field-link" id="atImageLink"><div class="ifl-dot"></div><span id="atImageLinkText">no image linked</span></div>
+                  <input type="text" id="atInput" placeholder="000000" maxlength="12"
+                    oninput="ocrOnFieldInput('asset')" onblur="ocrValidateField('asset')"
+                    onclick="this.select();setDrawMode('asset')" autocomplete="off" spellcheck="false">
+                  <div class="field-error" id="atError"></div>
+                  <div class="tav-row">
+                    <button class="tav-btn" id="tavBtnAt" onclick="toggleTAV('asset')">TAV</button>
+                    <button class="tav-lock" id="tavLockAt" onclick="toggleTAVLock('asset')">🔓</button>
+                    <span class="tav-label" id="tavLabelAt">take any value</span>
+                  </div>
+                </div>
+
+                <!-- Serial -->
+                <div class="ocr-field">
+                  <div class="ocr-field-label serial">Serial Number <span class="field-fmt">7 alphanumeric</span></div>
+                  <canvas class="ocr-field-preview empty" id="snPreview" width="270" height="52"></canvas>
+                  <div class="img-field-link" id="snImageLink"><div class="ifl-dot"></div><span id="snImageLinkText">no image linked</span></div>
+                  <input type="text" id="snInput" placeholder="A000000" maxlength="14"
+                    oninput="ocrOnFieldInput('serial')" onblur="ocrValidateField('serial')"
+                    onclick="this.select();setDrawMode('serial')" autocomplete="off" spellcheck="false">
+                  <div class="field-error" id="snError"></div>
+                  <div class="tav-row">
+                    <button class="tav-btn" id="tavBtnSn" onclick="toggleTAV('serial')">TAV</button>
+                    <button class="tav-lock" id="tavLockSn" onclick="toggleTAVLock('serial')">🔓</button>
+                    <span class="tav-label" id="tavLabelSn">take any value</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Status strip (mirrors scan mode status bar) -->
+              <div class="status-bar ready" id="ocrStatusBar" style="margin:0 10px 6px;border-radius:4px;"><div class="status-dot"></div><div class="status-text" id="ocrStatusText">Draw a box on the image</div></div>
+
+              <!-- Actions -->
+              <div class="ocr-actions">
+                <button class="btn btn-y" onclick="ocrFinalizePair()" style="width:100%;font-size:.6rem;padding:7px;">⏎ Save Pair</button>
+                <button class="btn btn-xs" onclick="ocrClearPair()" style="width:100%;text-align:center;margin-top:4px;">Clear</button>
+              </div>
+
+              <!-- Divider + pairs list -->
+              <div class="ocr-right-header" style="display:flex;align-items:center;justify-content:space-between;margin-top:4px;">
+                <span>Saved Pairs (<span id="ocrPairsCount">0</span>)</span>
+              </div>
+              <div class="ocr-pairs-list" id="ocrPairsList"></div>
+            </div>
+          </div>
+          </div>
+        </div>
+
+        <!-- Entries Table -->
+        <div class="card">
+          <div class="card-title" style="margin-bottom:8px;">
+            Pallet Entries
+            <div class="stats-strip" style="margin-left:3px;">
+              <div class="stat-chip"><span class="sn" id="statPairs">0</span><span class="sl">scan</span></div>
+              <div class="stat-chip"><span class="sn" id="statOcr">0</span><span class="sl">ocr</span></div>
+              <div class="stat-chip"><span class="sn" id="statManual">0</span><span class="sl">manual</span></div>
+              <div class="stat-chip"><span class="sn" id="statDupes">0</span><span class="sl">dupes</span></div>
+              <div class="stat-chip"><span class="sn" id="statErrors">0</span><span class="sl">errors</span></div>
+            </div>
+          </div>
+          <div class="weight-bar" id="weightBar">
+            <div class="wi" id="wPalletWi"><div class="wl">Pallet Weight</div><div class="wv" id="wPallet">—</div></div>
+            <div style="color:var(--border2);">|</div>
+            <div class="wi"><div class="wl">Total Shipment</div><div class="wv" id="wTotal">—</div></div>
+            <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--warn);" id="weightNote"></div>
+          </div>
+          <div class="entry-table-wrap">
+            <table class="entry-table">
+              <thead><tr>
+                <th style="width:20px;"></th><th>#</th><th>Asset Tag</th>
+                <th>Serial</th><th>Preset</th><th>Src</th><th></th>
+              </tr></thead>
+              <tbody id="entryTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+//  INDEXEDDB
+// ══════════════════════════════════════════════════════════
+const DB_NAME='OCRCaptureDB', DB_VER=2;
+let db=null;
+function openDB(){
+  return new Promise((res,rej)=>{
+    const req=indexedDB.open(DB_NAME,DB_VER);
+    req.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('images'))d.createObjectStore('images',{keyPath:'id'});if(!d.objectStoreNames.contains('session'))d.createObjectStore('session',{keyPath:'key'});if(!d.objectStoreNames.contains('sessions'))d.createObjectStore('sessions',{keyPath:'id'});};
+    req.onsuccess=e=>{db=e.target.result;res(db);};
+    req.onerror=e=>rej(e.target.error);
+  });
+}
+const dbOp=(store,mode,fn)=>new Promise((res,rej)=>{const tx=db.transaction(store,mode);const req=fn(tx.objectStore(store));req.onsuccess=e=>res(e.target.result);req.onerror=e=>rej(e.target.error);});
+const dbPut=(store,val)=>dbOp(store,'readwrite',s=>s.put(val));
+const dbGet=(store,key)=>dbOp(store,'readonly',s=>s.get(key));
+const dbGetAll=store=>dbOp(store,'readonly',s=>s.getAll());
+const dbClear=store=>dbOp(store,'readwrite',s=>s.clear());
+const dbDelete=(store,key)=>dbOp(store,'readwrite',s=>s.delete(key));
+
+// ══════════════════════════════════════════════════════════
+//  AUDIO
+// ══════════════════════════════════════════════════════════
+let _ac=null;
+function ac(){if(!_ac)_ac=new(window.AudioContext||window.webkitAudioContext)();return _ac;}
+function beep(t){
+  try{
+    const ctx=ac();
+    if(t==='tag'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='square';o.frequency.setValueAtTime(900,ctx.currentTime);g.gain.setValueAtTime(.09,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.07);o.start();o.stop(ctx.currentTime+.07);}
+    else if(t==='pair'){const o1=ctx.createOscillator(),g1=ctx.createGain(),o2=ctx.createOscillator(),g2=ctx.createGain();o1.connect(g1);g1.connect(ctx.destination);o2.connect(g2);g2.connect(ctx.destination);o1.type='square';o1.frequency.setValueAtTime(660,ctx.currentTime);g1.gain.setValueAtTime(.09,ctx.currentTime);g1.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.065);o1.start();o1.stop(ctx.currentTime+.065);o2.type='square';o2.frequency.setValueAtTime(1040,ctx.currentTime+.075);g2.gain.setValueAtTime(.09,ctx.currentTime+.075);g2.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.14);o2.start(ctx.currentTime+.075);o2.stop(ctx.currentTime+.14);}
+    else if(t==='error'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(200,ctx.currentTime);g.gain.setValueAtTime(.11,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.18);o.start();o.stop(ctx.currentTime+.18);}
+    else if(t==='dupe'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(340,ctx.currentTime);o.frequency.linearRampToValueAtTime(200,ctx.currentTime+.14);g.gain.setValueAtTime(.09,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.14);o.start();o.stop(ctx.currentTime+.14);}
+    else if(t==='manual'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.setValueAtTime(580,ctx.currentTime);g.gain.setValueAtTime(.07,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.09);o.start();o.stop(ctx.currentTime+.09);}
+    else if(t==='ocr'){const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sine';o.frequency.setValueAtTime(800,ctx.currentTime);o.frequency.linearRampToValueAtTime(1100,ctx.currentTime+.07);g.gain.setValueAtTime(.07,ctx.currentTime);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+.12);o.start();o.stop(ctx.currentTime+.12);}
+    else if(t==='overweight'){const times=[0,.12,.24];times.forEach(offset=>{const o=ctx.createOscillator(),g=ctx.createGain();o.connect(g);g.connect(ctx.destination);o.type='sawtooth';o.frequency.setValueAtTime(380-offset*80,ctx.currentTime+offset);g.gain.setValueAtTime(.13,ctx.currentTime+offset);g.gain.exponentialRampToValueAtTime(.001,ctx.currentTime+offset+.09);o.start(ctx.currentTime+offset);o.stop(ctx.currentTime+offset+.09);});}
+  }catch(e){}
+}
+
+// ══════════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════════
+let pallets=[], presets=[];
+let activePalletId=null, activePresetId=null;
+let assetPending=null, dupeCount=0, errorCount=0;
+let globalAssetTags=new Set(), globalSerials=new Set();
+let storageLogDefault=true;
+const PALLET_WEIGHT=50, WEIGHT_LIMIT=1200;
+const DAMAGED_PALLET_ID='__damaged_pallet__';
+const DAMAGED_PRESET_ID='__damaged__';
+let damagedPallet={id:DAMAGED_PALLET_ID,name:'Damaged',entries:[],isDamaged:true};
+let recycleBin=[];
+
+function getActivePallet(){if(activePalletId===DAMAGED_PALLET_ID)return damagedPallet;return pallets.find(p=>p.id===activePalletId);}
+function getActivePreset(){return presets.find(p=>p.id===activePresetId)||(activePresetId===DAMAGED_PRESET_ID?getDamagedPreset():null);}
+function getDamagedPreset(){return{id:DAMAGED_PRESET_ID,name:'⚠ Damaged',mfr:'',cpu:'',ram:'',storage:'',noStorage:true,weight:null,isDamaged:true};}
+function getAllPresets(){return[getDamagedPreset(),...presets];}
+
+// ══════════════════════════════════════════════════════════
+//  OCR STATE
+// ══════════════════════════════════════════════════════════
+const SKIP='(F)';
+const FMT={asset:{re:/^\d{6}$/,hint:'6 digits'},serial:{re:/^[A-Z0-9]{7}$/i,hint:'7 alphanumeric'}};
+const tav={asset:{active:false,locked:false},serial:{active:false,locked:false}};
+
+let ocrImages=[], ocrActiveId=null;
+let ocrWorker=null, ocrWorkerReady=false, ocrBusy=false;
+// OCR mode: 'single' | 'dual'
+let ocrMode='single';
+// Sessions: [{id, name, imageIds:[]}]
+let ocrSessions=[];
+let ocrActiveSessionId=null;
+// currentPair tracks per-field image assignments:
+// { assetImageId, serialImageId, assetCrop, serialCrop }
+let ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
+let ocrSaveTimer=null;
+// Dual mode auto-grouping offset (which image index to start AT grouping)
+let ocrGroupOffset=0;
+// Dual canvas state — one per pane
+const ocrPanes={
+  asset:{
+    field:'asset',
+    canvasId:'ocrCanvasAsset', wrapId:'ocrPaneAssetWrap', paneId:'ocrPaneAsset', labelId:'ocrPaneLabelAsset',
+    canvas:null, ctx:null, scale:1,
+    cachedImg:null, cachedImgId:null,
+    drawRect:null, pointerDown:false, pointerStart:null, didDrag:false,
+    get imageId(){ return ocrCurrentPair.assetImageId; }
+  },
+  serial:{
+    field:'serial',
+    canvasId:'ocrCanvasSerial', wrapId:'ocrPaneSerialWrap', paneId:'ocrPaneSerial', labelId:'ocrPaneLabelSerial',
+    canvas:null, ctx:null, scale:1,
+    cachedImg:null, cachedImgId:null,
+    drawRect:null, pointerDown:false, pointerStart:null, didDrag:false,
+    get imageId(){ return ocrCurrentPair.serialImageId; }
+  }
+};
+let ocrTopPanelOpen=false;
+let ocrImageHashes=new Set();
+let currentDrawMode=null;
+
+// ══════════════════════════════════════════════════════════
+//  DRAW MODE (Fix #3)
+// ══════════════════════════════════════════════════════════
+function setDrawMode(mode){
+  currentDrawMode=mode;
+  document.getElementById('drawModeAssetBtn').className='draw-mode-btn'+(mode==='asset'?' active-asset':'');
+  document.getElementById('drawModeSerialBtn').className='draw-mode-btn'+(mode==='serial'?' active-serial':'');
+  const color=mode==='asset'?'var(--ocr-accent)':'var(--accent2)';
+  const label=mode==='asset'?'Asset Tag':'Serial #';
+  document.getElementById('drawModeHint').textContent=`Drawing for: ${label} — drag a box`;
+  document.getElementById('drawModeHint').style.color=color;
+  document.getElementById('ocrPaneAsset').classList.toggle('mode-active',mode==='asset');
+  document.getElementById('ocrPaneSerial').classList.toggle('mode-active',mode==='serial');
+}
+
+function autoSetDrawMode(){
+  // Defer so we win over any synchronous onfocus/onclick events in the same tick
+  setTimeout(()=>{
+    const atVal=document.getElementById('atInput').value.trim();
+    const snVal=document.getElementById('snInput').value.trim();
+    if(!atVal) setDrawMode('asset');
+    else if(!snVal) setDrawMode('serial');
+    // Re-render pane so overlay label updates to match new mode
+    if(ocrMode==='single') renderPane(ocrPanes.asset);
+  },0);
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR TOP PANEL
+// ══════════════════════════════════════════════════════════
+function toggleOcrTopPanel(){
+  ocrTopPanelOpen=!ocrTopPanelOpen;
+  const panel=document.getElementById('ocrTopPanel');
+  panel.classList.toggle('expanded',ocrTopPanelOpen);
+  panel.classList.toggle('collapsed',!ocrTopPanelOpen);
+  document.getElementById('ocrPanelToggleBtn').textContent=ocrTopPanelOpen?'⊟ Pallets & Presets':'⊞ Pallets & Presets';
+  if(ocrTopPanelOpen){renderOcrInlinePallets();renderOcrInlinePresets();}
+}
+function renderOcrInlinePallets(){
+  const list=document.getElementById('ocrPalletListInline');
+  const items=[...pallets,damagedPallet];
+  list.innerHTML=items.map(p=>{
+    const isActive=activePalletId===p.id;const isDmg=p.isDamaged;
+    const cls=isActive?(isDmg?'ocr-inline-item damaged-active':'ocr-inline-item active'):'ocr-inline-item';
+    const cnt=p.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;
+    return `<div class="${cls}" onclick="selectPallet('${p.id}');updateOcrActiveInfo();renderOcrInlinePallets();">
+      <div class="ocr-inline-dot"></div>
+      <span style="flex:1;${isDmg?'color:var(--danger)':''}">${escHtml(p.name)}</span>
+      <span style="color:var(--muted);font-size:.55rem;">${cnt}</span>
+    </div>`;
+  }).join('');
+}
+function renderOcrInlinePresets(){
+  const list=document.getElementById('ocrPresetListInline');
+  const q=(document.getElementById('ocrPresetSearchInline')?.value||'').toLowerCase();
+  const all=getAllPresets();const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)):all;
+  list.innerHTML=filtered.map(p=>{
+    const isActive=activePresetId===p.id;const isDmg=p.isDamaged;
+    const cls=isActive?(isDmg?'ocr-inline-item damaged-active':'ocr-inline-item preset-active'):'ocr-inline-item';
+    return `<div class="${cls}" onclick="selectPreset('${p.id}');updateOcrActiveInfo();renderOcrInlinePresets();">
+      <div class="ocr-inline-dot"></div>
+      <span style="flex:1;${isDmg?'color:var(--danger)':''}">${escHtml(p.name)}</span>
+      ${!p.weight&&!isDmg?'<span style="color:var(--warn);font-size:.55rem;">⚠</span>':''}
+    </div>`;
+  }).join('');
+}
+function updateOcrActiveInfo(){
+  const el=document.getElementById('ocrActiveInfo');
+  const pallet=getActivePallet();const preset=getActivePreset();
+  let html='';
+  if(pallet)html+=`<span style="background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);border-radius:4px;padding:2px 8px;font-size:.65rem;">📦 ${escHtml(pallet.name.toUpperCase())}</span>`;
+  if(preset){const isDmg=preset.isDamaged;html+=`<span style="background:${isDmg?'rgba(255,45,85,.07)':'rgba(168,85,247,.07)'};border:1px solid ${isDmg?'rgba(255,45,85,.2)':'rgba(168,85,247,.2)'};border-radius:4px;padding:2px 8px;font-size:.65rem;color:${isDmg?'var(--danger)':'var(--purple)'};">▸ ${escHtml(preset.name)}</span>`;}
+  el.innerHTML=html;
+}
+
+// ══════════════════════════════════════════════════════════
+//  MODE SWITCH
+// ══════════════════════════════════════════════════════════
+let currentMode='scan';
+function switchMode(mode){
+  currentMode=mode;
+  const ocrPanel=document.getElementById('panelOcr');
+  ocrPanel.style.display=mode==='ocr'?'flex':'none';
+  const btn=document.getElementById('ocrToggleBtn');
+  if(btn){btn.style.background=mode==='ocr'?'rgba(232,255,0,.15)':'';btn.style.borderColor=mode==='ocr'?'rgba(232,255,0,.4)':'';btn.textContent=mode==='ocr'?'✕ Close OCR':'📷 OCR Mode';}
+  if(mode==='ocr'){
+    updateOcrActiveInfo();
+    // Invalidate caches — panel was display:none during init so dimensions were zero
+    Object.values(ocrPanes).forEach(p=>{p.cachedImg=null;p.cachedImgId=null;});
+    renderBothPanes();
+    autoSetDrawMode();
+    renderOcrPairsList();
+    if(ocrTopPanelOpen){renderOcrInlinePallets();renderOcrInlinePresets();}
+  }
+  else renderPresetBar();
+}
+
+// ══════════════════════════════════════════════════════════
+//  FILE HASH
+// ══════════════════════════════════════════════════════════
+async function hashFile(blob){
+  const buf=await blob.arrayBuffer();
+  const hashBuf=await crypto.subtle.digest('SHA-256',buf);
+  return Array.from(new Uint8Array(hashBuf)).map(b=>b.toString(16).padStart(2,'0')).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  VALIDATION
+// ══════════════════════════════════════════════════════════
+function displayVal(v){return(v===SKIP||v==='(F)'||!v)?'[N]':v;}
+function exportVal(v){return(v===SKIP||v==='(F)'||!v)?'':v;}
+function isValidAssetTag(v){return /^\d{6}$/.test(v);}
+function isValidSerial(v){if(!/^[A-Z0-9]{7}$/i.test(v))return false;if(!/[A-Z]/i.test(v))return false;if(!/[0-9]/.test(v))return false;return true;}
+
+function ocrValidateField(field){return ocrValidateFieldForEdit(field,null);}
+function ocrValidateFieldForEdit(field,editEntry){
+  const inp=document.getElementById(field==='asset'?'atInput':'snInput');
+  const err=document.getElementById(field==='asset'?'atError':'snError');
+  const val=inp.value.trim();
+  inp.classList.remove('valid','invalid','tav-active');err.textContent='';
+  if(!val||val===SKIP)return true;
+  if(!tav[field].active&&!FMT[field].re.test(val)){err.textContent=`Expected ${FMT[field].hint}.`;inp.classList.add('invalid');return false;}
+  if(tav[field].active&&!FMT[field].re.test(val)){err.textContent=`Override active — expected ${FMT[field].hint}.`;inp.classList.add('tav-active');}
+  const v=val.toUpperCase();
+  const isDup=[...pallets,damagedPallet].some(p=>p.entries.some(e=>{
+    if(editEntry&&e.id===editEntry.id)return false;
+    return (e.type==='pair'||e.type==='ocr')&&((e.asset&&e.asset.toUpperCase()===v)||(e.serial&&e.serial.toUpperCase()===v));
+  }));
+  if(isDup){err.textContent='Already exists in another entry.';inp.classList.add('invalid');return false;}
+  const othId=field==='asset'?'snInput':'atInput';
+  const othVal=document.getElementById(othId).value.trim().toUpperCase();
+  if(othVal&&othVal!==SKIP&&othVal===v){err.textContent='Cannot match other field.';inp.classList.add('invalid');return false;}
+  if(!inp.classList.contains('tav-active'))inp.classList.add('valid');
+  return true;
+}
+function ocrOnFieldInput(field){ocrValidateField(field);updateOcrPreview(field);const o=field==='asset'?'serial':'asset';if(document.getElementById(o==='asset'?'atInput':'snInput').value.trim())ocrValidateField(o);}
+
+// ══════════════════════════════════════════════════════════
+//  TAV
+// ══════════════════════════════════════════════════════════
+// OCR TAV
+function toggleTAV(f){if(tav[f].locked)return;tav[f].active=!tav[f].active;updateTAVUI(f);ocrValidateField(f);}
+function toggleTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);ocrValidateField(f);ocrScheduleSave();}
+function resetTAV(f){if(!tav[f].locked){tav[f].active=false;updateTAVUI(f);}}
+// Scan TAV — shares same tav state, updates both scan and OCR UI
+function toggleScanTAV(f){if(tav[f].locked)return;tav[f].active=!tav[f].active;updateTAVUI(f);updateScanTAVUI(f);updateBypassUI();}
+function toggleScanTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);updateScanTAVUI(f);ocrScheduleSave();updateBypassUI();}
+function updateScanTAVUI(f){
+  const t=tav[f];
+  const btn=document.getElementById(f==='asset'?'scanTavBtnAt':'scanTavBtnSn');
+  const lock=document.getElementById(f==='asset'?'scanTavLockAt':'scanTavLockSn');
+  const lbl=document.getElementById(f==='asset'?'scanTavLabelAt':'scanTavLabelSn');
+  if(!btn)return;
+  btn.classList.toggle('active',t.active);lock.classList.toggle('locked',t.locked);
+  lock.textContent=t.locked?'🔒':'🔓';
+  if(t.locked){lbl.textContent='always on';lbl.classList.add('active');}
+  else if(t.active){lbl.textContent='one-time override';lbl.classList.add('active');}
+  else{lbl.textContent='take any value';lbl.classList.remove('active');}
+}
+function updateAllTAVUI(){
+  ['asset','serial'].forEach(f=>{updateTAVUI(f);updateScanTAVUI(f);});
+}
+function updateTAVUI(f){
+  const t=tav[f];
+  const btn=document.getElementById(f==='asset'?'tavBtnAt':'tavBtnSn');
+  const lock=document.getElementById(f==='asset'?'tavLockAt':'tavLockSn');
+  const lbl=document.getElementById(f==='asset'?'tavLabelAt':'tavLabelSn');
+  if(!btn)return;
+  btn.classList.toggle('active',t.active);lock.classList.toggle('locked',t.locked);
+  lock.textContent=t.locked?'🔒':'🔓';
+  if(t.locked){lbl.textContent='always on';lbl.classList.add('active');}
+  else if(t.active){lbl.textContent='one-time override';lbl.classList.add('active');}
+  else{lbl.textContent='take any value';lbl.classList.remove('active');}
+  updateScanTAVUI(f);
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR MODE
+// ══════════════════════════════════════════════════════════
+function setOcrMode(mode){
+  ocrMode=mode;
+  document.getElementById('modeToggleSingle').classList.toggle('active',mode==='single');
+  document.getElementById('modeToggleDual').classList.toggle('active',mode==='dual');
+  // Show/hide dual-only UI
+  const divider=document.getElementById('ocrPaneDivider');
+  const serialPane=document.getElementById('ocrPaneSerial');
+  const offsetBar=document.getElementById('ocrOffsetBar');
+  if(mode==='single'){
+    if(divider)divider.style.display='none';
+    if(serialPane)serialPane.style.display='none';
+    if(offsetBar)offsetBar.style.display='none';
+
+    // Single mode: serial always mirrors asset image
+    if(ocrCurrentPair.assetImageId) ocrCurrentPair.serialImageId=ocrCurrentPair.assetImageId;
+  }else{
+    if(divider)divider.style.display='';
+    if(serialPane)serialPane.style.display='';
+    if(offsetBar)offsetBar.style.display='flex';
+    applyDualGrouping();
+  }
+  renderBothPanes();
+  renderOcrThumbList();
+  // Save preference
+  if(db)dbPut('session',{key:'ocrMode',value:mode}).catch(()=>{});
+}
+
+// ══════════════════════════════════════════════════════════
+//  DUAL MODE GROUP OFFSET
+// ══════════════════════════════════════════════════════════
+function adjustGroupOffset(delta){
+  const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+  const max=Math.max(0,sorted.length-1);
+  ocrGroupOffset=Math.max(0,Math.min(max,ocrGroupOffset+delta));
+  document.getElementById('ocrOffsetVal').textContent=ocrGroupOffset+1;
+  applyDualGrouping();
+  renderBothPanes();
+  renderOcrThumbList();
+}
+
+// In dual mode, auto-assign AT/SN panes from the current group pair at offset
+function applyDualGrouping(){
+  if(ocrMode!=='dual')return;
+  const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+  if(!sorted.length)return;
+  // Find first unfinalized pair starting at offset
+  const allOcrEntries=[...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr'));
+  const finalizedIds=new Set(allOcrEntries.flatMap(e=>e.imageIds||[]));
+  const unfinalized=sorted.filter(i=>!finalizedIds.has(i.id));
+  if(!unfinalized.length)return;
+  // Apply offset within unfinalized images
+  const idx=Math.min(ocrGroupOffset,Math.max(0,unfinalized.length-1));
+  const atImg=unfinalized[idx];
+  const snImg=unfinalized[idx+1]||null; // null if no second image — never same as AT in dual mode
+  ocrCurrentPair.assetImageId=atImg?atImg.id:null;
+  ocrCurrentPair.serialImageId=snImg?snImg.id:null;
+  ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+  ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+}
+
+// After finalizing a pair in dual mode, advance to next unfinalized pair
+function advanceDualGroup(){
+  if(ocrMode!=='dual')return;
+  ocrGroupOffset=0; // reset — applyDualGrouping skips finalized, so next pair comes up
+  applyDualGrouping();
+  document.getElementById('ocrOffsetVal').textContent=ocrGroupOffset+1;
+}
+
+// ══════════════════════════════════════════════════════════
+//  SESSION MANAGEMENT
+// ══════════════════════════════════════════════════════════
+async function ocrLoadSessions(){
+  if(!db)return;
+  try{
+    const rows=await dbGetAll('sessions');
+    ocrSessions=rows.sort((a,b)=>a.name.localeCompare(b.name));
+    if(!ocrSessions.length){
+      // Create default session
+      const s={id:'session_'+Date.now(),name:'Default',imageIds:[],createdAt:Date.now()};
+      ocrSessions=[s];
+      await dbPut('sessions',s);
+    }
+    // Restore last active session
+    const lastRec=await dbGet('session','activeSession').catch(()=>null);
+    const lastId=lastRec?.value;
+    ocrActiveSessionId=(lastId&&ocrSessions.find(s=>s.id===lastId))?lastId:ocrSessions[0].id;
+    renderSessionSelect();
+  }catch(e){console.warn('Session load error',e);}
+}
+
+function renderSessionSelect(){
+  const sel=document.getElementById('ocrSessionSelect');
+  if(!sel)return;
+  sel.innerHTML=ocrSessions.map(s=>`<option value="${s.id}"${s.id===ocrActiveSessionId?' selected':''}>${escHtml(s.name)}</option>`).join('');
+  const active=ocrSessions.find(s=>s.id===ocrActiveSessionId);
+  const lbl=document.getElementById('ocrSidebarSessionLabel');
+  if(lbl)lbl.textContent=active?active.name:'Images';
+}
+
+async function ocrNewSession(){
+  const name=prompt('Session name (e.g. Desktop, Warehouse A):');
+  if(!name||!name.trim())return;
+  const s={id:'session_'+Date.now()+'_'+Math.random().toString(36).slice(2),name:name.trim(),imageIds:[],createdAt:Date.now()};
+  ocrSessions.push(s);
+  ocrSessions.sort((a,b)=>a.name.localeCompare(b.name));
+  if(db)await dbPut('sessions',s).catch(()=>{});
+  ocrActiveSessionId=s.id;
+  if(db)await dbPut('session',{key:'activeSession',value:s.id}).catch(()=>{});
+  // Clear current images — new session starts empty
+  ocrImages=[];
+  ocrImageHashes=new Set();
+  ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
+  ocrGroupOffset=0;
+  renderSessionSelect();
+  renderOcrThumbList();
+  renderBothPanes();
+  ocrClearPair();
+}
+
+async function ocrRenameSession(){
+  const active=ocrSessions.find(s=>s.id===ocrActiveSessionId);
+  if(!active)return;
+  const name=prompt('New name for session:',active.name);
+  if(!name||!name.trim())return;
+  active.name=name.trim();
+  ocrSessions.sort((a,b)=>a.name.localeCompare(b.name));
+  if(db)await dbPut('sessions',active).catch(()=>{});
+  renderSessionSelect();
+}
+
+async function ocrSwitchSession(sessionId){
+  if(sessionId===ocrActiveSessionId)return;
+  ocrActiveSessionId=sessionId;
+  if(db)await dbPut('session',{key:'activeSession',value:sessionId}).catch(()=>{});
+  // Load images for this session
+  await ocrLoadSessionImages();
+  renderSessionSelect();
+}
+
+async function ocrLoadSessionImages(){
+  if(!db)return;
+  const session=ocrSessions.find(s=>s.id===ocrActiveSessionId);
+  if(!session)return;
+  // Load images that belong to this session
+  ocrImages=[];
+  ocrImageHashes=new Set();
+  const allImgs=await dbGetAll('images').catch(()=>[]);
+  for(const rec of allImgs){
+    if((rec.sessionId||'default')===ocrActiveSessionId||(ocrActiveSessionId===ocrSessions[0]?.id&&!rec.sessionId)){
+      const dataUrl=await blobToDataUrl(rec.blob);
+      ocrImages.push({id:rec.id,name:rec.name,blob:rec.blob,dataUrl,hash:rec.hash||'',sessionId:rec.sessionId||ocrActiveSessionId});
+      if(rec.hash)ocrImageHashes.add(rec.hash);
+    }
+  }
+  ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
+  ocrGroupOffset=0;
+  if(ocrMode==='dual') applyDualGrouping();
+  else if(ocrImages.length){ocrCurrentPair.assetImageId=ocrImages[0].id;ocrCurrentPair.serialImageId=ocrImages[0].id;}
+  renderOcrThumbList();
+  renderBothPanes();
+  ocrClearPair();
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR INIT (no background queue — manual draw mode only)
+// ══════════════════════════════════════════════════════════
+async function initOcr(){
+  initPanes();
+  try{await openDB();}catch(e){console.warn('DB open failed',e);}
+  await ocrLoadSessions();
+  await ocrRestoreSession();
+  await updateOcrStorage();
+  updateAllTAVUI();
+  // Restore mode preference
+  try{
+    const modeRec=await dbGet('session','ocrMode').catch(()=>null);
+    if(modeRec?.value) setOcrMode(modeRec.value);
+    else setOcrMode('single');
+  }catch(e){setOcrMode('single');}
+  // Initialize Tesseract worker in background (silently)
+  try{
+    // Load tesseract lazily
+    await loadTesseractScript();
+    ocrWorker=await Tesseract.createWorker('eng',1,{logger:m=>{
+      if(m.status==='recognizing text')document.getElementById('ocrProgressFill').style.width=(m.progress*100)+'%';
+    }});
+    // Warm up
+    const bc=document.createElement('canvas');bc.width=10;bc.height=10;
+    try{await ocrWorker.recognize(bc.toDataURL());}catch(e){}
+    ocrWorkerReady=true;
+  }catch(e){console.warn('OCR worker init failed',e);}
+}
+let tesseractLoaded=false;
+function loadTesseractScript(){
+  if(tesseractLoaded||window.Tesseract)return Promise.resolve();
+  return new Promise((res,rej)=>{
+    const s=document.createElement('script');
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@5.1.0/dist/tesseract.min.js';
+    s.onload=()=>{tesseractLoaded=true;res();};
+    s.onerror=rej;
+    document.head.appendChild(s);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR SESSION
+// ══════════════════════════════════════════════════════════
+function ocrScheduleSave(){clearTimeout(ocrSaveTimer);ocrSaveTimer=setTimeout(ocrSaveSession,900);}
+async function ocrSaveSession(){
+  if(!db)return;
+  try{await dbPut('session',{key:'tav',value:{asset:{locked:tav.asset.locked},serial:{locked:tav.serial.locked}}});}catch(e){}
+}
+async function ocrRestoreSession(){
+  if(!db)return;
+  try{
+    const tavRec=await dbGet('session','tav');
+    if(tavRec?.value){['asset','serial'].forEach(f=>{if(tavRec.value[f]?.locked){tav[f].locked=true;tav[f].active=true;updateTAVUI(f);updateScanTAVUI(f);}});}
+    await ocrLoadSessionImages();
+  }catch(e){console.warn('OCR restore failed',e);}
+}
+async function updateOcrStorage(){
+  if(!navigator.storage?.estimate)return;
+  try{
+    const{usage=0,quota=1}=await navigator.storage.estimate();
+    const pct=Math.min(usage/quota*100,100);
+    document.getElementById('ocrStorageLabel').textContent=`${(usage/1048576).toFixed(1)}MB / ${(quota/1073741824).toFixed(1)}GB`;
+    const fill=document.getElementById('ocrStorageFill');
+    fill.style.width=pct+'%';fill.style.background=pct>80?'var(--danger)':pct>50?'var(--warn)':'var(--accent)';
+  }catch(e){}
+}
+function blobToDataUrl(blob){return new Promise(res=>{const r=new FileReader();r.onload=e=>res(e.target.result);r.readAsDataURL(blob);});}
+
+// ══════════════════════════════════════════════════════════
+//  OCR FILE HANDLING
+// ══════════════════════════════════════════════════════════
+document.getElementById('ocrFileInput').addEventListener('change',e=>ocrHandleFiles(e.target.files));
+function ocrHandleDrop(e){e.preventDefault();e.currentTarget.style.borderColor='';ocrHandleFiles(e.dataTransfer.files);}
+async function ocrHandleFiles(fileList){
+  const files=Array.from(fileList).filter(f=>f.type.startsWith('image/')||f.name.toLowerCase().endsWith('.heic'));
+  if(!files.length)return;
+  let dupCount=0;
+  
+  
+  for(const file of files){
+    let blob=file;
+    if(file.name.toLowerCase().endsWith('.heic')||file.type==='image/heif'){try{const h=await loadHeic2Any();blob=await h({blob:file,toType:'image/jpeg',quality:.92});}catch(e){}}
+    const hash=await hashFile(blob);
+    if(ocrImageHashes.has(hash)){dupCount++;continue;}
+    ocrImageHashes.add(hash);
+    const id='img_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+    const dataUrl=await blobToDataUrl(blob);
+    const entry={id,name:file.name,blob,dataUrl,hash,sessionId:ocrActiveSessionId};
+    ocrImages.push(entry);
+    if(db)await dbPut('images',{id,name:file.name,blob,hash,sessionId:ocrActiveSessionId}).catch(()=>{});
+  }
+  renderOcrThumbList();
+  if(ocrMode==='dual'){
+    applyDualGrouping();
+  } else if(!ocrCurrentPair.assetImageId){
+    const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+    const newest=sorted[sorted.length-1];
+    if(newest){
+      ocrCurrentPair.assetImageId=newest.id;
+      ocrCurrentPair.serialImageId=newest.id;
+      ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+      ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+      setDrawMode('asset');
+    }
+  }
+  renderBothPanes();
+  if(dupCount>0)alert(`${dupCount} duplicate image${dupCount>1?'s were':' was'} skipped.`);
+  updateOcrStorage();ocrScheduleSave();
+}
+let heic2anyLoaded=null;
+async function loadHeic2Any(){
+  if(heic2anyLoaded)return heic2anyLoaded;
+  return new Promise((res,rej)=>{const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js';s.onload=()=>{heic2anyLoaded=window.heic2any;res(window.heic2any);};s.onerror=rej;document.head.appendChild(s);});
+}
+
+// ══════════════════════════════════════════════════════════
+//  FIX #4: DELETE OCR IMAGE (safe, guarded)
+// ══════════════════════════════════════════════════════════
+let _deletingImage=false;
+async function deleteOcrImage(id){
+  // Guard against concurrent deletes crashing state
+  if(_deletingImage)return;
+  _deletingImage=true;
+  try{
+    // Snapshot the image data before mutation
+    const imgIdx=ocrImages.findIndex(i=>i.id===id);
+    if(imgIdx===-1){_deletingImage=false;return;}
+    const img=ocrImages[imgIdx];
+
+    // Find linked OCR entries (snapshot before mutation)
+    const linkedEntries=[];
+    for(const p of [...pallets,damagedPallet]){
+      for(const e of p.entries){
+        if(e.type==='ocr'&&Array.isArray(e.imageIds)&&e.imageIds.includes(id)){
+          linkedEntries.push({entry:e,pallet:p});
+        }
+      }
+    }
+
+    // Remove image from ocrImages array first
+    ocrImages.splice(imgIdx,1);
+    if(img.hash)ocrImageHashes.delete(img.hash);
+
+    // Remove from DB safely
+    if(db){
+      try{await dbDelete('images',id);}catch(e){console.warn('DB image delete error',e);}
+      try{await dbDelete('session','ocr_'+id);}catch(e){}
+    }
+
+    // Remove thumb element
+    renderOcrThumbList();
+
+    // Send image to bin
+    recycleBin.push({
+      id:'bin_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+      type:'image',deletedAt:Date.now(),
+      description:`Image: ${img.name}`,
+      data:{img:img},
+      linkedEntryIds:linkedEntries.map(l=>l.entry.id)
+    });
+
+    // Handle linked OCR entries
+    for(const{entry,pallet}of linkedEntries){
+      // Remove from global sets before splicing
+      if(entry.asset&&entry.asset!==SKIP)globalAssetTags.delete(entry.asset);
+      if(entry.serial&&entry.serial!==SKIP)globalSerials.delete(entry.serial);
+      const eIdx=pallet.entries.findIndex(e=>e.id===entry.id);
+      if(eIdx!==-1)pallet.entries.splice(eIdx,1);
+      recycleBin.push({
+        id:'bin_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+        type:'entry',deletedAt:Date.now(),
+        description:`OCR Pair: AT ${entry.asset} → SN ${entry.serial}`,
+        data:{entry:JSON.parse(JSON.stringify(entry)),palletId:pallet.id},
+        linkedImageIds:entry.imageIds||[]
+      });
+    }
+
+    // Clear pair panel if it referenced this image
+    if(ocrCurrentPair.assetImageId===id){
+      ocrCurrentPair.assetImageId=null;ocrCurrentPair.assetCrop=null;
+      document.getElementById('atInput').value='';
+      const atP=document.getElementById('atPreview');atP.classList.add('empty');atP.getContext('2d').clearRect(0,0,atP.width,atP.height);
+      document.getElementById('atImageLinkText').textContent='no image linked';
+      document.getElementById('atImageLink').className='img-field-link';
+    }
+    if(ocrCurrentPair.serialImageId===id){
+      ocrCurrentPair.serialImageId=null;ocrCurrentPair.serialCrop=null;
+      document.getElementById('snInput').value='';
+      const snP=document.getElementById('snPreview');snP.classList.add('empty');snP.getContext('2d').clearRect(0,0,snP.width,snP.height);
+      document.getElementById('snImageLinkText').textContent='no image linked';
+      document.getElementById('snImageLink').className='img-field-link';
+    }
+
+    // Select next image or clear canvas
+    if(ocrActiveId===id){
+      ocrActiveId=null;
+      if(ocrImages.length>0){
+        selectOcrImage(ocrImages[Math.min(imgIdx,ocrImages.length-1)].id);
+      }else{
+        ocrCanvas.style.display='none';
+        
+        ocrCtx.clearRect(0,0,ocrCanvas.width,ocrCanvas.height);
+      }
+    }
+
+    renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();renderOcrPairsList();updateOcrThumbBadges();updateBinBadge();updateOcrStorage();scheduleSave();
+  }catch(err){
+    console.error('deleteOcrImage error:',err);
+    alert('Error deleting image. Please try again.');
+  }finally{
+    _deletingImage=false;
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR CANVAS (manual draw only — no auto bounding boxes)
+// ══════════════════════════════════════════════════════════
+function selectOcrImage(id){
+  ocrActiveId=id;
+  if(ocrMode==='single'){
+    // Single mode: both panes always show same image
+    ocrCurrentPair.assetImageId=id;
+    ocrCurrentPair.serialImageId=id;
+    ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+    ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+  } else {
+    // Dual mode: assign to active pane only — each pane is always independent
+    const field=currentDrawMode||(ocrCurrentPair.assetImageId?'serial':'asset');
+    if(field==='asset'){
+      ocrCurrentPair.assetImageId=id;
+      ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+    } else {
+      ocrCurrentPair.serialImageId=id;
+      ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+    }
+    setDrawMode(field);
+  }
+  renderBothPanes();
+  updateThumbHighlights();
+  updateFieldImageLinks();
+}
+
+// Update thumb borders and field badges in-place — no DOM rebuild, no reorder
+function updateThumbHighlights(){
+  const wraps=document.querySelectorAll('#ocrThumbList .thumb-wrapper');
+  if(!wraps.length)return;
+  const allOcrEntries=[...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr'));
+  const imgToEntry=new Map();
+  allOcrEntries.forEach(e=>(e.imageIds||[]).forEach(id=>{if(!imgToEntry.has(id))imgToEntry.set(id,e);}));
+
+  wraps.forEach(wrap=>{
+    const id=wrap.dataset.id;
+    const thumb=wrap.querySelector('.image-thumb');
+    if(!thumb)return;
+
+    // Border state
+    thumb.className='image-thumb';
+    const e=imgToEntry.get(id);
+    const isAt=ocrCurrentPair.assetImageId===id;
+    const isSn=ocrCurrentPair.serialImageId===id;
+    if(e){
+      const hasAt=e.asset!==SKIP,hasSn=e.serial!==SKIP;
+      if(hasAt&&hasSn)thumb.classList.add('assigned-both');
+      else if(hasAt)thumb.classList.add('assigned-asset');
+      else thumb.classList.add('assigned-serial');
+    } else if(isAt&&isSn){
+      thumb.classList.add('active-both');
+    } else if(isAt){
+      thumb.classList.add('active-asset');
+    } else if(isSn){
+      thumb.classList.add('active-serial');
+    }
+
+    // Field badges — remove old, add fresh
+    wrap.querySelectorAll('.thumb-field-badge').forEach(b=>b.remove());
+    if(!e){
+      if(isAt||isSn){
+        const b=document.createElement('div');
+        b.className='thumb-field-badge '+(isAt&&isSn?'for-both':isAt?'for-asset':'for-serial');
+        b.textContent=isAt&&isSn?'AT+SN':isAt?'AT':'SN';
+        wrap.appendChild(b);
+      }
+    }
+  });
+}
+
+function findOcrEntryForImage(imgId){
+  for(const p of [...pallets,damagedPallet]){
+    const e=p.entries.find(e=>e.type==='ocr'&&Array.isArray(e.imageIds)&&e.imageIds.includes(imgId));
+    if(e)return{entry:e,pallet:p};
+  }
+  return null;
+}
+
+// Track which entry is being edited
+let ocrEditingEntryId=null;
+
+function editOcrEntry(entryId){
+  // Find the entry across all pallets
+  let found=null;
+  for(const p of [...pallets,damagedPallet]){
+    const e=p.entries.find(e=>e.id===entryId);
+    if(e){found={entry:e,pallet:p};break;}
+  }
+  if(!found)return;
+  ocrEditingEntryId=entryId;
+  loadOcrPairIntoPanel(found);
+  // Switch canvas to the asset image of this entry if available
+  const imgId=found.entry.assetImageId||(found.entry.imageIds&&found.entry.imageIds[0]);
+  if(imgId&&ocrImages.find(i=>i.id===imgId)) selectOcrImage(imgId);
+}
+
+function cancelOcrEdit(){
+  ocrEditingEntryId=null;
+  ocrClearPair();
+}
+
+function loadOcrPairIntoPanel(found){
+  const e=found.entry;
+  ocrCurrentPair.assetImageId=e.assetImageId||((e.imageIds&&e.imageIds[0])||null);
+  ocrCurrentPair.serialImageId=e.serialImageId||((e.imageIds&&e.imageIds.length>1?e.imageIds[1]:e.imageIds&&e.imageIds[0])||null);
+  ocrCurrentPair.assetCrop=null;ocrCurrentPair.serialCrop=null;
+  document.getElementById('atInput').value=e.asset===SKIP?'':e.asset;
+  document.getElementById('snInput').value=e.serial===SKIP?'':e.serial;
+  resetInputStyles('atInput');resetInputStyles('snInput');
+  ocrOnFieldInput('asset');ocrOnFieldInput('serial');
+  updateFieldImageLinks();
+  // Show edit banner
+  const banner=document.getElementById('ocrEditBanner');
+  if(banner){
+    banner.style.display='flex';
+    banner.querySelector('.oeb-values').textContent=`${e.asset===SKIP?'(skip)':e.asset} / ${e.serial===SKIP?'(skip)':e.serial}`;
+  }
+  autoSetDrawMode();
+}
+
+function resetInputStyles(id){
+  const el=document.getElementById(id);
+  el.style.fontSize='';el.style.letterSpacing='';el.style.paddingLeft='';
+}
+
+function updateFieldImageLinks(){
+  // Asset image link
+  const atLink=document.getElementById('atImageLink');
+  const atLinkText=document.getElementById('atImageLinkText');
+  if(ocrCurrentPair.assetImageId){
+    const img=ocrImages.find(i=>i.id===ocrCurrentPair.assetImageId);
+    atLink.className='img-field-link linked-asset';
+    atLinkText.textContent=img?img.name:'(deleted image)';
+  }else{
+    atLink.className='img-field-link';
+    atLinkText.textContent='no image linked';
+  }
+  // Serial image link
+  const snLink=document.getElementById('snImageLink');
+  const snLinkText=document.getElementById('snImageLinkText');
+  if(ocrCurrentPair.serialImageId){
+    const img=ocrImages.find(i=>i.id===ocrCurrentPair.serialImageId);
+    snLink.className='img-field-link linked-serial';
+    snLinkText.textContent=img?img.name:'(deleted image)';
+  }else{
+    snLink.className='img-field-link';
+    snLinkText.textContent='no image linked';
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+//  DUAL PANE CANVAS SYSTEM
+// ══════════════════════════════════════════════════════════
+function initPanes(){
+  ['asset','serial'].forEach(field=>{
+    const p=ocrPanes[field];
+    p.canvas=document.getElementById(p.canvasId);
+    p.ctx=p.canvas.getContext('2d');
+    attachPaneEvents(p);
+  });
+}
+
+function renderBothPanes(){
+  renderPane(ocrPanes.asset);
+  renderPane(ocrPanes.serial);
+  updatePaneLabels();
+  updateThumbHighlights();
+}
+
+function renderPane(p, overlayOnly){
+  const imgId=p.imageId;
+  const img=imgId?ocrImages.find(i=>i.id===imgId):null;
+  const wrap=document.getElementById(p.wrapId);
+  if(!img){p.canvas.style.display='none';wrap.classList.remove('has-image');return;}
+  p.canvas.style.display='block';wrap.classList.add('has-image');
+
+  function drawOverlay(){
+    const activeField=(ocrMode==='single'&&currentDrawMode)?currentDrawMode:p.field;
+    const color=activeField==='asset'?'rgba(232,255,0,.85)':'rgba(0,229,255,.85)';
+    p.ctx.fillStyle=color;p.ctx.font='bold 10px Share Tech Mono, monospace';
+    p.ctx.fillText(activeField==='asset'?'▸ ASSET TAG':'▸ SERIAL #',5,14);
+    if(p.drawRect)drawPaneRect(p);
+  }
+
+  if(overlayOnly&&p.cachedImgId===imgId&&p.cachedImg){
+    p.ctx.drawImage(p.cachedImg,0,0,p.canvas.width,p.canvas.height);
+    drawOverlay();return;
+  }
+
+  const image=new Image();
+  image.onload=()=>{
+    const wrapEl=document.getElementById(p.wrapId);
+    const maxW=wrapEl.clientWidth-4,maxH=wrapEl.clientHeight-4;
+    if(maxW<=0||maxH<=0)return;
+    const scale=Math.min(maxW/image.width,maxH/image.height,1);
+    p.scale=scale;
+    p.canvas.width=Math.round(image.width*scale);
+    p.canvas.height=Math.round(image.height*scale);
+    p.ctx.drawImage(image,0,0,p.canvas.width,p.canvas.height);
+    p.cachedImg=image;p.cachedImgId=imgId;
+    drawOverlay();
+  };
+  image.src=img.dataUrl;
+}
+
+function drawPaneRect(p){
+  if(!p.drawRect)return;
+  const{x0,y0,x1,y1}=p.drawRect;const s=p.scale;
+  const activeField=(ocrMode==='single'&&currentDrawMode)?currentDrawMode:p.field;
+  const color=activeField==='asset'?'#e8ff00':'#00e5ff';
+  p.ctx.save();p.ctx.strokeStyle=color;p.ctx.lineWidth=2;p.ctx.setLineDash([5,3]);
+  p.ctx.strokeRect(x0*s,y0*s,(x1-x0)*s,(y1-y0)*s);
+  p.ctx.fillStyle=activeField==='asset'?'rgba(232,255,0,.08)':'rgba(0,229,255,.07)';
+  p.ctx.fillRect(x0*s,y0*s,(x1-x0)*s,(y1-y0)*s);
+  p.ctx.setLineDash([]);p.ctx.restore();
+}
+
+function paneXY(p,e){const r=p.canvas.getBoundingClientRect();return{x:(e.clientX-r.left)/p.scale,y:(e.clientY-r.top)/p.scale};}
+
+function updatePaneLabels(){
+  ['asset','serial'].forEach(field=>{
+    const p=ocrPanes[field];
+    const img=p.imageId?ocrImages.find(i=>i.id===p.imageId):null;
+    const prefix=field==='asset'?'AT':'SN';
+    const lbl=document.getElementById(p.labelId);
+    lbl.innerHTML='';
+
+    const nameSpan=document.createElement('span');
+    nameSpan.textContent=img?`${prefix} — ${img.name}`:`${prefix} — click thumbnail to assign`;
+    lbl.appendChild(nameSpan);
+    // No split/merge button in dual mode — each pane is always independent
+  });
+}
+
+function attachPaneEvents(p){
+  const c=p.canvas;
+  // Only force draw mode on click in dual mode — in single mode the toolbar buttons control it
+  c.addEventListener('click',()=>{ if(ocrMode==='dual') setDrawMode(p.field); });
+  c.addEventListener('mousedown',e=>{
+    if(!p.imageId)return;
+    if(ocrMode==='dual') setDrawMode(p.field);
+    p.pointerDown=true;p.didDrag=false;p.drawRect=null;p.pointerStart=paneXY(p,e);
+  });
+  c.addEventListener('mousemove',e=>{
+    if(!p.pointerDown)return;
+    const pos=paneXY(p,e);
+    const dx=Math.abs(pos.x-p.pointerStart.x),dy=Math.abs(pos.y-p.pointerStart.y);
+    if(dx>3||dy>3){
+      p.didDrag=true;
+      p.drawRect={x0:Math.min(p.pointerStart.x,pos.x),y0:Math.min(p.pointerStart.y,pos.y),
+                  x1:Math.max(p.pointerStart.x,pos.x),y1:Math.max(p.pointerStart.y,pos.y)};
+      renderPane(p,true);
+    }
+  });
+  c.addEventListener('mouseup',async e=>{
+    if(!p.pointerDown)return;
+    p.pointerDown=false;
+    if(p.didDrag&&p.drawRect&&(p.drawRect.x1-p.drawRect.x0)>=5&&(p.drawRect.y1-p.drawRect.y0)>=5){
+      const imgId=p.imageId;
+      const img=ocrImages.find(i=>i.id===imgId);
+      if(!img){p.drawRect=null;p.didDrag=false;return;}
+      if(!ocrWorkerReady){
+        document.getElementById('selPreview').textContent='OCR engine loading -- try again in a moment.';
+        p.drawRect=null;renderPane(p);p.didDrag=false;return;
+      }
+      const field=(ocrMode==='single'&&currentDrawMode)?currentDrawMode:p.field;
+      const{x0,y0,x1,y1}=p.drawRect;
+      const cw=Math.round(x1-x0),ch=Math.round(y1-y0);
+      if(cw<4||ch<4){p.drawRect=null;p.didDrag=false;return;}
+      const cc=document.createElement('canvas');cc.width=cw;cc.height=ch;
+      await new Promise(res=>{const si=new Image();si.onload=()=>{cc.getContext('2d').drawImage(si,x0,y0,cw,ch,0,0,cw,ch);res();};si.src=img.dataUrl;});
+      document.getElementById('ocrOverlay').classList.add('visible');
+      document.getElementById('selPreview').textContent='Running OCR...';
+      try{
+        const result=await ocrWorker.recognize(cc);
+        const text=result.data.text.trim().replace(/[\n\r]+/g,' ').replace(/\s+/g,' ').toUpperCase();
+        document.getElementById('ocrProgressFill').style.width='0';
+        if(!text){
+          document.getElementById('selPreview').textContent='(no text found)';setOcrStatus('warn','No text found — try a tighter box');
+        }else{
+          document.getElementById(field==='asset'?'atInput':'snInput').value=text;
+          if(field==='asset'){ocrCurrentPair.assetImageId=imgId;ocrCurrentPair.assetCrop=cc;updateOcrPreview('asset');}
+          else{ocrCurrentPair.serialImageId=imgId;ocrCurrentPair.serialCrop=cc;updateOcrPreview('serial');}
+          ocrOnFieldInput(field);updateFieldImageLinks();updateThumbHighlights();updatePaneLabels();
+          const atV=document.getElementById('atInput').value.trim();
+          const snV=document.getElementById('snInput').value.trim();
+          if(atV&&snV){document.getElementById('selPreview').textContent='AT: '+atV+' | SN: '+snV;setOcrStatus('ready','AT: '+atV+' / SN: '+snV+' — press Save Pair');}
+          else{document.getElementById('selPreview').textContent='"'+text+'" -> '+(field==='asset'?'Asset Tag':'Serial #')+' OK';setOcrStatus('ready',(field==='asset'?'Asset Tag':'Serial #')+' captured — draw next field');autoSetDrawMode();}
+        }
+      }catch(err){document.getElementById('selPreview').textContent='OCR error -- try again';console.error(err);}
+      document.getElementById('ocrOverlay').classList.remove('visible');
+      p.drawRect=null;renderPane(p);
+    }
+    p.didDrag=false;
+  });
+  c.addEventListener('mouseleave',()=>{if(p.pointerDown){p.pointerDown=false;p.didDrag=false;p.drawRect=null;renderPane(p,true);}});
+}
+
+// Shim for legacy calls
+function renderOcrCanvas(){ renderBothPanes(); }
+
+function setOcrStatus(type, msg){
+  const bar=document.getElementById('ocrStatusBar');
+  const txt=document.getElementById('ocrStatusText');
+  if(!bar||!txt)return;
+  bar.className='status-bar '+type;
+  txt.textContent=msg;
+}
+
+
+// ══════════════════════════════════════════════════════════
+//  OCR FIELD PREVIEW
+// ══════════════════════════════════════════════════════════
+function updateOcrPreview(field){
+  const pc=document.getElementById(field==='asset'?'atPreview':'snPreview');
+  const src=ocrCurrentPair[field+'Crop'];if(!src)return;
+  pc.classList.remove('empty');const pCtx=pc.getContext('2d');
+  const s=Math.min(pc.width/src.width,pc.height/src.height);
+  const dw=src.width*s,dh=src.height*s;
+  pCtx.fillStyle='#0d1117';pCtx.fillRect(0,0,pc.width,pc.height);
+  pCtx.drawImage(src,0,0,src.width,src.height,(pc.width-dw)/2,(pc.height-dh)/2,dw,dh);
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR FINALIZE PAIR
+// ══════════════════════════════════════════════════════════
+function ocrFinalizePair(){
+  const pallet=getActivePallet();
+  if(!pallet){alert('Select a pallet first (use ⊞ Pallets & Presets).');return;}
+  if(!activePresetId){alert('Select a preset first (use ⊞ Pallets & Presets).');return;}
+  const atRaw=document.getElementById('atInput').value.trim();
+  const snRaw=document.getElementById('snInput').value.trim();
+  const atVal=atRaw===''?SKIP:atRaw;
+  const snVal=snRaw===''?SKIP:snRaw;
+  if(atVal===SKIP&&snVal===SKIP){alert('At least one field must have a value.');return;}
+
+  // Check editing
+  let editingEntry=null;
+  if(ocrCurrentPair.assetImageId){
+    const found=findOcrEntryForImage(ocrCurrentPair.assetImageId);
+    if(found)editingEntry=found;
+  }
+  if(!editingEntry&&ocrCurrentPair.serialImageId){
+    const found=findOcrEntryForImage(ocrCurrentPair.serialImageId);
+    if(found)editingEntry=found;
+  }
+
+  const atOk=ocrValidateFieldForEdit('asset',editingEntry?.entry);
+  const snOk=ocrValidateFieldForEdit('serial',editingEntry?.entry);
+  if(!atOk||!snOk)return;
+
+  const preset=getActivePreset();
+  const isDamaged=!!(preset&&preset.isDamaged);
+
+  // Build imageIds array — preserve which image is for which field
+  const imageIds=[];
+  if(ocrCurrentPair.assetImageId)imageIds.push(ocrCurrentPair.assetImageId);
+  if(ocrCurrentPair.serialImageId&&ocrCurrentPair.serialImageId!==ocrCurrentPair.assetImageId)imageIds.push(ocrCurrentPair.serialImageId);
+
+  if(editingEntry){
+    const entry=editingEntry.entry;
+    if(entry.asset&&entry.asset!==SKIP)globalAssetTags.delete(entry.asset);
+    if(entry.serial&&entry.serial!==SKIP)globalSerials.delete(entry.serial);
+    entry.asset=atVal;entry.serial=snVal;entry.presetId=activePresetId;
+    entry.imageIds=imageIds;
+    entry.assetImageId=ocrCurrentPair.assetImageId;
+    entry.serialImageId=ocrCurrentPair.serialImageId;
+    entry.isDamaged=isDamaged;entry.storageNone=!storageLogDefault;
+    if(atVal!==SKIP)globalAssetTags.add(atVal);
+    if(snVal!==SKIP)globalSerials.add(snVal);
+  }else{
+    const entry={
+      id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+      type:'ocr',asset:atVal,serial:snVal,
+      presetId:activePresetId,
+      imageIds,
+      assetImageId:ocrCurrentPair.assetImageId,
+      serialImageId:ocrCurrentPair.serialImageId,
+      bypassAsset:tav.asset.active,bypassSerial:tav.serial.active,
+      isDamaged,storageNone:!storageLogDefault
+    };
+    if(atVal!==SKIP)globalAssetTags.add(atVal);
+    if(snVal!==SKIP)globalSerials.add(snVal);
+    const targetPallet=isDamaged?damagedPallet:pallet;
+    targetPallet.entries.push(entry);
+  }
+
+  renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();
+  logScan('ocr',`OCR Pair: ${atVal} → ${snVal}${isDamaged?' [→Damaged]':''}`);
+  beep('ocr');
+  resetTAV('asset');resetTAV('serial');
+  ocrClearPair();renderOcrPairsList();scheduleSave();
+  updateOcrThumbBadges();checkOverweightAlert(pallet);
+  autoSetDrawMode();
+
+  if(ocrMode==='dual'){
+    advanceDualGroup();
+    renderBothPanes();
+    renderOcrThumbList();
+  } else {
+    // Single mode: advance to next unassigned image
+    const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+    const assignedIds=new Set([...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr').flatMap(e=>e.imageIds||[])));
+    const next=sorted.find(i=>!assignedIds.has(i.id));
+    if(next){
+      ocrCurrentPair.assetImageId=next.id;
+      ocrCurrentPair.serialImageId=next.id;
+      ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+      ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+      renderBothPanes();renderOcrThumbList();
+    }
+  }
+}
+
+function ocrClearPair(){
+  ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
+  ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+  ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+  ['atInput','snInput'].forEach(id=>{
+    const el=document.getElementById(id);el.value='';el.className='';el.style.fontSize='';el.style.lineHeight='';
+    el.style.fontSize='';el.style.letterSpacing='';el.style.paddingLeft='';
+  });
+  ['atError','snError'].forEach(id=>document.getElementById(id).textContent='');
+  ['atPreview','snPreview'].forEach(id=>{
+    const c=document.getElementById(id);c.classList.add('empty');
+    c.getContext('2d').clearRect(0,0,c.width,c.height);
+  });
+  document.getElementById('selPreview').textContent='Draw a box on the image';
+  setOcrStatus('ready','Draw a box on the image');
+  const banner=document.getElementById('ocrEditBanner');
+  if(banner) banner.style.display='none';
+  ocrEditingEntryId=null;
+  updateFieldImageLinks();
+  drawRect=null;
+  autoSetDrawMode();
+  renderOcrCanvas();
+  updateThumbHighlights();
+}
+
+function renderOcrPairsList(){
+  const list=document.getElementById('ocrPairsList');
+  const allOcr=[...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr').map(e=>({...e,palletName:p.name})));
+  document.getElementById('ocrPairsCount').textContent=allOcr.length;
+  if(!allOcr.length){list.innerHTML='<div style="color:var(--muted);font-family:Share Tech Mono,monospace;font-size:.58rem;padding:8px;">No OCR pairs yet</div>';return;}
+  list.innerHTML=allOcr.slice().reverse().map(e=>`<div class="ocr-pair-card">
+    <div><div class="opc-at">AT: ${escHtml(e.asset)}</div><div class="opc-sn">SN: ${escHtml(e.serial)}</div><div class="opc-pallet">📦 ${escHtml(e.palletName)}</div></div>
+    <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
+      <span class="opc-edit" onclick="editOcrEntry('${e.id}')">✎</span>
+      <span class="opc-del" onclick="confirmDeleteEntry('${e.id}')">✕</span>
+    </div>
+  </div>`).join('');
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR THUMBNAILS
+// ══════════════════════════════════════════════════════════
+// ── Thumb helpers ──────────────────────────────────────────
+function addOcrThumb(img){
+  // Just trigger a full re-render — grouping is computed there
+  renderOcrThumbList();
+}
+function updateOcrThumbBadges(){ renderOcrThumbList(); }
+function updateThumbFieldBadges(){ renderOcrThumbList(); }
+
+// Track which thumb groups are collapsed (by a stable key)
+const collapsedGroups=new Set();
+function toggleThumbGroup(key){
+  if(collapsedGroups.has(key)) collapsedGroups.delete(key);
+  else collapsedGroups.add(key);
+  renderOcrThumbList();
+}
+
+// Build the complete thumb list with grouping
+function renderOcrThumbList(){
+  const list=document.getElementById('ocrThumbList');
+  list.innerHTML='';
+
+  // Sort images by filename (natural sort so photo_9 comes before photo_10)
+  const sortedImages=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+
+  // Gather all finalized OCR entries for lookup
+  const allOcrEntries=[...pallets,damagedPallet].flatMap(p=>
+    p.entries.filter(e=>e.type==='ocr').map(e=>({...e,palletName:p.name,palletObj:p}))
+  );
+
+  // Build a map: imageId → finalized entry (if any)
+  const imgToEntry=new Map();
+  allOcrEntries.forEach(e=>{
+    (e.imageIds||[]).forEach(id=>{ if(!imgToEntry.has(id)) imgToEntry.set(id,e); });
+  });
+
+  // Build groups — each group is an array of image ids that belong together
+  // Rules:
+  //   • In-progress pair: deduplicated [assetImageId, serialImageId]
+  //     - same image for both → 1 id, show AT+SN badge
+  //     - different images   → 2 ids, show AT / SN badges separately
+  //   • Finalized pair: all imageIds in that entry (1 or 2)
+  //   • Unassigned: solo (no wrapper)
+  const grouped=[];
+  const placed=new Set();
+
+  // 1. In-progress pair group
+  const ipRaw=[ocrCurrentPair.assetImageId,ocrCurrentPair.serialImageId].filter(Boolean);
+  const ipIds=[...new Set(ipRaw)]; // deduplicated
+  const ipSameImage=ipRaw.length===2&&ipRaw[0]===ipRaw[1]; // both fields → same image
+  if(ipIds.length){
+    grouped.push({type:'inprogress',ids:ipIds,sameImage:ipSameImage});
+    ipIds.forEach(id=>placed.add(id));
+  }
+
+  // 2. Finalized pair groups (in sorted order)
+  const seenEntries=new Set();
+  sortedImages.forEach(img=>{
+    if(placed.has(img.id))return;
+    const e=imgToEntry.get(img.id);
+    if(e&&!seenEntries.has(e.id)){
+      seenEntries.add(e.id);
+      const ids=(e.imageIds||[img.id]).filter(id=>ocrImages.find(i=>i.id===id));
+      const dedupIds=[...new Set(ids)];
+      const sameImage=dedupIds.length===1&&e.asset!==SKIP&&e.serial!==SKIP;
+      grouped.push({type:'finalized',ids:dedupIds,entry:e,sameImage});
+      dedupIds.forEach(id=>placed.add(id));
+    } else if(e){
+      placed.add(img.id);
+    }
+  });
+
+  // 3. Solo/auto-pair unassigned images (sorted)
+  if(ocrMode==='dual'){
+    // Auto-group consecutive unfinalized images as pairs: [0+1, 2+3, ...]
+    const unplaced=sortedImages.filter(i=>!placed.has(i.id));
+    for(let i=0;i<unplaced.length;i+=2){
+      const pair=[unplaced[i],unplaced[i+1]].filter(Boolean);
+      if(pair.length===2){
+        grouped.push({type:'autopair',ids:pair.map(p=>p.id)});
+      } else {
+        grouped.push({type:'solo',ids:[pair[0].id]});
+      }
+    }
+  } else {
+    sortedImages.forEach(img=>{
+      if(!placed.has(img.id)) grouped.push({type:'solo',ids:[img.id]});
+    });
+  }
+
+  // Render each group
+  grouped.forEach(group=>{
+    const isPair=group.type==='inprogress'||group.type==='finalized'||group.type==='autopair';
+    let groupEl=null;
+    if(isPair){
+      groupEl=document.createElement('div');
+      groupEl.className='thumb-group thumb-group-'+group.type;
+
+      // Stable key for collapse state
+      const groupKey=group.type==='finalized'&&group.entry?'fin_'+group.entry.id
+                    :group.type==='autopair'?'auto_'+group.ids.join('_')
+                    :'inprogress';
+      // Finalized and autopair default to collapsed
+      if((group.type==='finalized'||group.type==='autopair')&&!collapsedGroups.has(groupKey)&&!collapsedGroups.has('_opened_'+groupKey)){
+        collapsedGroups.add(groupKey);
+      }
+      const isCollapsed=collapsedGroups.has(groupKey);
+
+      const lbl=document.createElement('div');
+      lbl.className='thumb-group-label'+(group.type==='inprogress'?' inprogress':group.type==='autopair'?' autopair':'');
+      lbl.style.cursor='pointer';
+      lbl.title='Click to expand/collapse';
+
+      // Collapse chevron
+      const chev=document.createElement('span');
+      chev.style.cssText='font-size:.5rem;opacity:.5;flex-shrink:0;';
+      chev.textContent=isCollapsed?'▶':'▼';
+      lbl.appendChild(chev);
+
+      if(group.type==='autopair'){
+        const imgs=group.ids.map(id=>ocrImages.find(i=>i.id===id)).filter(Boolean);
+        const isCurrentPair=group.ids.includes(ocrCurrentPair.assetImageId)||group.ids.includes(ocrCurrentPair.serialImageId);
+        const nameSpan=document.createElement('span');
+        nameSpan.textContent=imgs.map(i=>i.name).join(' + ');
+        lbl.appendChild(nameSpan);
+        if(isCurrentPair) lbl.classList.add('inprogress');
+        const assignBtn=document.createElement('button');
+        assignBtn.textContent='▶ Use';assignBtn.title='Load this pair into AT/SN panes';
+        assignBtn.style.cssText='margin-left:auto;background:none;border:1px solid rgba(232,255,0,.3);border-radius:3px;font-family:inherit;font-size:.44rem;padding:1px 5px;cursor:pointer;color:var(--ocr-accent);flex-shrink:0;';
+        assignBtn.onclick=(ev)=>{
+          ev.stopPropagation();
+          const [atId,snId]=group.ids;
+          ocrCurrentPair.assetImageId=atId||null;
+          ocrCurrentPair.serialImageId=snId||atId||null;
+          ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+          ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+          setDrawMode('asset');
+          renderBothPanes();updateThumbHighlights();updateFieldImageLinks();
+        };
+        lbl.style.display='flex';lbl.style.alignItems='center';lbl.style.gap='4px';
+        lbl.appendChild(assignBtn);
+      }else if(group.type==='inprogress'){
+        const span=document.createElement('span');
+        span.textContent=group.sameImage?'IN PROGRESS · AT+SN':'IN PROGRESS';
+        lbl.appendChild(span);
+        lbl.style.display='flex';lbl.style.alignItems='center';lbl.style.gap='4px';
+      }else if(group.entry){
+        const at=group.entry.asset===SKIP?'(skip)':group.entry.asset;
+        const sn=group.entry.serial===SKIP?'(skip)':group.entry.serial;
+        const span=document.createElement('span');
+        span.textContent=group.sameImage?`✓ ${at} / ${sn} · 1 img`:`✓ ${at} / ${sn}`;
+        span.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
+        lbl.appendChild(span);
+        const editBtn=document.createElement('button');
+        editBtn.textContent='✎';editBtn.title='Edit this pair';
+        editBtn.style.cssText='background:none;border:none;color:rgba(255,179,71,.7);cursor:pointer;font-size:.6rem;padding:0 2px;flex-shrink:0;';
+        editBtn.onclick=(ev)=>{ev.stopPropagation();editOcrEntry(group.entry.id);};
+        lbl.style.display='flex';lbl.style.alignItems='center';lbl.style.gap='4px';
+        lbl.appendChild(editBtn);
+      }
+
+      // Toggle collapse on label click
+      lbl.onclick=()=>{
+        if(collapsedGroups.has(groupKey)){
+          collapsedGroups.delete(groupKey);
+          collapsedGroups.add('_opened_'+groupKey); // remember user explicitly opened it
+        } else {
+          collapsedGroups.add(groupKey);
+          collapsedGroups.delete('_opened_'+groupKey);
+        }
+        renderOcrThumbList();
+      };
+
+      groupEl.appendChild(lbl);
+      list.appendChild(groupEl);
+
+      // If collapsed, skip rendering thumbs
+      if(isCollapsed) return; // skip rest of this group in forEach
+    }
+
+    group.ids.forEach(id=>{
+      const img=ocrImages.find(i=>i.id===id);if(!img)return;
+      const wrap=document.createElement('div');wrap.className='thumb-wrapper';wrap.dataset.id=id;
+
+      const thumb=document.createElement('img');thumb.className='image-thumb';thumb.dataset.id=id;
+      thumb.src=img.dataUrl;thumb.title=img.name;
+
+      // Border color
+      const e=imgToEntry.get(id);
+      const isFinalized=!!e;
+      if(e){
+        const hasAt=e.asset!==SKIP,hasSn=e.serial!==SKIP;
+        if(hasAt&&hasSn) thumb.classList.add('assigned-both');
+        else if(hasAt) thumb.classList.add('assigned-asset');
+        else thumb.classList.add('assigned-serial');
+      } else {
+        const isAt=ocrCurrentPair.assetImageId===id;
+        const isSn=ocrCurrentPair.serialImageId===id;
+        if(isAt&&isSn) thumb.classList.add('active-both');
+        else if(isAt) thumb.classList.add('active-asset');
+        else if(isSn) thumb.classList.add('active-serial');
+      }
+
+      // Field badge for in-progress / finalized
+      if(group.type==='inprogress'){
+        const isAt=ocrCurrentPair.assetImageId===id;
+        const isSn=ocrCurrentPair.serialImageId===id;
+        if(isAt||isSn){
+          const b=document.createElement('div');
+          b.className='thumb-field-badge '+(isAt&&isSn?'for-both':isAt?'for-asset':'for-serial');
+          b.textContent=isAt&&isSn?'AT+SN':isAt?'AT':'SN';
+          wrap.appendChild(b);
+        }
+      } else if(group.type==='finalized'&&e){
+        const b=document.createElement('div');
+        if(group.sameImage){
+          b.className='thumb-field-badge for-both';b.textContent='AT+SN';
+        } else {
+          const isAt=e.assetImageId===id;
+          b.className='thumb-field-badge '+(isAt?'for-asset':'for-serial');
+          b.textContent=isAt?'AT':'SN';
+        }
+        wrap.appendChild(b);
+      }
+
+      // AT / SN assignment buttons — shown on hover for unfinalized images
+      if(!isFinalized){
+        const assignBar=document.createElement('div');assignBar.className='thumb-assign-bar';
+        const atBtn=document.createElement('button');
+        atBtn.className='thumb-assign-btn at';atBtn.textContent='AT';atBtn.title='Use for Asset Tag';
+        atBtn.onclick=(ev)=>{
+          ev.stopPropagation();
+          ocrCurrentPair.assetImageId=id;
+          ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+          setDrawMode('asset');
+          renderBothPanes();updateThumbHighlights();updateFieldImageLinks();
+        };
+        const snBtn=document.createElement('button');
+        snBtn.className='thumb-assign-btn sn';snBtn.textContent='SN';snBtn.title='Use for Serial #';
+        snBtn.onclick=(ev)=>{
+          ev.stopPropagation();
+          ocrCurrentPair.serialImageId=id;
+          ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+          setDrawMode('serial');
+          renderBothPanes();updateThumbHighlights();updateFieldImageLinks();
+        };
+        assignBar.appendChild(atBtn);assignBar.appendChild(snBtn);
+        wrap.appendChild(assignBar);
+      }
+
+      const delBtn=document.createElement('button');delBtn.className='thumb-del-btn';delBtn.textContent='🗑';delBtn.title='Delete image';
+      delBtn.onclick=async(ev)=>{
+        ev.stopPropagation();
+        if(_deletingImage)return;
+        const linked=[];
+        [...pallets,damagedPallet].forEach(p=>{
+          p.entries.forEach(en=>{
+            if(en.type==='ocr'&&Array.isArray(en.imageIds)&&en.imageIds.includes(id))
+              linked.push({entry:en,palletName:p.name});
+          });
+        });
+        let msg=`Delete image "${img.name}"?`;
+        if(linked.length) msg+=`\n\nLinked OCR pair${linked.length>1?'s':''} will also be deleted:\n`+linked.map(l=>`  • AT: ${l.entry.asset} / SN: ${l.entry.serial} (${l.palletName})`).join('\n');
+        else msg+='\n\nNo OCR pairs linked.';
+        if(confirm(msg+'\n\nAre you sure?'))await deleteOcrImage(id);
+      };
+
+      wrap.appendChild(thumb);wrap.appendChild(delBtn);
+      (groupEl||list).appendChild(wrap);
+    });
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  RECYCLING BIN
+// ══════════════════════════════════════════════════════════
+function updateBinBadge(){const badge=document.getElementById('recycleBadge');const count=recycleBin.length;badge.textContent=count;badge.classList.toggle('hidden',count===0);}
+function openRecycleBin(){renderBinList();document.getElementById('recycleBinModal').classList.add('open');}
+function closeRecycleBin(){document.getElementById('recycleBinModal').classList.remove('open');}
+function renderBinList(){
+  const list=document.getElementById('binList');const empty=document.getElementById('binEmpty');
+  document.getElementById('binCountLabel').textContent=recycleBin.length;
+  if(recycleBin.length===0){list.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+  list.innerHTML=recycleBin.slice().reverse().map(item=>{
+    const d=new Date(item.deletedAt);const ts=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'})+' '+d.toLocaleDateString();
+    const typeLabel=item.type==='image'?'🖼 Image':item.type==='entry'?'📋 Entry':'📦 Pallet';
+    return `<div class="bin-entry">
+      <div class="bin-entry-info">
+        <div class="bin-entry-type">${typeLabel}</div>
+        <div class="bin-entry-main">${escHtml(item.description)}</div>
+        <div class="bin-entry-time">Deleted ${ts}</div>
+      </div>
+      <div class="bin-actions">
+        <button class="bin-restore-btn" onclick="restoreFromBin('${item.id}')">↩ Restore</button>
+        <button class="bin-perm-del-btn" onclick="permDeleteFromBin('${item.id}')">✕</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function restoreFromBin(binId){
+  const idx=recycleBin.findIndex(b=>b.id===binId);if(idx===-1)return;
+  const item=recycleBin[idx];
+  if(item.type==='entry'){
+    const pallet=item.data.palletId===DAMAGED_PALLET_ID?damagedPallet:pallets.find(p=>p.id===item.data.palletId);
+    if(!pallet){alert('Original pallet no longer exists.');recycleBin.splice(idx,1);renderBinList();updateBinBadge();return;}
+    const e=item.data.entry;
+    if(e.asset&&e.asset!==SKIP&&globalAssetTags.has(e.asset)){alert(`Cannot restore: Asset tag "${e.asset}" already exists.`);return;}
+    if(e.serial&&e.serial!==SKIP&&globalSerials.has(e.serial)){alert(`Cannot restore: Serial "${e.serial}" already exists.`);return;}
+    pallet.entries.push(e);
+    if(e.asset&&e.asset!==SKIP)globalAssetTags.add(e.asset);
+    if(e.serial&&e.serial!==SKIP)globalSerials.add(e.serial);
+    recycleBin.splice(idx,1);
+    renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();renderOcrPairsList();scheduleSave();
+  }else if(item.type==='image'){
+    const imgData=item.data.img;
+    if(ocrImages.find(i=>i.id===imgData.id)){alert('Image already exists.');recycleBin.splice(idx,1);renderBinList();updateBinBadge();return;}
+    ocrImages.push(imgData);
+    if(imgData.hash)ocrImageHashes.add(imgData.hash);
+    if(db)dbPut('images',{id:imgData.id,name:imgData.name,blob:imgData.blob,hash:imgData.hash}).catch(()=>{});
+    addOcrThumb(imgData);
+    recycleBin.splice(idx,1);
+    updateOcrStorage();
+    if(ocrImages.length===1){
+      
+      
+      selectOcrImage(imgData.id);
+    }
+  }
+  renderBinList();updateBinBadge();
+}
+function permDeleteFromBin(binId){const idx=recycleBin.findIndex(b=>b.id===binId);if(idx===-1)return;recycleBin.splice(idx,1);renderBinList();updateBinBadge();}
+function restoreAllFromBin(){const items=[...recycleBin];for(const item of items)restoreFromBin(item.id);}
+function emptyBin(){if(!recycleBin.length)return;if(!confirm(`Permanently delete all ${recycleBin.length} items?`))return;recycleBin=[];renderBinList();updateBinBadge();}
+
+// ══════════════════════════════════════════════════════════
+//  FIX #1: BYPASS UI + SCAN LOGIC
+// ══════════════════════════════════════════════════════════
+function updateBypassUI(){
+  // Read from shared tav state (bypass = tav active)
+  const ba=tav.asset.active, bs=tav.serial.active;
+  const wrap=document.getElementById('bypassBadgeWrap');if(wrap){wrap.innerHTML='';
+  if(ba||bs){const p=[ba&&'ASSET',bs&&'SERIAL'].filter(Boolean).join('+');wrap.innerHTML=`<span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,179,71,.1);border:1px solid rgba(255,179,71,.3);color:var(--warn);font-family:'Share Tech Mono',monospace;font-size:.56rem;letter-spacing:1.5px;text-transform:uppercase;padding:2px 8px;border-radius:8px;">⚠ TAV: ${p}</span>`;}}
+  const ai=document.getElementById('assetInput');
+  if(ai)ai.placeholder=ba?'Press Enter/Tab to skip asset…':'Scan 6-digit number…';
+  updateScanBlockState();
+}
+function updateScanBlockState(){
+  const hasPreset=!!activePresetId;
+  const ai=document.getElementById('assetInput'),si=document.getElementById('serialInput');
+  if(!hasPreset){ai.disabled=true;si.disabled=true;ai.classList.add('blocked');si.classList.add('blocked');setStatus('warn','Select or create a preset before scanning');}
+  else{ai.disabled=false;si.disabled=false;ai.classList.remove('blocked');si.classList.remove('blocked');if(!assetPending)setStatus('ready','Ready — scan or type asset tag first');}
+}
+
+function handleScanKey(e,field){
+  if(e.key!=='Enter'&&e.key!=='Tab')return;
+  e.preventDefault();
+  const val=e.target.value.trim().toUpperCase();e.target.value='';
+  if(!activePresetId){setStatus('error','Select a preset before scanning');flashInput(field==='asset'?'assetInput':'serialInput','error');beep('error');return;}
+  const pallet=getActivePallet();if(!pallet){setStatus('warn','No pallet selected');return;}
+  const bypassAsset=tav.asset.active;
+  const bypassSerial=tav.serial.active;
+
+  if(field==='asset'){
+    // FIX #1: if bypass is on and value is empty, treat as bypass (SKIP)
+    const effectiveAsset=(!val&&bypassAsset)?SKIP:val;
+    if(!effectiveAsset){
+      // No value and no bypass — just refocus
+      document.getElementById('assetInput').focus();
+      return;
+    }
+    if(!bypassAsset&&!isValidAssetTag(effectiveAsset)){
+      errorCount++;updateStats();
+      setStatus('error',`INVALID — "${val}" must be exactly 6 digits`);
+      logScan('error',`Invalid asset tag: ${val}`);
+      flashInput('assetInput','error');beep('error');
+      document.getElementById('assetInput').focus();
+      return;
+    }
+    if(effectiveAsset!==SKIP&&globalAssetTags.has(effectiveAsset)){
+      dupeCount++;updateStats();
+      setStatus('warn',`DUPLICATE — "${effectiveAsset}" already exists`);
+      logScan('warn',`Duplicate asset: ${effectiveAsset}`);
+      flashInput('assetInput','error');beep('dupe');
+      document.getElementById('assetInput').focus();
+      return;
+    }
+    assetPending=effectiveAsset;
+    document.getElementById('assetInput').value=effectiveAsset===SKIP?'[N]':effectiveAsset;
+    document.getElementById('assetInput').classList.remove('active-field');document.getElementById('assetInput').classList.add('filled-field');
+    if(bypassAsset||effectiveAsset===SKIP)document.getElementById('assetInput').classList.add('bypassed');
+    document.getElementById('serialInput').classList.add('active-field');
+    document.getElementById('serialInput').placeholder=bypassSerial?'Press Enter/Tab to skip serial…':'Scan 7-char serial…';
+    setStatus('pair-ready',`Asset "${effectiveAsset===SKIP?'[N]':effectiveAsset}" captured — ${bypassSerial?'press Enter/Tab to skip':'scan serial'}`);
+    flashInput('assetInput','success');beep('tag');
+    document.getElementById('serialInput').focus();
+
+  }else if(field==='serial'){
+    if(!assetPending){
+      // FIX #1: Don't show error if user clicked into serial — just silently redirect
+      setStatus('ready','Scan asset tag first');
+      document.getElementById('assetInput').focus();
+      return;
+    }
+    const effectiveVal=(!val&&bypassSerial)?SKIP:val;
+    if(!effectiveVal){
+      document.getElementById('serialInput').focus();
+      return;
+    }
+    if(!bypassSerial&&!isValidSerial(effectiveVal)){
+      errorCount++;updateStats();
+      setStatus('error',`INVALID — "${val}" must be 7 alphanumeric with letters + numbers`);
+      logScan('error',`Invalid serial: ${val}`);
+      flashInput('serialInput','error');beep('error');
+      document.getElementById('serialInput').focus();
+      return;
+    }
+    if(effectiveVal!==SKIP&&globalSerials.has(effectiveVal)){
+      dupeCount++;updateStats();
+      setStatus('warn',`DUPLICATE — serial "${effectiveVal}" exists`);
+      logScan('warn',`Duplicate serial: ${effectiveVal}`);
+      flashInput('serialInput','error');beep('dupe');
+      document.getElementById('serialInput').focus();
+      return;
+    }
+    if(assetPending!==SKIP)globalAssetTags.add(assetPending);
+    if(effectiveVal!==SKIP)globalSerials.add(effectiveVal);
+    const preset=getActivePreset();const isDamaged=!!(preset&&preset.isDamaged);
+    const entry={
+      id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2),
+      type:'pair',asset:assetPending,serial:effectiveVal,
+      bypassAsset,bypassSerial,presetId:activePresetId,
+      storageNone:!storageLogDefault,isDamaged
+    };
+    const targetPallet=isDamaged?damagedPallet:pallet;
+    const firstManual=targetPallet.entries.findIndex(e=>e.type==='manual');
+    if(firstManual===-1)targetPallet.entries.push(entry);else targetPallet.entries.splice(firstManual,0,entry);
+    const dmgNote=isDamaged?' [→ Damaged]':'';
+    setStatus('success',`${isDamaged?'[DAMAGED] ':''}PAIR LOGGED — ${assetPending} / ${effectiveVal}${dmgNote}`);
+    logScan('pair',`${isDamaged?'[DMG] ':''}Pair: ${assetPending} → ${effectiveVal}`);
+    flashInput('serialInput','success');beep('pair');
+    assetPending=null;
+    document.getElementById('assetInput').value='';document.getElementById('assetInput').className='scan-input active-field';
+    document.getElementById('serialInput').className='scan-input';document.getElementById('serialInput').placeholder='Waiting for asset tag…';
+    document.getElementById('assetInput').focus();
+    if(!isDamaged)checkOverweightAlert(pallet);
+    renderEntries();updateStats();updateHeaderStats();updateTiles();renderDamagedPalletList();scheduleSave();
+  }
+}
+
+// FIX #1: Blur handler — properly handle bypass case
+function handleScanBlur(e,field){
+  const val=e.target.value.trim();
+  const goingTo=e.relatedTarget;
+  const assetEl=document.getElementById('assetInput');
+  const serialEl=document.getElementById('serialInput');
+
+  if(field==='asset'){
+    const bypassAsset=tav.asset.active;
+    // If bypass is on and field is empty or shows [N], auto-advance
+    if(bypassAsset&&(!val||val==='[N]')){
+      e.target.value='';
+      const fakeEvent={key:'Enter',preventDefault:()=>{},target:e.target};
+      handleScanKey(fakeEvent,field);
+      return;
+    }
+    // If there's a value, process it
+    if(val&&val!=='[N]'){
+      const fakeEvent={key:'Enter',preventDefault:()=>{},target:e.target};
+      handleScanKey(fakeEvent,field);
+    }
+    // If going to serial and we have assetPending, that's fine — serial will handle itself
+  }else if(field==='serial'){
+    // If going back to asset field, don't process
+    if(goingTo===assetEl)return;
+    const bypassSerial=tav.serial.active;
+    if(!assetPending)return; // silent — no error on click-in
+    if(bypassSerial&&!val){
+      const fakeEvent={key:'Enter',preventDefault:()=>{},target:e.target};
+      handleScanKey(fakeEvent,field);
+      return;
+    }
+    if(val){
+      const fakeEvent={key:'Enter',preventDefault:()=>{},target:e.target};
+      handleScanKey(fakeEvent,field);
+    }
+  }
+}
+
+function setStatus(t,m){document.getElementById('statusBar').className='status-bar '+t;document.getElementById('statusText').textContent=m;}
+function flashInput(id,t){const el=document.getElementById(id);el.classList.remove('flash-success','flash-error');void el.offsetWidth;el.classList.add(t==='success'?'flash-success':'flash-error');setTimeout(()=>el.classList.remove('flash-success','flash-error'),400);}
+
+// ══════════════════════════════════════════════════════════
+//  SCAN LOG
+// ══════════════════════════════════════════════════════════
+function logScan(t,m){
+  const log=document.getElementById('scanLog');
+  const ts=new Date().toLocaleTimeString('en-US',{hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  const d=document.createElement('div');d.className='log-entry '+t;
+  d.innerHTML=`<span class="log-time">${ts}</span><span>${escHtml(m)}</span>`;
+  const ph=log.querySelector('div:not(.ok):not(.pair):not(.warn):not(.error):not(.manual):not(.ocr)');if(ph)ph.remove();
+  log.insertBefore(d,log.firstChild);while(log.children.length>80)log.removeChild(log.lastChild);
+}
+function toggleSection(toggleId,bodyId){const t=document.getElementById(toggleId),b=document.getElementById(bodyId);t.classList.toggle('collapsed');b.style.display=t.classList.contains('collapsed')?'none':'';}
+document.addEventListener('change',e=>{if(e.target.id==='weightModeTotal')document.getElementById('weightModeLabel').textContent=e.target.checked?'Total':'Per Item';});
+
+// ══════════════════════════════════════════════════════════
+//  MANUAL ENTRY
+// ══════════════════════════════════════════════════════════
+function addManualEntry(){
+  const pallet=getActivePallet();if(!pallet){alert('Select a pallet first.');return;}
+  const desc=document.getElementById('manualDesc').value.trim();const qty=parseInt(document.getElementById('manualQty').value)||1;const lbsRaw=parseFloat(document.getElementById('manualLbs').value)||0;const totalMode=document.getElementById('weightModeTotal').checked;
+  if(!desc){document.getElementById('manualDesc').focus();return;}
+  const weightTotal=totalMode?lbsRaw:(lbsRaw*qty);
+  pallet.entries.push({id:'e_'+Date.now()+'_'+Math.random().toString(36).slice(2),type:'manual',description:desc,qty,weight:lbsRaw>0?weightTotal:null,presetId:null});
+  document.getElementById('manualDesc').value='';document.getElementById('manualQty').value=1;document.getElementById('manualLbs').value='';
+  logScan('manual',`Manual: ${qty}× ${desc}`);beep('manual');checkOverweightAlert(pallet);renderEntries();updateStats();updateHeaderStats();updateTiles();scheduleSave();
+}
+
+// ══════════════════════════════════════════════════════════
+//  WEIGHT
+// ══════════════════════════════════════════════════════════
+function calcPalletWeight(pallet){
+  if(pallet.isDamaged)return{total:0,missing:0};
+  let total=PALLET_WEIGHT,missing=0;
+  pallet.entries.forEach(e=>{
+    if(e.type==='pair'||e.type==='ocr'){const preset=getAllPresets().find(p=>p.id===e.presetId);if(preset&&preset.weight)total+=parseFloat(preset.weight);else if(!preset?.isDamaged)missing++;}
+    else if(e.type==='manual'&&e.weight)total+=e.weight;
+  });
+  return{total,missing};
+}
+let _lastOverweightAlerted=false;
+function checkOverweightAlert(pallet){
+  if(!pallet||pallet.isDamaged)return;
+  const{total}=calcPalletWeight(pallet);
+  const banner=document.getElementById('weightWarnBanner');const isOver=total>WEIGHT_LIMIT;
+  banner.classList.toggle('visible',isOver);
+  if(isOver){document.getElementById('weightWarnText').textContent=`⚠ Pallet weight ~${total.toFixed(0)} lbs — exceeds ${WEIGHT_LIMIT} lb limit.`;if(!_lastOverweightAlerted){beep('overweight');_lastOverweightAlerted=true;}}
+  else _lastOverweightAlerted=false;
+}
+function updateWeightBar(){
+  const pallet=getActivePallet();const wb=document.getElementById('weightBar');const pwi=document.getElementById('wPalletWi');
+  if(!pallet||pallet.isDamaged){document.getElementById('wPallet').textContent='—';document.getElementById('wTotal').textContent='—';document.getElementById('weightNote').textContent='';wb.classList.remove('overweight');pwi.classList.remove('danger');return;}
+  const pw=calcPalletWeight(pallet);const isOver=pw.total>WEIGHT_LIMIT;
+  document.getElementById('wPallet').textContent=pw.total.toFixed(1)+' lbs';
+  let shipTotal=0;pallets.forEach(p=>{shipTotal+=calcPalletWeight(p).total;});
+  document.getElementById('wTotal').textContent=shipTotal.toFixed(1)+' lbs';
+  document.getElementById('weightNote').textContent=pw.missing>0?`⚠ ${pw.missing} missing weights`:'';
+  wb.classList.toggle('overweight',isOver);pwi.classList.toggle('danger',isOver);
+}
+
+// ══════════════════════════════════════════════════════════
+//  ENTRIES TABLE
+// ══════════════════════════════════════════════════════════
+let dragSrcIdx=null;
+function renderEntries(){
+  const pallet=getActivePallet();const tbody=document.getElementById('entryTableBody');
+  if(!pallet||pallet.entries.length===0){tbody.innerHTML='<tr><td colspan="7"><div class="empty-state">NO ENTRIES YET</div></td></tr>';updateWeightBar();return;}
+  tbody.innerHTML=pallet.entries.map((e,i)=>{
+    const preset=getAllPresets().find(p=>p.id===e.presetId);
+    const isDmg=e.isDamaged||preset?.isDamaged;
+    const ptag=preset?`<span class="preset-tag${isDmg?' dmg':''}">${escHtml(preset.name)}</span>`:'';
+    const ra=`draggable="true" ondragstart="onDragStart(event,${i})" ondragover="onDragOver(event,${i})" ondrop="onDrop(event,${i})" ondragleave="onDragLeave(event)"`;
+    const srcBadge=e.type==='ocr'?'<span class="source-badge ocr-badge">OCR</span>':'<span class="source-badge scan">SCAN</span>';
+    if(e.type==='pair'||e.type==='ocr'){
+      const aC='e-asset'+(e.bypassAsset?' e-bypass':'')+(isDmg?' e-damaged':'');
+      const sC='e-serial'+(e.bypassSerial?' e-bypass':'')+(isDmg?' e-damaged':'');
+      return `<tr ${ra}><td><span class="drag-handle">⠿</span></td><td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.64rem;">${i+1}</td><td class="${aC}">${escHtml(displayVal(e.asset))}</td><td class="${sC}">${escHtml(displayVal(e.serial))}</td><td>${ptag}</td><td>${srcBadge}</td><td><button class="e-del" onclick="confirmDeleteEntry('${e.id}')">✕</button></td></tr>`;
+    }else{
+      const wt=e.weight?` <span style="color:var(--warn);font-size:.6rem;">(${e.weight.toFixed(1)}lbs)</span>`:'';
+      return `<tr ${ra}><td><span class="drag-handle">⠿</span></td><td style="color:var(--muted);font-family:'Share Tech Mono',monospace;font-size:.64rem;">${i+1}</td><td class="e-manual" colspan="2"><span style="color:var(--muted);font-size:.8rem;margin-right:4px;">×${e.qty}</span>${escHtml(e.description)}${wt}</td><td></td><td></td><td><button class="e-del" onclick="confirmDeleteEntry('${e.id}')">✕</button></td></tr>`;
+    }
+  }).join('');
+  updateWeightBar();
+}
+function onDragStart(e,i){dragSrcIdx=i;e.currentTarget.classList.add('dragging');}
+function onDragOver(e,i){e.preventDefault();e.currentTarget.classList.add('drag-over');}
+function onDragLeave(e){e.currentTarget.classList.remove('drag-over');}
+function onDrop(e,i){e.preventDefault();e.currentTarget.classList.remove('drag-over');const pallet=getActivePallet();if(!pallet||dragSrcIdx===null||dragSrcIdx===i){dragSrcIdx=null;return;}const[moved]=pallet.entries.splice(dragSrcIdx,1);pallet.entries.splice(i,0,moved);dragSrcIdx=null;renderEntries();scheduleSave();}
+
+function confirmDeleteEntry(id){
+  const all=[...pallets,damagedPallet];let found=null;
+  for(const p of all){const e=p.entries.find(e=>String(e.id)===String(id));if(e){found=e;break;}}
+  if(!found){deleteEntry(id);return;}
+  let msg;
+  if(found.type==='manual')msg=`Delete manual entry?\n\n  ${found.qty}× ${found.description}\n\nThis will move it to the recycling bin.`;
+  else msg=`Delete entry?\n\n  Asset Tag: ${found.asset}\n  Serial:    ${found.serial}\n\nThis will move it to the recycling bin.`;
+  if(confirm(msg))deleteEntry(id);
+}
+function deleteEntry(id){
+  const all=[...pallets,damagedPallet];
+  for(const pallet of all){
+    const idx=pallet.entries.findIndex(e=>String(e.id)===String(id));
+    if(idx===-1)continue;
+    const e=pallet.entries[idx];
+    const desc=e.type==='pair'||e.type==='ocr'?`${e.type==='ocr'?'OCR Pair':'Scan Pair'}: AT ${e.asset} → SN ${e.serial}`:`Manual: ${e.qty}× ${e.description}`;
+    recycleBin.push({id:'bin_'+Date.now()+'_'+Math.random().toString(36).slice(2),type:'entry',deletedAt:Date.now(),description:desc,data:{entry:JSON.parse(JSON.stringify(e)),palletId:pallet.id},linkedImageIds:e.imageIds||[]});
+    if(e.type==='pair'||e.type==='ocr'){globalAssetTags.delete(e.asset);globalSerials.delete(e.serial);}
+    pallet.entries.splice(idx,1);break;
+  }
+  updateBinBadge();renderEntries();updateStats();updateHeaderStats();updateTiles();checkOverweightAlert(getActivePallet()||{isDamaged:true});renderDamagedPalletList();renderOcrPairsList();updateOcrThumbBadges();scheduleSave();
+}
+function escHtml(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+// ══════════════════════════════════════════════════════════
+//  STATS + TILES
+// ══════════════════════════════════════════════════════════
+function updateStats(){
+  const p=getActivePallet();
+  document.getElementById('statPairs').textContent=p?p.entries.filter(e=>e.type==='pair').length:0;
+  document.getElementById('statOcr').textContent=p?p.entries.filter(e=>e.type==='ocr').length:0;
+  document.getElementById('statManual').textContent=p?p.entries.filter(e=>e.type==='manual').length:0;
+  document.getElementById('statDupes').textContent=dupeCount;document.getElementById('statErrors').textContent=errorCount;
+}
+function updateTiles(){
+  const p=getActivePallet();document.getElementById('tilePalletCount').textContent=p?p.entries.filter(e=>e.type==='pair'||e.type==='ocr').length:0;
+  const allPairs=pallets.reduce((a,pp)=>a+pp.entries.filter(e=>e.type==='pair'||e.type==='ocr').length,0);
+  document.getElementById('tileGlobalCount').textContent=allPairs+damagedPallet.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;
+}
+
+// ══════════════════════════════════════════════════════════
+//  PRESET BAR
+// ══════════════════════════════════════════════════════════
+function renderPresetBar(){
+  const wrap=document.getElementById('presetBarWrap');const preset=getActivePreset();
+  if(preset){
+    const isDmg=preset.isDamaged;const hasRealStorage=!preset.noStorage&&preset.storage;
+    let storagePill='';
+    if(!isDmg&&hasRealStorage)storagePill=storageLogDefault?`<span class="drive-pill dp-ok" onclick="toggleStorageLog()" title="Click to log None"><span class="dp-dot"></span>${preset.storage} GB</span>`:`<span class="drive-pill dp-none" onclick="toggleStorageLog()" title="Click to log size"><span class="dp-dot"></span>No Drive</span>`;
+    else if(!isDmg&&preset.noStorage)storagePill=`<span class="drive-pill dp-none" title="No storage"><span class="dp-dot"></span>No Drive</span>`;
+    const details=isDmg?'Asset + Serial only':[preset.mfr,preset.cpu,preset.ram?preset.ram+' GB RAM':''].filter(Boolean).join(' · ');
+    wrap.innerHTML=`<div class="preset-bar active-p${isDmg?' damaged':''}">
+      <span class="pb-label">Preset ▸</span><span class="pb-name" style="${isDmg?'color:var(--danger)':''}">${escHtml(preset.name)}</span>
+      <span class="pb-detail">${escHtml(details)}</span>${storagePill}
+      <button class="btn" style="padding:2px 7px;font-size:.56rem;" onclick="clearActivePreset()">✕</button>
+    </div>`;
+  }else{
+    wrap.innerHTML=`<div class="preset-bar no-p" onclick="openPresetModal()"><span class="pb-label">⛔ No Preset Selected</span><span class="pb-name" style="color:var(--muted);font-size:.72rem;">Scanning is blocked — select or create a preset</span></div>`;
+  }
+  updateScanBlockState();
+}
+function toggleStorageLog(){storageLogDefault=!storageLogDefault;renderPresetBar();}
+
+// ══════════════════════════════════════════════════════════
+//  PALLETS
+// ══════════════════════════════════════════════════════════
+function openPalletModal(){document.getElementById('newPalletName').value='';document.getElementById('palletModal').classList.add('open');setTimeout(()=>document.getElementById('newPalletName').focus(),50);}
+function closePalletModal(){document.getElementById('palletModal').classList.remove('open');}
+function confirmNewPallet(){const name=document.getElementById('newPalletName').value.trim();if(!name)return;const pallet={id:'p_'+Date.now(),name,entries:[]};pallets.push(pallet);closePalletModal();selectPallet(pallet.id);renderPalletList();if(ocrTopPanelOpen)renderOcrInlinePallets();scheduleSave();}
+function selectPallet(id){
+  activePalletId=id;assetPending=null;dupeCount=0;errorCount=0;_lastOverweightAlerted=false;rebuildGlobalSets();
+  document.getElementById('noPalletScreen').style.display='none';document.getElementById('palletWorkspace').style.display='flex';
+  const pallet=getActivePallet();const isDmg=pallet&&pallet.isDamaged;
+  document.getElementById('damagedHeaderBadge').innerHTML=isDmg?'<span class="damaged-header-badge">⚠ Damaged Assets — No Weight Calculated</span>':'';
+  document.getElementById('weightBar').style.display=isDmg?'none':'';document.getElementById('weightWarnBanner').classList.remove('visible');
+  updateHeaderStats();renderPalletList();renderDamagedPalletList();renderEntries();updateStats();updateTiles();
+  document.getElementById('assetInput').value='';document.getElementById('serialInput').value='';
+  document.getElementById('assetInput').className='scan-input active-field';document.getElementById('serialInput').className='scan-input';document.getElementById('serialInput').placeholder='Waiting for asset tag…';
+  document.getElementById('scanLog').innerHTML='<div class="log-entry" style="color:var(--muted);padding:4px 6px;">Switched pallet — awaiting scan…</div>';
+  if(currentMode==='scan'){renderPresetBar();if(activePresetId)document.getElementById('assetInput').focus();}
+  else{updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePallets();}
+  renderOcrPairsList();
+}
+function rebuildGlobalSets(){
+  globalAssetTags=new Set();globalSerials=new Set();
+  [...pallets,damagedPallet].forEach(p=>p.entries.forEach(e=>{if(e.type==='pair'||e.type==='ocr'){if(e.asset&&e.asset!==SKIP)globalAssetTags.add(e.asset);if(e.serial&&e.serial!==SKIP)globalSerials.add(e.serial);}}));
+}
+function deletePallet(id){
+  const pallet=pallets.find(p=>p.id===id);if(!pallet)return;
+  if(!confirm('Delete this pallet and all its entries?'))return;
+  pallet.entries.forEach(e=>{
+    const desc=e.type==='pair'||e.type==='ocr'?`${e.type==='ocr'?'OCR Pair':'Scan Pair'}: AT ${e.asset} → SN ${e.serial}`:`Manual: ${e.qty}× ${e.description}`;
+    recycleBin.push({id:'bin_'+Date.now()+'_'+Math.random().toString(36).slice(2),type:'entry',deletedAt:Date.now(),description:`[Pallet "${pallet.name}"] ${desc}`,data:{entry:JSON.parse(JSON.stringify(e)),palletId:id},linkedImageIds:e.imageIds||[]});
+  });
+  pallets=pallets.filter(p=>p.id!==id);rebuildGlobalSets();
+  if(activePalletId===id){activePalletId=null;document.getElementById('palletWorkspace').style.display='none';document.getElementById('noPalletScreen').style.display='flex';}
+  renderPalletList();updateTiles();updateBinBadge();if(ocrTopPanelOpen)renderOcrInlinePallets();scheduleSave();
+}
+function renderPalletList(){
+  const list=document.getElementById('palletsList');
+  if(pallets.length===0){list.innerHTML='<div style="color:var(--muted);font-size:.66rem;padding:4px 8px;font-family:Share Tech Mono,monospace;">No pallets yet</div>';return;}
+  list.innerHTML=pallets.map(p=>{const cnt=p.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;return `<div class="pallet-item${p.id===activePalletId?' active':''}" onclick="selectPallet('${p.id}')"><div class="pallet-dot"></div><span class="pallet-name">${escHtml(p.name)}</span><span class="pallet-count">${cnt}</span><button class="pallet-del" onclick="event.stopPropagation();deletePallet('${p.id}')" title="Delete">✕</button></div>`;}).join('');
+}
+function renderDamagedPalletList(){
+  const list=document.getElementById('damagedPalletList');const cnt=damagedPallet.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;const isActive=activePalletId===DAMAGED_PALLET_ID;
+  list.innerHTML=`<div class="pallet-item damaged-pallet-item${isActive?' active':''}" onclick="selectPallet('${DAMAGED_PALLET_ID}')"><div class="pallet-dot"></div><span class="pallet-name">Damaged</span><span class="pallet-count" style="${isActive?'background:rgba(255,45,85,.15);color:var(--danger);':''}">${cnt}</span></div>`;
+}
+function updateHeaderStats(){
+  const p=getActivePallet();if(!p)return;
+  document.getElementById('headerPalletName').textContent=p.name.toUpperCase();
+  const pairs=p.entries.filter(e=>e.type==='pair').length;const ocr=p.entries.filter(e=>e.type==='ocr').length;const manual=p.entries.filter(e=>e.type==='manual').length;
+  document.getElementById('headerStats').textContent=`${pairs} SCAN · ${ocr} OCR · ${manual} MANUAL`;
+}
+function clearCurrentPallet(){
+  const p=getActivePallet();if(!p||p.entries.length===0)return;if(!confirm(`Clear all entries from "${p.name}"?`))return;
+  p.entries.forEach(e=>{
+    const desc=e.type==='pair'||e.type==='ocr'?`${e.type==='ocr'?'OCR Pair':'Scan Pair'}: AT ${e.asset} → SN ${e.serial}`:`Manual: ${e.qty}× ${e.description}`;
+    recycleBin.push({id:'bin_'+Date.now()+'_'+Math.random().toString(36).slice(2),type:'entry',deletedAt:Date.now(),description:`[Cleared from "${p.name}"] ${desc}`,data:{entry:JSON.parse(JSON.stringify(e)),palletId:p.id},linkedImageIds:e.imageIds||[]});
+  });
+  p.entries=[];rebuildGlobalSets();assetPending=null;dupeCount=0;errorCount=0;_lastOverweightAlerted=false;
+  document.getElementById('assetInput').value='';document.getElementById('serialInput').value='';
+  document.getElementById('assetInput').className='scan-input active-field';document.getElementById('serialInput').className='scan-input';document.getElementById('serialInput').placeholder='Waiting for asset tag…';
+  document.getElementById('weightWarnBanner').classList.remove('visible');
+  setStatus('ready','Ready — pallet cleared');renderEntries();updateStats();updateHeaderStats();updateTiles();renderOcrPairsList();updateBinBadge();scheduleSave();
+}
+
+// ══════════════════════════════════════════════════════════
+//  PRESETS
+// ══════════════════════════════════════════════════════════
+function onMfrChange(){const mfr=document.getElementById('pm_mfr').value.trim().toLowerCase();document.getElementById('dellSerialSection').style.display=mfr==='dell'?'block':'none';}
+function updateDellLink(){const s=document.getElementById('dellSerialInput').value.trim();const l=document.getElementById('dellSupportLink');if(s){l.href=`https://www.dell.com/support/product-details/en-us/servicetag/${encodeURIComponent(s)}/overview`;l.classList.remove('hidden');}else l.classList.add('hidden');}
+function toggleStorageField(){const n=document.getElementById('pm_no_storage').checked;document.getElementById('storageFieldGroup').style.opacity=n?'.35':'1';document.getElementById('pm_storage').disabled=n;}
+function clearWeightNag(){document.getElementById('weightHint').className='form-hint';document.getElementById('weightHint').textContent='Helps calculate shipping weight';document.getElementById('pm_weight').classList.remove('wb');document.getElementById('pm_weight').removeAttribute('data-nagged');}
+let editingPresetId=null;
+function openEditPresetModal(id){
+  const p=presets.find(pr=>pr.id===id);if(!p)return;editingPresetId=id;
+  document.getElementById('pm_name').value=p.name||'';document.getElementById('pm_mfr').value=p.mfr||'';document.getElementById('pm_cpu').value=p.cpu||'';document.getElementById('pm_ram').value=p.ram||'';document.getElementById('pm_storage').value=p.storage||'';document.getElementById('pm_weight').value=p.weight||'';document.getElementById('pm_no_storage').checked=!!p.noStorage;
+  toggleStorageField();onMfrChange();clearWeightNag();document.getElementById('dellSerialInput').value='';document.getElementById('dellSupportLink').classList.add('hidden');
+  document.getElementById('presetModal').classList.add('open');document.getElementById('presetModalTitle').textContent='▸ Edit Preset';setTimeout(()=>document.getElementById('pm_name').focus(),50);
+}
+function openPresetModal(){
+  ['pm_name','pm_mfr','pm_cpu'].forEach(id=>document.getElementById(id).value='');document.getElementById('pm_ram').value='';document.getElementById('pm_storage').value='';document.getElementById('pm_weight').value='';document.getElementById('pm_no_storage').checked=false;document.getElementById('storageFieldGroup').style.opacity='1';document.getElementById('pm_storage').disabled=false;clearWeightNag();document.getElementById('dellSerialSection').style.display='none';document.getElementById('dellSerialInput').value='';document.getElementById('dellSupportLink').classList.add('hidden');editingPresetId=null;document.getElementById('presetModal').classList.add('open');document.getElementById('presetModalTitle').textContent='▸ Define Model Preset';setTimeout(()=>document.getElementById('pm_name').focus(),50);
+}
+function closePresetModal(){editingPresetId=null;document.getElementById('presetModal').classList.remove('open');}
+function savePreset(){
+  const name=document.getElementById('pm_name').value.trim();if(!name){document.getElementById('pm_name').focus();return;}
+  const noStorage=document.getElementById('pm_no_storage').checked;const wtRaw=document.getElementById('pm_weight').value.trim();const weight=wtRaw?parseFloat(wtRaw):null;
+  if(!wtRaw&&!document.getElementById('pm_weight').getAttribute('data-nagged')){document.getElementById('weightHint').className='form-hint wh';document.getElementById('weightHint').textContent='⚠ No weight — click Save again to proceed.';document.getElementById('pm_weight').classList.add('wb');document.getElementById('pm_weight').setAttribute('data-nagged','1');return;}
+  const data={name,mfr:document.getElementById('pm_mfr').value.trim(),cpu:document.getElementById('pm_cpu').value.trim(),ram:document.getElementById('pm_ram').value.trim(),storage:noStorage?'':document.getElementById('pm_storage').value.trim(),noStorage,weight};
+  if(editingPresetId){const idx=presets.findIndex(p=>p.id===editingPresetId);if(idx!==-1)presets[idx]={...presets[idx],...data};closePresetModal();renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}
+  else{const preset={id:'pr_'+Date.now(),...data};presets.push(preset);activePresetId=preset.id;storageLogDefault=!noStorage;closePresetModal();renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}
+}
+function selectPreset(id){activePresetId=id;storageLogDefault=true;renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();const ai=document.getElementById('assetInput');if(ai&&!ai.disabled&&currentMode==='scan')setTimeout(()=>ai.focus(),50);}
+function clearActivePreset(){activePresetId=null;renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();}
+function deletePreset(id){if(!confirm('Delete this preset?'))return;presets=presets.filter(p=>p.id!==id);if(activePresetId===id){activePresetId=null;renderPresetBar();updateOcrActiveInfo();}renderPresetList();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}
+function renderPresetList(){
+  const list=document.getElementById('presetsList');const q=(document.getElementById('presetSearch').value||'').toLowerCase().trim();const all=getAllPresets();const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)||(p.mfr&&p.mfr.toLowerCase().includes(q))):all;
+  if(filtered.length===0){list.innerHTML=`<div style="color:var(--muted);font-size:.66rem;padding:4px 8px;font-family:Share Tech Mono,monospace;">${q?'No matches':'No presets yet'}</div>`;return;}
+  list.innerHTML=filtered.map(p=>{const isBuiltin=p.isDamaged;const noW=!isBuiltin&&!p.weight;return `<div class="preset-item${p.id===activePresetId?' active':''}${p.isDamaged?' damaged-preset':''}" onclick="selectPreset('${p.id}')"><span class="preset-name">${escHtml(p.name)}</span>${noW?'<span class="no-weight-warn" title="No weight set">⚠</span>':''}${!isBuiltin?`<button class="edit-btn" onclick="event.stopPropagation();openEditPresetModal('${p.id}')" title="Edit">✎</button><button class="del-btn" onclick="event.stopPropagation();deletePreset('${p.id}')" title="Delete">✕</button>`:''}</div>`;}).join('');
+}
+function exportPresets(){if(presets.length===0){alert('No custom presets to export.');return;}download('AssetPresets_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(presets,null,2),'application/json');}
+function importPresets(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const imp=JSON.parse(e.target.result);if(!Array.isArray(imp))throw new Error('Expected JSON array');let added=0;imp.forEach(p=>{if(p.name){p.id='pr_'+Date.now()+'_'+Math.random().toString(36).slice(2);presets.push(p);added++;}});alert(`Imported ${added} preset${added!==1?'s':''}.`);renderPresetList();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}catch(err){alert('Import failed: '+err.message);}};reader.readAsText(file);event.target.value='';}
+
+// ══════════════════════════════════════════════════════════
+//  XLSX EXPORT
+// ══════════════════════════════════════════════════════════
+function loadSheetJS(cb){if(window.XLSX){cb();return;}const s=document.createElement('script');s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';s.onload=cb;s.onerror=()=>alert('Could not load SheetJS.');document.head.appendChild(s);}
+function fmtDate(){const d=new Date();return `${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}-${d.getFullYear()}`;}
+function exportAllXLSX(){
+  if(pallets.length===0&&damagedPallet.entries.length===0){alert('No data to export.');return;}
+  loadSheetJS(()=>{
+    const wb=XLSX.utils.book_new();
+    pallets.forEach(pallet=>{
+      const rows=[['Asset Tag','Serial Number','Manufacturer','Model','CPU','RAM','Storage','Source']];
+      pallet.entries.forEach(e=>{
+        const preset=getAllPresets().find(p=>p.id===e.presetId);
+        if(e.type==='pair'||e.type==='ocr'){
+          const mfr=preset?.mfr||'',model=preset?.name||'',cpu=preset?.cpu||'',ram=preset?.ram?preset.ram+' GB':'';
+          let storage='';if(preset)storage=(preset.noStorage||e.storageNone)?'None':(preset.storage?preset.storage+' GB':'');
+          rows.push([exportVal(e.asset),exportVal(e.serial),mfr,model,cpu,ram,storage,e.type==='ocr'?'OCR':'SCAN']);
+        }
+      });
+      pallet.entries.filter(e=>e.type==='manual').forEach(e=>{rows.push([`${e.qty} x ${e.description}`,'','','','','','','MANUAL']);});
+      const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:12},{wch:16},{wch:24},{wch:14},{wch:8},{wch:10},{wch:7}];
+      XLSX.utils.book_append_sheet(wb,ws,pallet.name.substring(0,31).replace(/[\\/?*[\]]/g,''));
+    });
+    if(damagedPallet.entries.length>0){
+      const rows=[['Asset Tag','Serial Number','Source']];
+      damagedPallet.entries.forEach(e=>{if(e.type==='pair'||e.type==='ocr')rows.push([exportVal(e.asset),exportVal(e.serial),e.type==='ocr'?'OCR':'SCAN']);});
+      damagedPallet.entries.filter(e=>e.type==='manual').forEach(e=>{rows.push([`${e.qty} x ${e.description}`,'','MANUAL']);});
+      const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:12},{wch:12},{wch:7}];XLSX.utils.book_append_sheet(wb,ws,'Damaged');
+    }
+    {
+      const rows=[['Pallet','Est. Total Weight (lbs)','Notes']];let grandTotal=0;
+      pallets.forEach(pallet=>{const{total,missing}=calcPalletWeight(pallet);rows.push([pallet.name,parseFloat(total.toFixed(1)),missing>0?`${missing} items missing weight`:'']);grandTotal+=total;});
+      rows.push(['']);rows.push(['TOTAL SHIPMENT WEIGHT',parseFloat(grandTotal.toFixed(1)),'']);rows.push(['']);rows.push(['Note: Each pallet weight includes 50 lb pallet hardware.']);
+      const ws=XLSX.utils.aoa_to_sheet(rows);ws['!cols']=[{wch:24},{wch:24},{wch:32}];XLSX.utils.book_append_sheet(wb,ws,'Weight Summary');
+    }
+    XLSX.writeFile(wb,`Assets_Pending_Sale_${fmtDate()}.xlsx`);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+//  OCR ZIP EXPORT
+// ══════════════════════════════════════════════════════════
+async function exportOcrZip(){
+  const allOcr=[...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr'));
+  if(allOcr.length===0){alert('No OCR pairs to export yet.');return;}
+  const zip=new JSZip();const now=new Date();const pad=n=>String(n).padStart(2,'0');
+  const ts=`${now.getFullYear()}${pad(now.getMonth()+1)}${pad(now.getDate())}_${pad(now.getHours())}${pad(now.getMinutes())}${pad(now.getSeconds())}`;
+  const rootName=`OCR_Export_${ts}`;const root=zip.folder(rootName);
+  const allCsvRows=[['Pallet','Asset Tag','Serial Number','Preset','Folder','Images']];
+  for(const{pallet,isDamaged}of[...pallets.map(p=>({pallet:p,isDamaged:false})),{pallet:damagedPallet,isDamaged:true}]){
+    const ocrEntries=pallet.entries.filter(e=>e.type==='ocr');if(!ocrEntries.length)continue;
+    const safePalletName=pallet.name.replace(/[\\/?*:<>"|]/g,'_');
+    const palletFolder=root.folder(safePalletName);
+    const palletCsvRows=[['Asset Tag','Serial Number','Preset','Images']];
+    for(const entry of ocrEntries){
+      const preset=getAllPresets().find(p=>p.id===entry.presetId);
+      const folderName=`${entry.serial}_${entry.asset}`;
+      const entryFolder=palletFolder.folder(folderName);
+      let imgCount=0;
+      for(const imgId of(entry.imageIds||[])){
+        const img=ocrImages.find(i=>i.id===imgId);if(!img)continue;
+        imgCount++;const ext=img.name.toLowerCase().endsWith('.heic')?'jpg':(img.name.split('.').pop()||'jpg');
+        entryFolder.file(`img_${String(imgCount).padStart(3,'0')}.${ext}`,img.blob);
+      }
+      palletCsvRows.push([entry.asset,entry.serial,preset?.name||'',String(imgCount)]);
+      allCsvRows.push([pallet.name,entry.asset,entry.serial,preset?.name||'',`${rootName}/${safePalletName}/${folderName}`,String(imgCount)]);
+    }
+    palletFolder.file('pallet_results.csv',palletCsvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n'));
+  }
+  root.file('all_results.csv',allCsvRows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\r\n'));
+  const blob=await zip.generateAsync({type:'blob',compression:'DEFLATE',compressionOptions:{level:4}});
+  const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=`${rootName}.zip`;a.click();setTimeout(()=>URL.revokeObjectURL(url),5000);
+}
+
+// ══════════════════════════════════════════════════════════
+//  HTML VIEW
+// ══════════════════════════════════════════════════════════
+function openHtmlView(){if(pallets.length===0&&damagedPallet.entries.length===0){alert('No data to view.');return;}document.getElementById('htmlViewContent').innerHTML=buildHtmlView();document.getElementById('htmlViewModal').classList.add('open');}
+function closeHtmlView(){document.getElementById('htmlViewModal').classList.remove('open');}
+function buildHtmlView(){
+  const ts=new Date().toLocaleString();let shipT=0,shipM=0;pallets.forEach(p=>{const w=calcPalletWeight(p);shipT+=w.total;shipM+=w.missing;});
+  const totalPairs=pallets.reduce((a,p)=>a+p.entries.filter(e=>e.type==='pair'||e.type==='ocr').length,0);
+  const dmgPairs=damagedPallet.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;
+  let html=`<div style="font-family:monospace;font-size:.76rem;"><div style="color:#00e5ff;font-size:.9rem;letter-spacing:3px;margin-bottom:3px;">ASSET SALE EXPORT</div><div style="color:#4a5568;margin-bottom:9px;font-size:.64rem;">${ts}</div>
+  <div style="display:flex;gap:16px;flex-wrap:wrap;border:1px solid #1c2432;border-radius:7px;padding:9px 13px;background:#0d1117;margin-bottom:14px;">
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">For Sale</div><div style="color:#39ff14;font-size:1.2rem;">${totalPairs}</div></div>
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">Pallets</div><div style="color:#00e5ff;font-size:1.2rem;">${pallets.length}</div></div>
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">Est. Shipment Weight</div><div style="color:#ffb347;font-size:1.2rem;">${shipT.toFixed(1)} lbs${shipM>0?` <span style="font-size:.58rem;color:#ff6b35;">⚠ ${shipM} missing</span>`:''}</div></div>
+    <div><div style="color:#4a5568;font-size:.56rem;letter-spacing:2px;text-transform:uppercase;">Damaged</div><div style="color:#ff2d55;font-size:1.2rem;">${dmgPairs}</div></div>
+  </div>`;
+  pallets.forEach(pallet=>{
+    const pairs=pallet.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;const manual=pallet.entries.filter(e=>e.type==='manual').length;const pw=calcPalletWeight(pallet);
+    html+=`<div style="border:1px solid #1c2432;border-radius:7px;margin-bottom:11px;overflow:hidden;"><div style="background:#141b24;padding:8px 12px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;"><span style="color:#00e5ff;font-size:.83rem;letter-spacing:2px;">${escHtml(pallet.name)}</span><span style="color:#4a5568;font-size:.64rem;">${pairs} pairs · ${manual} manual</span><span style="color:#ffb347;font-size:.64rem;margin-left:auto;">~${pw.total.toFixed(1)} lbs${pw.missing>0?' ⚠ '+pw.missing+' missing':''}</span></div>`;
+    if(pallet.entries.length===0)html+=`<div style="padding:13px;color:#4a5568;text-align:center;">— empty —</div>`;
+    else{
+      html+=`<table style="width:100%;border-collapse:collapse;font-size:.7rem;"><thead><tr style="background:#0d1117;">${['#','Asset Tag','Serial','Preset','RAM','Storage','Src'].map(h=>`<th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">${h}</th>`).join('')}</tr></thead><tbody>`;
+      pallet.entries.forEach((e,i)=>{
+        const preset=getAllPresets().find(p=>p.id===e.presetId);const pName=preset?preset.name:'—';let storageTxt='—';if(preset)storageTxt=(preset.noStorage||e.storageNone)?'None':(preset.storage?preset.storage+' GB':'—');const ram=preset?.ram?preset.ram+' GB':'—';
+        if(e.type==='pair'||e.type==='ocr')html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#4a5568;">${i+1}</td><td style="padding:5px 9px;color:#e8ff00;letter-spacing:2px;">${escHtml(displayVal(e.asset))}</td><td style="padding:5px 9px;color:#39ff14;letter-spacing:2px;">${escHtml(displayVal(e.serial))}</td><td style="padding:5px 9px;color:#a855f7;font-size:.64rem;">${escHtml(pName)}</td><td style="padding:5px 9px;color:#c8d6e5;">${escHtml(ram)}</td><td style="padding:5px 9px;color:#c8d6e5;">${escHtml(storageTxt)}</td><td style="padding:5px 9px;color:${e.type==='ocr'?'#e8ff00':'#00e5ff'};font-size:.6rem;">${e.type==='ocr'?'OCR':'SCAN'}</td></tr>`;
+        else html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#4a5568;">${i+1}</td><td style="padding:5px 9px;color:#a855f7;" colspan="6">${escHtml(e.description)} ×${e.qty}</td></tr>`;
+      });
+      html+=`</tbody></table>`;
+    }
+    html+=`</div>`;
+  });
+  if(damagedPallet.entries.length>0){
+    const dp=damagedPallet;const pairs=dp.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;
+    html+=`<div style="border:1px solid rgba(255,45,85,.25);border-radius:7px;margin-bottom:11px;overflow:hidden;"><div style="background:rgba(255,45,85,.07);padding:8px 12px;display:flex;align-items:center;gap:10px;"><span style="color:#ff2d55;font-size:.83rem;letter-spacing:2px;">⚠ DAMAGED</span><span style="color:#4a5568;font-size:.64rem;">${pairs} assets</span></div><table style="width:100%;border-collapse:collapse;font-size:.7rem;"><thead><tr style="background:#0d1117;"><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">#</th><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">Asset Tag</th><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">Serial</th><th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">Src</th></tr></thead><tbody>`;
+    dp.entries.forEach((e,i)=>{if(e.type==='pair'||e.type==='ocr')html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#4a5568;">${i+1}</td><td style="padding:5px 9px;color:#ff2d55;letter-spacing:2px;">${escHtml(displayVal(e.asset))}</td><td style="padding:5px 9px;color:#ff2d55;letter-spacing:2px;">${escHtml(displayVal(e.serial))}</td><td style="padding:5px 9px;color:${e.type==='ocr'?'#e8ff00':'#4a5568'};font-size:.6rem;">${e.type==='ocr'?'OCR':'SCAN'}</td></tr>`;});
+    html+=`</tbody></table></div>`;
+  }
+  html+=`<div style="border:1px solid #1c2432;border-radius:7px;overflow:hidden;"><div style="background:#141b24;padding:8px 12px;"><span style="color:#ffb347;font-size:.83rem;letter-spacing:2px;">WEIGHT SUMMARY</span></div><table style="width:100%;border-collapse:collapse;font-size:.7rem;"><thead><tr style="background:#0d1117;">${['Pallet','Asset Weight','+ Pallet HW','= Total Est.','Missing'].map(h=>`<th style="padding:6px 9px;text-align:left;color:#4a5568;border-bottom:1px solid #1c2432;">${h}</th>`).join('')}</tr></thead><tbody>`;
+  let gTotal=0;pallets.forEach(p=>{const{total,missing}=calcPalletWeight(p);gTotal+=total;html+=`<tr style="border-bottom:1px solid rgba(28,36,50,.5);"><td style="padding:5px 9px;color:#00e5ff;">${escHtml(p.name)}</td><td style="padding:5px 9px;color:#c8d6e5;">${(total-PALLET_WEIGHT).toFixed(1)} lbs</td><td style="padding:5px 9px;color:#4a5568;">+${PALLET_WEIGHT} lbs</td><td style="padding:5px 9px;color:#ffb347;">${total.toFixed(1)} lbs</td><td style="padding:5px 9px;color:${missing>0?'#ff6b35':'#4a5568'};">${missing>0?missing+' items':'—'}</td></tr>`;});
+  html+=`<tr style="background:#141b24;"><td style="padding:6px 9px;color:#ffb347;font-weight:bold;">TOTAL</td><td colspan="2"></td><td style="padding:6px 9px;color:#ffb347;font-weight:bold;">${gTotal.toFixed(1)} lbs</td><td></td></tr></tbody></table></div></div>`;
+  return html;
+}
+function printHtmlView(){const c=document.getElementById('htmlViewContent').innerHTML;const w=window.open('','_blank');w.document.write(`<!DOCTYPE html><html><head><title>Asset Sale Export</title><style>body{background:#080b0f;color:#c8d6e5;font-family:monospace;padding:20px;}@media print{body{background:#fff;color:#000;}}</style></head><body>${c}</body></html>`);w.document.close();w.print();}
+
+// ══════════════════════════════════════════════════════════
+//  SESSION
+// ══════════════════════════════════════════════════════════
+const SESSION_COOKIE='assetListerSession';const COOKIE_MAX_AGE=400*24*60*60;
+function saveSession(){
+  try{
+    const data={pallets,presets,damagedPallet,activePalletId,activePresetId,recycleBin:recycleBin.slice(-100),savedAt:Date.now()};
+    const json=JSON.stringify(data);const encoded=encodeURIComponent(json);
+    if(encoded.length<3900){document.cookie=SESSION_COOKIE+'='+encoded+';max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';for(let i=0;i<10;i++)document.cookie=SESSION_COOKIE+'_'+i+'=;max-age=0;path=/';}
+    else{try{localStorage.setItem(SESSION_COOKIE,json);document.cookie=SESSION_COOKIE+'=__ls__;max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';}catch(e){const chunks=[];for(let i=0;i<encoded.length;i+=3800)chunks.push(encoded.slice(i,i+3800));document.cookie=SESSION_COOKIE+'=__chunks_'+chunks.length+'___;max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';chunks.forEach((c,i)=>{document.cookie=SESSION_COOKIE+'_'+i+'='+c+';max-age='+COOKIE_MAX_AGE+';path=/;SameSite=Lax';});}}
+    updateSessionStatus(data.savedAt);
+  }catch(e){console.warn('Session save failed:',e);}
+}
+function getCookieVal(name){const m=document.cookie.split('; ').find(r=>r.startsWith(name+'='));return m?decodeURIComponent(m.split('=').slice(1).join('=')):null;}
+function loadSession(){
+  try{
+    const val=getCookieVal(SESSION_COOKIE);if(!val)return false;
+    let json=null;
+    if(val==='__ls__')json=localStorage.getItem(SESSION_COOKIE);
+    else if(val.startsWith('__chunks_')){const count=parseInt(val.match(/__chunks_(\d+)___/)[1]);let combined='';for(let i=0;i<count;i++){const c=getCookieVal(SESSION_COOKIE+'_'+i);if(!c)return false;combined+=c;}json=decodeURIComponent(combined);}
+    else json=val;
+    if(!json)return false;
+    const data=JSON.parse(json);
+    if(data.pallets)pallets=data.pallets;if(data.presets)presets=data.presets;if(data.damagedPallet)damagedPallet=data.damagedPallet;if(data.recycleBin)recycleBin=data.recycleBin;
+    globalAssetTags=new Set();globalSerials=new Set();
+    [...pallets,damagedPallet].forEach(p=>p.entries.forEach(e=>{if(e.type==='pair'||e.type==='ocr'){if(e.asset&&e.asset!==SKIP)globalAssetTags.add(e.asset);if(e.serial&&e.serial!==SKIP)globalSerials.add(e.serial);}}));
+    renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateBinBadge();updateTiles();
+    if(data.activePalletId){const p=data.activePalletId===DAMAGED_PALLET_ID?damagedPallet:pallets.find(x=>x.id===data.activePalletId);if(p)selectPallet(data.activePalletId);}
+    if(data.activePresetId&&getAllPresets().find(x=>x.id===data.activePresetId)){activePresetId=data.activePresetId;renderPresetBar();}
+    updateSessionStatus(data.savedAt);return true;
+  }catch(e){console.warn('Session load failed:',e);return false;}
+}
+function clearSession(){
+  if(!confirm('Clear session? All pallets, entries, presets, OCR images, and bin will be erased.'))return;
+  document.cookie=SESSION_COOKIE+'=;max-age=0;path=/';for(let i=0;i<10;i++)document.cookie=SESSION_COOKIE+'_'+i+'=;max-age=0;path=/';
+  try{localStorage.removeItem(SESSION_COOKIE);}catch(e){}
+  if(db){dbClear('images').catch(()=>{});dbClear('session').catch(()=>{});}
+  pallets=[];presets=[];damagedPallet={id:DAMAGED_PALLET_ID,name:'Damaged',entries:[],isDamaged:true};recycleBin=[];
+  activePalletId=null;activePresetId=null;globalAssetTags=new Set();globalSerials=new Set();
+  dupeCount=0;errorCount=0;assetPending=null;ocrImageHashes=new Set();
+  ocrImages=[];ocrActiveId=null;ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
+  document.getElementById('ocrThumbList').innerHTML='';
+  renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();updateSessionStatus();updateBinBadge();
+  document.getElementById('noPalletScreen').style.display='flex';document.getElementById('palletWorkspace').style.display='none';
+}
+function updateSessionStatus(savedAt){const el=document.getElementById('sessionStatus');if(!el)return;if(!savedAt){el.textContent='No saved session';el.style.color='var(--muted)';return;}const d=new Date(savedAt);const t=d.toLocaleTimeString([],{hour:'2-digit',minute:'2-digit'});const isToday=d.toDateString()===new Date().toDateString();el.textContent='Saved '+(isToday?'today':'on '+d.toLocaleDateString())+' '+t;el.style.color='var(--accent2)';}
+let _saveTimer=null;
+function scheduleSave(){clearTimeout(_saveTimer);_saveTimer=setTimeout(saveSession,800);}
+function download(filename,content,type){const blob=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();URL.revokeObjectURL(a.href);}
+
+window.addEventListener('resize',()=>{if(currentMode==='ocr'){Object.values(ocrPanes).forEach(p=>{p.cachedImg=null;p.cachedImgId=null;});setTimeout(renderBothPanes,50);}});
+
+// ══════════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════════
+if(!loadSession()){renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();updateSessionStatus();updateBinBadge();}
+initOcr();
+</script>
+</body>
+</html>
