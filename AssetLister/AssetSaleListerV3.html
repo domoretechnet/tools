@@ -321,7 +321,7 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .ocr-pane.mode-active .asset-pane-label{background:rgba(232,255,0,.16);border-bottom-color:rgba(232,255,0,.4);}
 .ocr-pane.mode-active .serial-pane-label{background:rgba(0,229,255,.14);border-bottom-color:rgba(0,229,255,.35);}
 .ocr-pane-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
-.ocr-pane-canvas-wrap canvas{max-width:100%;max-height:100%;display:block;cursor:crosshair;}
+.ocr-pane-canvas-wrap canvas{position:absolute;display:block;cursor:crosshair;}
 .ocr-pane-divider{width:1px;background:var(--border);flex-shrink:0;}
 .ocr-empty-pane{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted);opacity:.4;pointer-events:none;text-align:center;padding:12px;}
 
@@ -1747,15 +1747,15 @@ function renderPane(p, overlayOnly){
   const image=new Image();
   image.onload=()=>{
     const wrapEl=document.getElementById(p.wrapId);
-    // Hide canvas before measuring so its own size doesn't pollute clientHeight
-    p.canvas.style.display='none';
     const maxW=wrapEl.clientWidth-4,maxH=wrapEl.clientHeight-4;
-    p.canvas.style.display='block';
     if(maxW<=0||maxH<=0)return;
     const scale=Math.min(maxW/image.width,maxH/image.height,1);
     p.scale=scale;
     p.canvas.width=Math.round(image.width*scale);
     p.canvas.height=Math.round(image.height*scale);
+    // Center the absolutely-positioned canvas within the wrap
+    p.canvas.style.left=Math.round((maxW-p.canvas.width)/2+2)+'px';
+    p.canvas.style.top=Math.round((maxH-p.canvas.height)/2+2)+'px';
     p.ctx.drawImage(image,0,0,p.canvas.width,p.canvas.height);
     p.cachedImg=image;p.cachedImgId=imgId;
     drawOverlay();
