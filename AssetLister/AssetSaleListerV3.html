@@ -851,6 +851,10 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 const DB_NAME='OCRCaptureDB', DB_VER=2;
 let db=null;
 function openDB(){
+  // Request persistent storage so browser won't silently evict images under pressure
+  if(navigator.storage?.persist) navigator.storage.persist().then(granted=>{
+    if(!granted) console.warn('Persistent storage not granted — images may be cleared by browser');
+  });
   return new Promise((res,rej)=>{
     const req=indexedDB.open(DB_NAME,DB_VER);
     req.onupgradeneeded=e=>{const d=e.target.result;if(!d.objectStoreNames.contains('images'))d.createObjectStore('images',{keyPath:'id'});if(!d.objectStoreNames.contains('session'))d.createObjectStore('session',{keyPath:'key'});if(!d.objectStoreNames.contains('sessions'))d.createObjectStore('sessions',{keyPath:'id'});};
@@ -1312,15 +1316,19 @@ async function ocrLoadFolderImages(){
   if(!db)return;
   ocrImages=[];
   ocrImageHashes=new Set();
-  const allImgs=await dbGetAll('images').catch(()=>[]);
+  const allImgs=await dbGetAll('images').catch(e=>{console.error('Failed to read images from DB:',e);return[];});
+  console.log(`[OCR] DB has ${allImgs.length} total image records, active folder: ${ocrActiveBucketId}`);
   for(const rec of allImgs){
     const imgFolder=rec.bucketId||ocrBuckets[0]?.id;
     if(imgFolder===ocrActiveBucketId){
-      const dataUrl=await blobToDataUrl(rec.blob);
-      ocrImages.push({id:rec.id,name:rec.name,blob:rec.blob,dataUrl,hash:rec.hash||'',bucketId:imgFolder});
-      if(rec.hash)ocrImageHashes.add(rec.hash);
+      try{
+        const dataUrl=await blobToDataUrl(rec.blob);
+        ocrImages.push({id:rec.id,name:rec.name,blob:rec.blob,dataUrl,hash:rec.hash||'',bucketId:imgFolder});
+        if(rec.hash)ocrImageHashes.add(rec.hash);
+      }catch(e){console.error('Failed to decode image blob:',rec.name,e);}
     }
   }
+  console.log(`[OCR] Loaded ${ocrImages.length} images for folder ${ocrActiveBucketId}`);
   ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
   if(ocrMode==='dual') applyDualGrouping();
   else if(ocrImages.length){ocrCurrentPair.assetImageId=ocrImages[0].id;ocrCurrentPair.serialImageId=ocrImages[0].id;}
@@ -1402,7 +1410,11 @@ async function updateOcrStorage(){
   try{
     const{usage=0,quota=1}=await navigator.storage.estimate();
     const pct=Math.min(usage/quota*100,100);
-    document.getElementById('ocrStorageLabel').textContent=`${(usage/1048576).toFixed(1)}MB / ${(quota/1073741824).toFixed(1)}GB`;
+    const persistent=navigator.storage?.persist?await navigator.storage.persisted():false;
+    const persistIcon=persistent?'🔒':'⚠';
+    const persistTip=persistent?'Storage persisted':'Storage not persisted — browser may clear images';
+    document.getElementById('ocrStorageLabel').textContent=`${persistIcon} ${(usage/1048576).toFixed(1)}MB / ${(quota/1073741824).toFixed(1)}GB`;
+    document.getElementById('ocrStorageLabel').title=persistTip;
     const fill=document.getElementById('ocrStorageFill');
     fill.style.width=pct+'%';fill.style.background=pct>80?'var(--danger)':pct>50?'var(--warn)':'var(--accent)';
   }catch(e){}
@@ -1430,7 +1442,14 @@ async function ocrHandleFiles(fileList){
     const dataUrl=await blobToDataUrl(blob);
     const entry={id,name:file.name,blob,dataUrl,hash,bucketId:ocrActiveBucketId};
     ocrImages.push(entry);
-    if(db)await dbPut('images',{id,name:file.name,blob,hash,bucketId:ocrActiveBucketId}).catch(()=>{});
+    if(db){
+      try{
+        await dbPut('images',{id,name:file.name,blob,hash,bucketId:ocrActiveBucketId});
+      }catch(err){
+        console.error('Failed to save image to DB:',err);
+        setOcrStatus('warn','Storage error — image may not persist after refresh');
+      }
+    }
   }
   renderOcrThumbList();
   if(ocrMode==='dual'){
