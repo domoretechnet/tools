@@ -312,7 +312,7 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .q-result{padding:2px 6px 4px;font-family:'Share Tech Mono',monospace;font-size:.48rem;color:var(--accent2);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .ocr-canvas-wrap{display:flex;flex-direction:column;background:#060809;overflow:hidden;}
-.ocr-toolbar{padding:7px 10px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
+.ocr-toolbar{padding:7px 10px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;overflow:hidden;height:32px;}
 .ocr-split-area{flex:1;display:flex;position:relative;overflow:hidden;}
 .ocr-pane{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
 .ocr-pane-label{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;padding:4px 8px;flex-shrink:0;display:flex;align-items:center;gap:6px;}
@@ -356,7 +356,7 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .session-thumb-label{font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:5px 6px 2px;opacity:.6;}
 
 /* OCR draw mode selector */
-.ocr-draw-mode-bar{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;}
+.ocr-draw-mode-bar{display:flex;align-items:center;gap:6px;padding:5px 10px;background:var(--surface2);border-bottom:1px solid var(--border);flex-shrink:0;overflow:hidden;white-space:nowrap;height:30px;}
 .draw-mode-btn{font-family:'Share Tech Mono',monospace;font-size:.54rem;letter-spacing:1.5px;text-transform:uppercase;padding:4px 10px;border-radius:4px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;transition:all .15s;}
 .draw-mode-btn:hover{border-color:var(--border2);color:var(--text);}
 .draw-mode-btn.active-asset{border-color:var(--ocr-accent);background:rgba(232,255,0,.1);color:var(--ocr-accent);}
@@ -716,10 +716,10 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
                 <button class="draw-mode-btn" id="drawModeSerialBtn" onclick="setDrawMode('serial')">✏ Serial #</button>
                 <!-- Dual mode only: swap AT↔SN images -->
                 <button id="swapPanesBtn" onclick="swapPaneImages()" class="btn-xs" style="display:none;font-size:.5rem;padding:2px 8px;border-color:rgba(232,255,0,.3);color:var(--ocr-accent);" title="Swap AT and SN images">⇄ Switch AT/SN</button>
-                <span class="draw-mode-hint" id="drawModeHint">Select a mode then draw a box on the image</span>
+                <span class="draw-mode-hint" id="drawModeHint" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">Select a mode then draw a box on the image</span>
               </div>
               <div class="ocr-toolbar" id="ocrToolbar">
-                <span class="sel-preview" id="selPreview">— draw a region on either image —</span>
+                <span class="sel-preview" id="selPreview" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0;">— draw a region on either image —</span>
               </div>
               <div class="ocr-progress"><div class="ocr-progress-fill" id="ocrProgressFill"></div></div>
               <!-- Split canvas area -->
@@ -1709,6 +1709,18 @@ function initPanes(){
     p.canvas=document.getElementById(p.canvasId);
     p.ctx=p.canvas.getContext('2d');
     attachPaneEvents(p);
+    // Cache stable wrap dimensions — ResizeObserver fires only on genuine layout changes
+    const wrapEl=document.getElementById(p.wrapId);
+    const ro=new ResizeObserver(entries=>{
+      for(const entry of entries){
+        p.stableW=entry.contentRect.width;
+        p.stableH=entry.contentRect.height;
+        // Re-render with correct new dimensions
+        p.cachedImg=null;p.cachedImgId=null;
+        renderPane(p);
+      }
+    });
+    ro.observe(wrapEl);
   });
 }
 
@@ -1747,7 +1759,9 @@ function renderPane(p, overlayOnly){
   const image=new Image();
   image.onload=()=>{
     const wrapEl=document.getElementById(p.wrapId);
-    const maxW=wrapEl.clientWidth-4,maxH=wrapEl.clientHeight-4;
+    // Use cached stable dimensions — updated by ResizeObserver, not live clientHeight
+    const maxW=(p.stableW||wrapEl.clientWidth)-4;
+    const maxH=(p.stableH||wrapEl.clientHeight)-4;
     if(maxW<=0||maxH<=0)return;
     const scale=Math.min(maxW/image.width,maxH/image.height,1);
     p.scale=scale;
