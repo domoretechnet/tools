@@ -315,7 +315,7 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .ocr-toolbar{padding:7px 10px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;overflow:hidden;height:32px;}
 .ocr-split-area{flex:1;display:flex;position:relative;overflow:hidden;}
 .ocr-pane{flex:1;display:flex;flex-direction:column;min-width:0;position:relative;}
-.ocr-pane-label{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;padding:4px 8px;flex-shrink:0;display:flex;align-items:center;gap:6px;}
+.ocr-pane-label{font-family:'Share Tech Mono',monospace;font-size:.5rem;letter-spacing:1.5px;text-transform:uppercase;padding:4px 8px;flex-shrink:0;display:flex;align-items:center;gap:6px;white-space:nowrap;overflow:hidden;height:24px;box-sizing:border-box;}
 .asset-pane-label{color:var(--ocr-accent);background:rgba(232,255,0,.06);border-bottom:1px solid rgba(232,255,0,.15);}
 .serial-pane-label{color:var(--accent2);background:rgba(0,229,255,.05);border-bottom:1px solid rgba(0,229,255,.12);}
 .ocr-pane.mode-active .asset-pane-label{background:rgba(232,255,0,.16);border-bottom-color:rgba(232,255,0,.4);}
@@ -363,8 +363,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .draw-mode-btn.active-serial{border-color:var(--accent);background:rgba(0,229,255,.08);color:var(--accent);}
 .draw-mode-hint{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);margin-left:auto;}
 
-.ocr-right{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
-.ocr-right-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.ocr-right{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;height:100%;}
+.ocr-canvas-wrap{display:flex;flex-direction:column;background:#060809;overflow:hidden;height:100%;}.ocr-right-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
 .ocr-fields{padding:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .ocr-field{margin-bottom:8px;}
 .ocr-field-label{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
@@ -1972,6 +1972,7 @@ function ocrFinalizePair(){
     advanceDualGroup();
     renderBothPanes();
     renderOcrThumbList();
+
   } else {
     // Single mode: advance to next unassigned image
     const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
