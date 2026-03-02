@@ -260,53 +260,56 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .dell-serial-link.hidden{display:none;}
 
 /* ── OCR PANEL STYLES ── */
-.ocr-layout{display:grid;grid-template-columns:160px 1fr 290px;gap:0;border:none;overflow:hidden;height:100%;}
-.ocr-images{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);}
-.ocr-images-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;}
-.ocr-thumb-list{flex:1;overflow-y:auto;padding:5px;}
-.ocr-storage{padding:5px 10px;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--muted);}
+.ocr-layout{display:grid;grid-template-columns:210px 1fr 290px;gap:0;border:none;overflow:hidden;height:100%;}
+.ocr-images{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;height:100%;}
+.ocr-images-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
+.ocr-thumb-list{flex:1;overflow-y:auto;padding:6px;}
+.ocr-storage{padding:5px 10px;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--muted);flex-shrink:0;}
 .ocr-storage-track{height:2px;background:var(--border);border-radius:2px;margin-top:3px;overflow:hidden;}
 .ocr-storage-fill{height:100%;background:var(--accent);border-radius:2px;transition:width .5s;}
-.thumb-wrapper{position:relative;margin-bottom:4px;}
-.image-thumb{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;border:2px solid transparent;cursor:pointer;display:block;transition:border-color .15s;background:var(--surface2);}
-.image-thumb:hover{border-color:var(--muted);}
-.image-thumb.active{border-color:var(--ocr-accent);}
-.image-thumb.active-asset{border-color:var(--ocr-accent);box-shadow:0 0 0 1px var(--ocr-accent);}
-.image-thumb.active-serial{border-color:var(--accent2);box-shadow:0 0 0 1px var(--accent2);}
-.image-thumb.active-both{border-color:var(--accent2);box-shadow:0 0 0 1px var(--ocr-accent),0 0 0 3px var(--accent2);}
-.image-thumb.assigned-asset{border-color:var(--ocr-accent);}
-.image-thumb.assigned-serial{border-color:var(--accent2);}
-.image-thumb.assigned-both{border-color:var(--accent2);}
-.thumb-badge{position:absolute;top:3px;right:3px;font-family:'Share Tech Mono',monospace;font-size:.5rem;padding:1px 4px;border-radius:2px;pointer-events:none;}
-.thumb-badge.at{background:var(--ocr-accent);color:#000;}
-.thumb-badge.sn{background:var(--accent);color:#000;}
-.thumb-badge.both{background:var(--accent2);color:#000;}
-.thumb-assign-bar{position:absolute;bottom:0;left:0;right:0;display:flex;opacity:0;transition:opacity .15s;pointer-events:none;}
-.thumb-wrapper:hover .thumb-assign-bar{opacity:1;pointer-events:all;}
-.thumb-assign-btn{flex:1;border:none;font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:1px;padding:3px 0;cursor:pointer;font-weight:700;}
-.thumb-assign-btn.at{background:rgba(232,255,0,.85);color:#000;}
-.thumb-assign-btn.at:hover{background:rgba(232,255,0,1);}
-.thumb-assign-btn.sn{background:rgba(0,229,255,.85);color:#000;}
-.thumb-assign-btn.sn:hover{background:rgba(0,229,255,1);}
-.thumb-del-btn{position:absolute;top:3px;right:3px;background:rgba(255,45,85,.85);border:none;color:#fff;border-radius:3px;font-size:.55rem;padding:2px 4px;cursor:pointer;opacity:0;transition:opacity .15s;font-family:'Share Tech Mono',monospace;}
-.thumb-wrapper:hover .thumb-del-btn{opacity:1;}
-/* Field indicator badge on thumb */
-.thumb-field-badge{position:absolute;top:3px;left:3px;font-family:'Share Tech Mono',monospace;font-size:.48rem;padding:1px 4px;border-radius:2px;pointer-events:none;}
-.thumb-field-badge.for-asset{background:rgba(232,255,0,.85);color:#000;}
-.thumb-field-badge.for-serial{background:rgba(0,229,255,.85);color:#000;}
-.thumb-field-badge.for-both{background:rgba(57,255,20,.85);color:#000;}
 
-/* Image pair grouping */
-.thumb-group{border-radius:5px;margin-bottom:6px;overflow:hidden;border:1px solid var(--border);}
-.thumb-group-inprogress{border-color:rgba(232,255,0,.35);background:rgba(232,255,0,.04);}
-.thumb-group-finalized{border-color:rgba(0,229,255,.2);background:rgba(0,229,255,.02);}
-.thumb-group .thumb-wrapper{margin-bottom:0;border-radius:0;}
-.thumb-group .thumb-wrapper+.thumb-wrapper{border-top:1px solid var(--border);}
-.thumb-group-label{font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);padding:3px 6px;background:rgba(0,0,0,.3);text-overflow:ellipsis;overflow:hidden;white-space:nowrap;}
-.thumb-group-label.inprogress{color:var(--ocr-accent);background:rgba(232,255,0,.08);}
-.thumb-group-label.autopair{color:var(--muted);background:rgba(255,255,255,.03);font-size:.44rem;}
-.thumb-group.thumb-group-autopair{border-color:rgba(255,255,255,.08);}
-.thumb-group .image-thumb{border-radius:0;}
+/* ── Queue Cards ─────────────────────────────── */
+.q-card{border-radius:5px;border:1.5px solid var(--border);margin-bottom:5px;cursor:pointer;transition:border-color .15s,opacity .15s;background:var(--surface2);overflow:hidden;}
+.q-card:hover{border-color:var(--muted);}
+/* Pending */
+.q-card.q-pending{opacity:.65;}
+/* Active */
+.q-card.q-active{border-color:var(--ocr-accent);background:rgba(232,255,0,.04);opacity:1;}
+.q-card.q-active .q-header{background:rgba(232,255,0,.1);color:var(--ocr-accent);}
+/* Done */
+.q-card.q-done{opacity:.45;border-color:rgba(57,255,20,.25);}
+.q-card.q-done .q-header{background:rgba(57,255,20,.06);color:var(--accent2);}
+.q-card.q-done:hover{opacity:.8;}
+
+.q-header{display:flex;align-items:center;gap:5px;padding:3px 6px;font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);background:rgba(0,0,0,.2);border-bottom:1px solid rgba(255,255,255,.05);}
+.q-num{font-size:.5rem;opacity:.6;flex-shrink:0;}
+.q-status-icon{flex-shrink:0;font-size:.6rem;}
+.q-label{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.q-del{background:none;border:none;color:var(--danger);cursor:pointer;font-size:.6rem;padding:0 2px;opacity:0;flex-shrink:0;}
+.q-card:hover .q-del{opacity:.7;}
+.q-del:hover{opacity:1!important;}
+
+/* Thumb area inside card */
+.q-thumbs{display:flex;gap:2px;padding:4px;}
+.q-thumb-wrap{position:relative;flex:1;min-width:0;}
+.q-thumb-wrap img{width:100%;aspect-ratio:4/3;object-fit:cover;border-radius:3px;display:block;background:var(--surface);}
+.q-thumb-label{position:absolute;bottom:2px;left:2px;font-family:'Share Tech Mono',monospace;font-size:.42rem;font-weight:700;padding:1px 3px;border-radius:2px;pointer-events:none;line-height:1.2;}
+.q-thumb-label.at{background:rgba(232,255,0,.9);color:#000;}
+.q-thumb-label.sn{background:rgba(0,229,255,.9);color:#000;}
+.q-thumb-label.both{background:rgba(57,255,20,.9);color:#000;}
+
+/* Done overlay on thumbs */
+.q-card.q-done .q-thumb-wrap::after{content:'✓';position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:1.4rem;color:rgba(57,255,20,.7);background:rgba(0,0,0,.25);border-radius:3px;}
+
+/* AT/SN assign buttons shown on hover (pending/active only) */
+.q-assign-bar{position:absolute;bottom:0;left:0;right:0;display:flex;opacity:0;transition:opacity .15s;pointer-events:none;border-radius:0 0 3px 3px;overflow:hidden;}
+.q-thumb-wrap:hover .q-assign-bar{opacity:1;pointer-events:all;}
+.q-assign-btn{flex:1;border:none;font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:1px;padding:3px 0;cursor:pointer;font-weight:700;}
+.q-assign-btn.at{background:rgba(232,255,0,.9);color:#000;}
+.q-assign-btn.sn{background:rgba(0,229,255,.9);color:#000;}
+
+/* Done result text */
+.q-result{padding:2px 6px 4px;font-family:'Share Tech Mono',monospace;font-size:.48rem;color:var(--accent2);opacity:.8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 
 .ocr-canvas-wrap{display:flex;flex-direction:column;background:#060809;overflow:hidden;}
 .ocr-toolbar{padding:7px 10px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;flex-shrink:0;flex-wrap:wrap;}
@@ -317,13 +320,25 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .serial-pane-label{color:var(--accent2);background:rgba(0,229,255,.05);border-bottom:1px solid rgba(0,229,255,.12);}
 .ocr-pane.mode-active .asset-pane-label{background:rgba(232,255,0,.16);border-bottom-color:rgba(232,255,0,.4);}
 .ocr-pane.mode-active .serial-pane-label{background:rgba(0,229,255,.14);border-bottom-color:rgba(0,229,255,.35);}
-.ocr-pane-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;cursor:crosshair;}
+.ocr-pane-canvas-wrap{flex:1;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;}
 .ocr-pane-canvas-wrap canvas{max-width:100%;max-height:100%;display:block;cursor:crosshair;}
 .ocr-pane-divider{width:1px;background:var(--border);flex-shrink:0;}
-.ocr-drop-hint{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;opacity:.4;pointer-events:none;}
-.ocr-drop-hint .drop-text{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);text-align:center;line-height:1.7;}
-.ocr-drop-hint .drop-icon{font-size:22px;}
-.ocr-pane-canvas-wrap.has-image .ocr-drop-hint{display:none;}
+.ocr-empty-pane{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.5rem;color:var(--muted);opacity:.4;pointer-events:none;text-align:center;padding:12px;}
+
+/* ── Folder Explorer ──────────────────────── */
+.ocr-folder-explorer{border-top:2px solid var(--border);display:flex;flex-direction:column;flex-shrink:0;height:220px;background:var(--surface);}
+.ocr-folder-explorer-header{display:flex;align-items:center;justify-content:space-between;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0;}
+.ocr-folder-list{flex:1;overflow-y:auto;padding:4px 5px;}
+.ocr-folder-item{display:flex;align-items:center;gap:6px;padding:5px 8px;border-radius:4px;border:1px solid var(--border);margin-bottom:3px;cursor:pointer;font-family:'Share Tech Mono',monospace;font-size:.56rem;transition:border-color .12s,background .12s;background:var(--surface2);}
+.ocr-folder-item:hover{border-color:var(--muted);}
+.ocr-folder-item.active{border-color:var(--ocr-accent);background:rgba(232,255,0,.06);color:var(--ocr-accent);}
+.ocr-folder-item .fi-name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.ocr-folder-item .fi-count{font-size:.46rem;color:var(--muted);flex-shrink:0;background:rgba(255,255,255,.07);padding:1px 5px;border-radius:8px;}
+.ocr-folder-item .fi-actions{display:flex;gap:2px;opacity:0;transition:opacity .12s;flex-shrink:0;}
+.ocr-folder-item:hover .fi-actions{opacity:1;}
+.ocr-folder-item .fi-btn{background:none;border:none;cursor:pointer;font-size:.56rem;padding:0 2px;color:var(--muted);}
+.ocr-folder-item .fi-btn:hover{color:var(--text);}
+.ocr-folder-item .fi-btn.danger:hover{color:var(--danger);}
 .ocr-overlay{position:absolute;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;font-family:'Share Tech Mono',monospace;font-size:.72rem;color:var(--ocr-accent);letter-spacing:.1em;pointer-events:none;opacity:0;transition:opacity .2s;z-index:10;}
 .ocr-overlay.visible{opacity:1;}
 .ocr-progress{height:2px;background:var(--border);flex-shrink:0;}
@@ -650,68 +665,45 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 
         <!-- OCR FULL-SCREEN OVERLAY -->
         <div class="mode-panel" id="panelOcr" style="position:fixed;inset:0;z-index:50;background:var(--bg);overflow:hidden;padding:0;display:none;flex-direction:column;">
+          <!-- OCR header -->
           <div style="display:flex;align-items:center;gap:10px;padding:6px 14px;border-bottom:1px solid var(--border);background:var(--surface);flex-shrink:0;flex-wrap:wrap;">
             <div style="font-family:'Share Tech Mono',monospace;font-size:.78rem;color:var(--ocr-accent);letter-spacing:3px;flex-shrink:0;">📷 OCR</div>
-            <!-- Session selector -->
             <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
-              <span style="font-family:'Share Tech Mono',monospace;font-size:.48rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Session</span>
-              <select id="ocrSessionSelect" onchange="ocrSwitchSession(this.value)" style="font-family:'Share Tech Mono',monospace;font-size:.58rem;background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:4px;padding:2px 5px;max-width:120px;cursor:pointer;"></select>
-              <button onclick="ocrNewSession()" class="btn-xs" style="font-size:.48rem;padding:2px 6px;" title="New session">+</button>
-              <button onclick="ocrRenameSession()" class="btn-xs" style="font-size:.48rem;padding:2px 6px;" title="Rename session">✎</button>
+              <span style="font-family:'Share Tech Mono',monospace;font-size:.44rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);">Folder:</span>
+              <span id="ocrActiveFolderName" style="font-family:'Share Tech Mono',monospace;font-size:.64rem;color:var(--ocr-accent);letter-spacing:1px;max-width:180px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">—</span>
             </div>
-            <!-- Mode toggle -->
             <div class="ocr-mode-toggle" id="ocrModeToggle">
               <button id="modeToggleSingle" class="omt-btn active" onclick="setOcrMode('single')">⬜ Single</button>
               <button id="modeToggleDual" class="omt-btn" onclick="setOcrMode('dual')">⬛⬛ Dual</button>
             </div>
-            <button class="btn" id="ocrPanelToggleBtn" onclick="toggleOcrTopPanel()" style="font-size:.52rem;padding:3px 8px;border-color:rgba(0,229,255,.3);">⊞ Pallets</button>
-            <div id="ocrActiveInfo" style="font-family:'Share Tech Mono',monospace;font-size:.6rem;display:flex;gap:8px;align-items:center;"></div>
-            <div style="margin-left:auto;display:flex;gap:6px;align-items:center;">
+            <div style="margin-left:auto;">
               <button class="btn btn-g" onclick="switchMode('scan')" style="font-size:.56rem;padding:4px 10px;">◀ Scan Mode</button>
-            </div>
-          </div>
-          <!-- Expandable top panel -->
-          <div class="ocr-top-panel collapsed" id="ocrTopPanel">
-            <div class="ocr-top-panel-inner">
-              <div class="ocr-panel-col">
-                <div class="ocr-panel-col-title">
-                  <span>Pallets</span>
-                  <button class="btn-xs" onclick="openPalletModal()" style="font-size:.5rem;padding:2px 5px;">+ New</button>
-                </div>
-                <div class="ocr-pallet-list-inline" id="ocrPalletListInline"></div>
-              </div>
-              <div class="ocr-panel-col">
-                <div class="ocr-panel-col-title">
-                  <span>Model Preset</span>
-                  <button class="btn-xs p" onclick="openPresetModal()" style="font-size:.5rem;padding:2px 5px;">+ New</button>
-                </div>
-                <input class="ocr-preset-search-inline" id="ocrPresetSearchInline" placeholder="Search presets…" oninput="renderOcrInlinePresets()">
-                <div class="ocr-preset-list-inline" id="ocrPresetListInline"></div>
-              </div>
             </div>
           </div>
           <!-- OCR body -->
           <div style="flex:1;overflow:hidden;display:flex;">
           <div class="ocr-layout" style="flex:1;height:100%;border:none;border-radius:0;">
-            <!-- Left: image thumbnails -->
+            <!-- Left: image queue + folder explorer -->
             <div class="ocr-images">
+              <!-- Queue header: active folder name + add images -->
               <div class="ocr-images-header">
-                <span id="ocrSidebarSessionLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">Images</span>
-                <label class="btn-xs" style="cursor:pointer;flex-shrink:0;">+<input type="file" id="ocrFileInput" multiple accept="image/*,.heic,.HEIC" style="display:none;"></label>
+                <span id="ocrSidebarFolderLabel" style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:'Share Tech Mono',monospace;font-size:.58rem;color:var(--ocr-accent);">No folder selected</span>
+                <label class="btn-xs" style="cursor:pointer;flex-shrink:0;" title="Add images to folder">+<input type="file" id="ocrFileInput" multiple accept="image/*,.heic,.HEIC" style="display:none;"></label>
               </div>
-              <!-- Dual mode: group offset control -->
-              <div class="ocr-offset-bar" id="ocrOffsetBar" style="display:none;">
-                <span>Pair start:</span>
-                <button onclick="adjustGroupOffset(-1)">◀</button>
-                <span class="ocr-offset-val" id="ocrOffsetVal">1</span>
-                <button onclick="adjustGroupOffset(1)">▶</button>
-                <span style="margin-left:4px;opacity:.6;">img # where AT begins</span>
-              </div>
+              <!-- Image queue for active folder -->
               <div class="ocr-thumb-list" id="ocrThumbList"
                 ondragover="event.preventDefault()" ondrop="ocrHandleDrop(event)"></div>
-              <div class="ocr-storage">
-                <span id="ocrStorageLabel">Storage: —</span>
-                <div class="ocr-storage-track"><div class="ocr-storage-fill" id="ocrStorageFill" style="width:0%"></div></div>
+              <!-- Folder explorer -->
+              <div class="ocr-folder-explorer">
+                <div class="ocr-folder-explorer-header">
+                  <span style="font-family:'Share Tech Mono',monospace;font-size:.46rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);">Folders</span>
+                  <button class="btn-xs" onclick="ocrNewFolder()" style="font-size:.44rem;padding:2px 6px;" title="New folder">+ New</button>
+                </div>
+                <div class="ocr-folder-list" id="ocrFolderList"></div>
+                <div class="ocr-storage">
+                  <span id="ocrStorageLabel">Storage: —</span>
+                  <div class="ocr-storage-track"><div class="ocr-storage-fill" id="ocrStorageFill" style="width:0%"></div></div>
+                </div>
               </div>
             </div>
 
@@ -722,6 +714,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
                 <span style="font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);letter-spacing:1px;text-transform:uppercase;">Draw for:</span>
                 <button class="draw-mode-btn" id="drawModeAssetBtn" onclick="setDrawMode('asset')">✏ Asset Tag</button>
                 <button class="draw-mode-btn" id="drawModeSerialBtn" onclick="setDrawMode('serial')">✏ Serial #</button>
+                <!-- Dual mode only: swap AT↔SN images -->
+                <button id="swapPanesBtn" onclick="swapPaneImages()" class="btn-xs" style="display:none;font-size:.5rem;padding:2px 8px;border-color:rgba(232,255,0,.3);color:var(--ocr-accent);" title="Swap AT and SN images">⇄ Switch AT/SN</button>
                 <span class="draw-mode-hint" id="drawModeHint">Select a mode then draw a box on the image</span>
               </div>
               <div class="ocr-toolbar" id="ocrToolbar">
@@ -731,26 +725,20 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
               <!-- Split canvas area -->
               <div class="ocr-split-area" id="ocrSplitArea">
                 <!-- Pane A: Asset Tag image -->
-                <div class="ocr-pane" id="ocrPaneAsset" onclick="setDrawMode('asset')">
+                <div class="ocr-pane" id="ocrPaneAsset" onclick="if(ocrCurrentPair.assetImageId)setDrawMode('asset')">
                   <div class="ocr-pane-label asset-pane-label" id="ocrPaneLabelAsset">AT — no image</div>
                   <div class="ocr-pane-canvas-wrap" id="ocrPaneAssetWrap">
-                    <div class="ocr-drop-hint" id="ocrDropA" ondragover="event.preventDefault()" ondrop="ocrHandleDrop(event)" onclick="event.stopPropagation();document.getElementById('ocrFileInput').click()">
-                      <div class="drop-icon" style="font-size:24px;">📷</div>
-                      <div class="drop-text">Drop or click<br>to add images</div>
-                    </div>
+                    <div class="ocr-empty-pane" id="ocrEmptyA">Select a folder &amp; image to begin</div>
                     <canvas id="ocrCanvasAsset" style="display:none;cursor:crosshair;"></canvas>
                   </div>
                 </div>
                 <!-- Divider -->
                 <div class="ocr-pane-divider" id="ocrPaneDivider"></div>
                 <!-- Pane B: Serial Number image -->
-                <div class="ocr-pane" id="ocrPaneSerial" onclick="setDrawMode('serial')">
+                <div class="ocr-pane" id="ocrPaneSerial" onclick="if(ocrCurrentPair.serialImageId)setDrawMode('serial')">
                   <div class="ocr-pane-label serial-pane-label" id="ocrPaneLabelSerial">SN — no image</div>
                   <div class="ocr-pane-canvas-wrap" id="ocrPaneSerialWrap">
-                    <div class="ocr-drop-hint" id="ocrDropB" ondragover="event.preventDefault()" ondrop="ocrHandleDrop(event)" onclick="event.stopPropagation();document.getElementById('ocrFileInput').click()">
-                      <div class="drop-icon" style="font-size:24px;">📷</div>
-                      <div class="drop-text">Drop or click<br>to add images</div>
-                    </div>
+                    <div class="ocr-empty-pane" id="ocrEmptyB"></div>
                     <canvas id="ocrCanvasSerial" style="display:none;cursor:crosshair;"></canvas>
                   </div>
                 </div>
@@ -776,7 +764,7 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
                   <div class="img-field-link" id="atImageLink"><div class="ifl-dot"></div><span id="atImageLinkText">no image linked</span></div>
                   <input type="text" id="atInput" placeholder="000000" maxlength="12"
                     oninput="ocrOnFieldInput('asset')" onblur="ocrValidateField('asset')"
-                    onclick="this.select();setDrawMode('asset')" autocomplete="off" spellcheck="false">
+                    onclick="setDrawMode('asset')" autocomplete="off" spellcheck="false">
                   <div class="field-error" id="atError"></div>
                   <div class="tav-row">
                     <button class="tav-btn" id="tavBtnAt" onclick="toggleTAV('asset')">TAV</button>
@@ -792,7 +780,7 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
                   <div class="img-field-link" id="snImageLink"><div class="ifl-dot"></div><span id="snImageLinkText">no image linked</span></div>
                   <input type="text" id="snInput" placeholder="A000000" maxlength="14"
                     oninput="ocrOnFieldInput('serial')" onblur="ocrValidateField('serial')"
-                    onclick="this.select();setDrawMode('serial')" autocomplete="off" spellcheck="false">
+                    onclick="setDrawMode('serial')" autocomplete="off" spellcheck="false">
                   <div class="field-error" id="snError"></div>
                   <div class="tav-row">
                     <button class="tav-btn" id="tavBtnSn" onclick="toggleTAV('serial')">TAV</button>
@@ -919,19 +907,17 @@ const SKIP='(F)';
 const FMT={asset:{re:/^\d{6}$/,hint:'6 digits'},serial:{re:/^[A-Z0-9]{7}$/i,hint:'7 alphanumeric'}};
 const tav={asset:{active:false,locked:false},serial:{active:false,locked:false}};
 
-let ocrImages=[], ocrActiveId=null;
+let ocrImages=[];
 let ocrWorker=null, ocrWorkerReady=false, ocrBusy=false;
 // OCR mode: 'single' | 'dual'
 let ocrMode='single';
-// Sessions: [{id, name, imageIds:[]}]
-let ocrSessions=[];
-let ocrActiveSessionId=null;
+// Buckets: [{id, name}] — simple named groups for image organisation
+let ocrBuckets=[];
+let ocrActiveBucketId=null;
 // currentPair tracks per-field image assignments:
 // { assetImageId, serialImageId, assetCrop, serialCrop }
 let ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
 let ocrSaveTimer=null;
-// Dual mode auto-grouping offset (which image index to start AT grouping)
-let ocrGroupOffset=0;
 // Dual canvas state — one per pane
 const ocrPanes={
   asset:{
@@ -951,7 +937,6 @@ const ocrPanes={
     get imageId(){ return ocrCurrentPair.serialImageId; }
   }
 };
-let ocrTopPanelOpen=false;
 let ocrImageHashes=new Set();
 let currentDrawMode=null;
 
@@ -977,52 +962,22 @@ function autoSetDrawMode(){
     const snVal=document.getElementById('snInput').value.trim();
     if(!atVal) setDrawMode('asset');
     else if(!snVal) setDrawMode('serial');
-    // Re-render pane so overlay label updates to match new mode
-    if(ocrMode==='single') renderPane(ocrPanes.asset);
+    // Re-render panes so overlay labels update to reflect new mode
+    renderPane(ocrPanes.asset);
+    if(ocrMode==='dual') renderPane(ocrPanes.serial);
   },0);
 }
 
 // ══════════════════════════════════════════════════════════
 //  OCR TOP PANEL
 // ══════════════════════════════════════════════════════════
-function toggleOcrTopPanel(){
-  ocrTopPanelOpen=!ocrTopPanelOpen;
-  const panel=document.getElementById('ocrTopPanel');
-  panel.classList.toggle('expanded',ocrTopPanelOpen);
-  panel.classList.toggle('collapsed',!ocrTopPanelOpen);
-  document.getElementById('ocrPanelToggleBtn').textContent=ocrTopPanelOpen?'⊟ Pallets & Presets':'⊞ Pallets & Presets';
-  if(ocrTopPanelOpen){renderOcrInlinePallets();renderOcrInlinePresets();}
-}
-function renderOcrInlinePallets(){
-  const list=document.getElementById('ocrPalletListInline');
-  const items=[...pallets,damagedPallet];
-  list.innerHTML=items.map(p=>{
-    const isActive=activePalletId===p.id;const isDmg=p.isDamaged;
-    const cls=isActive?(isDmg?'ocr-inline-item damaged-active':'ocr-inline-item active'):'ocr-inline-item';
-    const cnt=p.entries.filter(e=>e.type==='pair'||e.type==='ocr').length;
-    return `<div class="${cls}" onclick="selectPallet('${p.id}');updateOcrActiveInfo();renderOcrInlinePallets();">
-      <div class="ocr-inline-dot"></div>
-      <span style="flex:1;${isDmg?'color:var(--danger)':''}">${escHtml(p.name)}</span>
-      <span style="color:var(--muted);font-size:.55rem;">${cnt}</span>
-    </div>`;
-  }).join('');
-}
-function renderOcrInlinePresets(){
-  const list=document.getElementById('ocrPresetListInline');
-  const q=(document.getElementById('ocrPresetSearchInline')?.value||'').toLowerCase();
-  const all=getAllPresets();const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)):all;
-  list.innerHTML=filtered.map(p=>{
-    const isActive=activePresetId===p.id;const isDmg=p.isDamaged;
-    const cls=isActive?(isDmg?'ocr-inline-item damaged-active':'ocr-inline-item preset-active'):'ocr-inline-item';
-    return `<div class="${cls}" onclick="selectPreset('${p.id}');updateOcrActiveInfo();renderOcrInlinePresets();">
-      <div class="ocr-inline-dot"></div>
-      <span style="flex:1;${isDmg?'color:var(--danger)':''}">${escHtml(p.name)}</span>
-      ${!p.weight&&!isDmg?'<span style="color:var(--warn);font-size:.55rem;">⚠</span>':''}
-    </div>`;
-  }).join('');
-}
+function toggleOcrTopPanel(){} // removed
+
+
 function updateOcrActiveInfo(){
+  updateActiveFolderLabel();
   const el=document.getElementById('ocrActiveInfo');
+  if(!el)return;
   const pallet=getActivePallet();const preset=getActivePreset();
   let html='';
   if(pallet)html+=`<span style="background:rgba(0,229,255,.07);border:1px solid rgba(0,229,255,.2);border-radius:4px;padding:2px 8px;font-size:.65rem;">📦 ${escHtml(pallet.name.toUpperCase())}</span>`;
@@ -1041,13 +996,13 @@ function switchMode(mode){
   const btn=document.getElementById('ocrToggleBtn');
   if(btn){btn.style.background=mode==='ocr'?'rgba(232,255,0,.15)':'';btn.style.borderColor=mode==='ocr'?'rgba(232,255,0,.4)':'';btn.textContent=mode==='ocr'?'✕ Close OCR':'📷 OCR Mode';}
   if(mode==='ocr'){
-    updateOcrActiveInfo();
+    updateActiveFolderLabel();
     // Invalidate caches — panel was display:none during init so dimensions were zero
     Object.values(ocrPanes).forEach(p=>{p.cachedImg=null;p.cachedImgId=null;});
     renderBothPanes();
-    autoSetDrawMode();
+    autoSetDrawMode();  // sets AT by default, advances as fields fill
     renderOcrPairsList();
-    if(ocrTopPanelOpen){renderOcrInlinePallets();renderOcrInlinePresets();}
+    renderOcrThumbList();
   }
   else renderPresetBar();
 }
@@ -1097,11 +1052,11 @@ function ocrOnFieldInput(field){ocrValidateField(field);updateOcrPreview(field);
 // ══════════════════════════════════════════════════════════
 // OCR TAV
 function toggleTAV(f){if(tav[f].locked)return;tav[f].active=!tav[f].active;updateTAVUI(f);ocrValidateField(f);}
-function toggleTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);ocrValidateField(f);ocrScheduleSave();}
+function toggleTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);ocrValidateField(f);saveBuckets();}
 function resetTAV(f){if(!tav[f].locked){tav[f].active=false;updateTAVUI(f);}}
 // Scan TAV — shares same tav state, updates both scan and OCR UI
 function toggleScanTAV(f){if(tav[f].locked)return;tav[f].active=!tav[f].active;updateTAVUI(f);updateScanTAVUI(f);updateBypassUI();}
-function toggleScanTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);updateScanTAVUI(f);ocrScheduleSave();updateBypassUI();}
+function toggleScanTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);updateScanTAVUI(f);saveBuckets();updateBypassUI();}
 function updateScanTAVUI(f){
   const t=tav[f];
   const btn=document.getElementById(f==='asset'?'scanTavBtnAt':'scanTavBtnSn');
@@ -1141,22 +1096,20 @@ function setOcrMode(mode){
   // Show/hide dual-only UI
   const divider=document.getElementById('ocrPaneDivider');
   const serialPane=document.getElementById('ocrPaneSerial');
-  const offsetBar=document.getElementById('ocrOffsetBar');
   if(mode==='single'){
     if(divider)divider.style.display='none';
     if(serialPane)serialPane.style.display='none';
-    if(offsetBar)offsetBar.style.display='none';
 
     // Single mode: serial always mirrors asset image
     if(ocrCurrentPair.assetImageId) ocrCurrentPair.serialImageId=ocrCurrentPair.assetImageId;
   }else{
     if(divider)divider.style.display='';
     if(serialPane)serialPane.style.display='';
-    if(offsetBar)offsetBar.style.display='flex';
     applyDualGrouping();
   }
   renderBothPanes();
   renderOcrThumbList();
+  autoSetDrawMode(); // always start on AT after mode switch, advance as fields fill
   // Save preference
   if(db)dbPut('session',{key:'ocrMode',value:mode}).catch(()=>{});
 }
@@ -1164,16 +1117,6 @@ function setOcrMode(mode){
 // ══════════════════════════════════════════════════════════
 //  DUAL MODE GROUP OFFSET
 // ══════════════════════════════════════════════════════════
-function adjustGroupOffset(delta){
-  const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
-  const max=Math.max(0,sorted.length-1);
-  ocrGroupOffset=Math.max(0,Math.min(max,ocrGroupOffset+delta));
-  document.getElementById('ocrOffsetVal').textContent=ocrGroupOffset+1;
-  applyDualGrouping();
-  renderBothPanes();
-  renderOcrThumbList();
-}
-
 // In dual mode, auto-assign AT/SN panes from the current group pair at offset
 function applyDualGrouping(){
   if(ocrMode!=='dual')return;
@@ -1185,7 +1128,7 @@ function applyDualGrouping(){
   const unfinalized=sorted.filter(i=>!finalizedIds.has(i.id));
   if(!unfinalized.length)return;
   // Apply offset within unfinalized images
-  const idx=Math.min(ocrGroupOffset,Math.max(0,unfinalized.length-1));
+  const idx=0;
   const atImg=unfinalized[idx];
   const snImg=unfinalized[idx+1]||null; // null if no second image — never same as AT in dual mode
   ocrCurrentPair.assetImageId=atImg?atImg.id:null;
@@ -1197,104 +1140,196 @@ function applyDualGrouping(){
 // After finalizing a pair in dual mode, advance to next unfinalized pair
 function advanceDualGroup(){
   if(ocrMode!=='dual')return;
-  ocrGroupOffset=0; // reset — applyDualGrouping skips finalized, so next pair comes up
   applyDualGrouping();
-  document.getElementById('ocrOffsetVal').textContent=ocrGroupOffset+1;
 }
 
 // ══════════════════════════════════════════════════════════
-//  SESSION MANAGEMENT
+//  FOLDER MANAGEMENT (session-based image groups)
 // ══════════════════════════════════════════════════════════
-async function ocrLoadSessions(){
+// Folders live in IndexedDB under 'ocrFolders' key (session-based — clear all wipes them)
+// Each folder: {id, name}
+// Each image record: {id, name, blob, hash, folderId}
+
+async function ocrLoadFolders(){
   if(!db)return;
   try{
-    const rows=await dbGetAll('sessions');
-    ocrSessions=rows.sort((a,b)=>a.name.localeCompare(b.name));
-    if(!ocrSessions.length){
-      // Create default session
-      const s={id:'session_'+Date.now(),name:'Default',imageIds:[],createdAt:Date.now()};
-      ocrSessions=[s];
-      await dbPut('sessions',s);
+    const rec=await dbGet('session','ocrFolders').catch(()=>null);
+    ocrBuckets=rec?.value||[];
+    if(!ocrBuckets.length){
+      const def={id:'folder_'+Date.now(),name:'Folder 1'};
+      ocrBuckets=[def];
     }
-    // Restore last active session
-    const lastRec=await dbGet('session','activeSession').catch(()=>null);
+    const lastRec=await dbGet('session','ocrActiveFolder').catch(()=>null);
     const lastId=lastRec?.value;
-    ocrActiveSessionId=(lastId&&ocrSessions.find(s=>s.id===lastId))?lastId:ocrSessions[0].id;
-    renderSessionSelect();
-  }catch(e){console.warn('Session load error',e);}
+    ocrActiveBucketId=(lastId&&ocrBuckets.find(b=>b.id===lastId))?lastId:ocrBuckets[0].id;
+    renderFolderList();
+    updateActiveFolderLabel();
+  }catch(e){console.warn('Folder load error',e);}
 }
 
-function renderSessionSelect(){
-  const sel=document.getElementById('ocrSessionSelect');
-  if(!sel)return;
-  sel.innerHTML=ocrSessions.map(s=>`<option value="${s.id}"${s.id===ocrActiveSessionId?' selected':''}>${escHtml(s.name)}</option>`).join('');
-  const active=ocrSessions.find(s=>s.id===ocrActiveSessionId);
-  const lbl=document.getElementById('ocrSidebarSessionLabel');
-  if(lbl)lbl.textContent=active?active.name:'Images';
+async function saveFolders(){
+  if(db){
+    await dbPut('session',{key:'ocrFolders',value:ocrBuckets}).catch(()=>{});
+    await dbPut('session',{key:'ocrActiveFolder',value:ocrActiveBucketId}).catch(()=>{});
+  }
 }
 
-async function ocrNewSession(){
-  const name=prompt('Session name (e.g. Desktop, Warehouse A):');
+function updateActiveFolderLabel(){
+  const active=ocrBuckets.find(b=>b.id===ocrActiveBucketId);
+  const name=active?active.name:'—';
+  const h=document.getElementById('ocrActiveFolderName');
+  const s=document.getElementById('ocrSidebarFolderLabel');
+  if(h)h.textContent=name;
+  if(s)s.textContent=name;
+}
+
+function renderFolderList(){
+  const list=document.getElementById('ocrFolderList');
+  if(!list)return;
+  if(!ocrBuckets.length){
+    list.innerHTML='<div style="color:var(--muted);font-family:Share Tech Mono,monospace;font-size:.5rem;padding:8px;text-align:center;opacity:.6;">No folders yet</div>';
+    return;
+  }
+  list.innerHTML='';
+  ocrBuckets.forEach(folder=>{
+    const imgCount=ocrImages.filter(i=>i.bucketId===folder.id).length;
+    const isActive=folder.id===ocrActiveBucketId;
+    const item=document.createElement('div');
+    item.className='ocr-folder-item'+(isActive?' active':'');
+
+    const icon=document.createElement('span');
+    icon.textContent=isActive?'📂':'📁';
+    item.appendChild(icon);
+
+    const name=document.createElement('span');
+    name.className='fi-name';name.textContent=folder.name;
+    item.appendChild(name);
+
+    const count=document.createElement('span');
+    count.className='fi-count';count.textContent=imgCount;
+    item.appendChild(count);
+
+    const actions=document.createElement('div');
+    actions.className='fi-actions';
+
+    const addBtn=document.createElement('button');
+    addBtn.className='fi-btn';addBtn.textContent='📥';addBtn.title='Add images to this folder';
+    addBtn.onclick=ev=>{
+      ev.stopPropagation();
+      // Switch to this folder first, then trigger file picker
+      ocrSwitchFolder(folder.id).then(()=>{
+        document.getElementById('ocrFileInput').click();
+      });
+    };
+
+    const renameBtn=document.createElement('button');
+    renameBtn.className='fi-btn';renameBtn.textContent='✎';renameBtn.title='Rename';
+    renameBtn.onclick=ev=>{ev.stopPropagation();ocrRenameFolder(folder.id);};
+
+    const delBtn=document.createElement('button');
+    delBtn.className='fi-btn danger';delBtn.textContent='🗑';delBtn.title='Delete folder';
+    delBtn.onclick=ev=>{ev.stopPropagation();ocrDeleteFolder(folder.id);};
+
+    actions.appendChild(addBtn);actions.appendChild(renameBtn);actions.appendChild(delBtn);
+    item.appendChild(actions);
+
+    item.addEventListener('click',()=>ocrSwitchFolder(folder.id));
+    list.appendChild(item);
+  });
+}
+
+async function ocrNewFolder(){
+  const name=prompt('Folder name (e.g. Dell Latitude 5420):');
   if(!name||!name.trim())return;
-  const s={id:'session_'+Date.now()+'_'+Math.random().toString(36).slice(2),name:name.trim(),imageIds:[],createdAt:Date.now()};
-  ocrSessions.push(s);
-  ocrSessions.sort((a,b)=>a.name.localeCompare(b.name));
-  if(db)await dbPut('sessions',s).catch(()=>{});
-  ocrActiveSessionId=s.id;
-  if(db)await dbPut('session',{key:'activeSession',value:s.id}).catch(()=>{});
-  // Clear current images — new session starts empty
+  const f={id:'folder_'+Date.now()+'_'+Math.random().toString(36).slice(2),name:name.trim()};
+  ocrBuckets.push(f);
+  ocrActiveBucketId=f.id;
+  await saveFolders();
+  // Clear working area for new folder
   ocrImages=[];
   ocrImageHashes=new Set();
   ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
-  ocrGroupOffset=0;
-  renderSessionSelect();
+  Object.values(ocrPanes).forEach(p=>{p.cachedImg=null;p.cachedImgId=null;});
+  renderFolderList();
+  updateActiveFolderLabel();
   renderOcrThumbList();
   renderBothPanes();
   ocrClearPair();
+  renderOcrPairsList();
 }
 
-async function ocrRenameSession(){
-  const active=ocrSessions.find(s=>s.id===ocrActiveSessionId);
-  if(!active)return;
-  const name=prompt('New name for session:',active.name);
+async function ocrRenameFolder(folderId){
+  const folder=ocrBuckets.find(b=>b.id===folderId);
+  if(!folder)return;
+  const name=prompt('Rename folder:',folder.name);
   if(!name||!name.trim())return;
-  active.name=name.trim();
-  ocrSessions.sort((a,b)=>a.name.localeCompare(b.name));
-  if(db)await dbPut('sessions',active).catch(()=>{});
-  renderSessionSelect();
+  folder.name=name.trim();
+  await saveFolders();
+  renderFolderList();
+  updateActiveFolderLabel();
 }
 
-async function ocrSwitchSession(sessionId){
-  if(sessionId===ocrActiveSessionId)return;
-  ocrActiveSessionId=sessionId;
-  if(db)await dbPut('session',{key:'activeSession',value:sessionId}).catch(()=>{});
-  // Load images for this session
-  await ocrLoadSessionImages();
-  renderSessionSelect();
+async function ocrDeleteFolder(folderId){
+  if(ocrBuckets.length<=1){alert('Cannot delete the only folder. Create another first.');return;}
+  const folder=ocrBuckets.find(b=>b.id===folderId);
+  if(!confirm('Delete folder "'+folder?.name+'"? All images in this folder will be removed. Saved pairs are kept.'))return;
+  if(db){
+    const allImgs=await dbGetAll('images').catch(()=>[]);
+    for(const img of allImgs){
+      if((img.bucketId||ocrBuckets[0].id)===folderId) await dbDelete('images',img.id).catch(()=>{});
+    }
+  }
+  ocrBuckets=ocrBuckets.filter(b=>b.id!==folderId);
+  if(ocrActiveBucketId===folderId) ocrActiveBucketId=ocrBuckets[0].id;
+  await saveFolders();
+  await ocrLoadFolderImages();
+  renderFolderList();
+  updateActiveFolderLabel();
 }
 
-async function ocrLoadSessionImages(){
+async function ocrSwitchFolder(folderId){
+  if(folderId===ocrActiveBucketId)return;
+  ocrActiveBucketId=folderId;
+  await saveFolders();
+  await ocrLoadFolderImages();
+  renderFolderList();
+  updateActiveFolderLabel();
+  renderOcrPairsList();
+}
+
+async function ocrLoadFolderImages(){
   if(!db)return;
-  const session=ocrSessions.find(s=>s.id===ocrActiveSessionId);
-  if(!session)return;
-  // Load images that belong to this session
   ocrImages=[];
   ocrImageHashes=new Set();
   const allImgs=await dbGetAll('images').catch(()=>[]);
   for(const rec of allImgs){
-    if((rec.sessionId||'default')===ocrActiveSessionId||(ocrActiveSessionId===ocrSessions[0]?.id&&!rec.sessionId)){
+    const imgFolder=rec.bucketId||ocrBuckets[0]?.id;
+    if(imgFolder===ocrActiveBucketId){
       const dataUrl=await blobToDataUrl(rec.blob);
-      ocrImages.push({id:rec.id,name:rec.name,blob:rec.blob,dataUrl,hash:rec.hash||'',sessionId:rec.sessionId||ocrActiveSessionId});
+      ocrImages.push({id:rec.id,name:rec.name,blob:rec.blob,dataUrl,hash:rec.hash||'',bucketId:imgFolder});
       if(rec.hash)ocrImageHashes.add(rec.hash);
     }
   }
   ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
-  ocrGroupOffset=0;
   if(ocrMode==='dual') applyDualGrouping();
   else if(ocrImages.length){ocrCurrentPair.assetImageId=ocrImages[0].id;ocrCurrentPair.serialImageId=ocrImages[0].id;}
+  Object.values(ocrPanes).forEach(p=>{p.cachedImg=null;p.cachedImgId=null;});
   renderOcrThumbList();
   renderBothPanes();
   ocrClearPair();
+}
+
+// Dual mode only: swap which image is AT vs SN
+function swapPaneImages(){
+  if(ocrMode!=='dual')return;
+  const tmp=ocrCurrentPair.assetImageId;
+  ocrCurrentPair.assetImageId=ocrCurrentPair.serialImageId;
+  ocrCurrentPair.serialImageId=tmp;
+  ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+  ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+  renderBothPanes();
+  renderOcrThumbList();
+  updateFieldImageLinks();
 }
 
 // ══════════════════════════════════════════════════════════
@@ -1303,8 +1338,8 @@ async function ocrLoadSessionImages(){
 async function initOcr(){
   initPanes();
   try{await openDB();}catch(e){console.warn('DB open failed',e);}
-  await ocrLoadSessions();
-  await ocrRestoreSession();
+  await ocrLoadFolders();
+  await ocrLoadFolderImages();
   await updateOcrStorage();
   updateAllTAVUI();
   // Restore mode preference
@@ -1342,10 +1377,7 @@ function loadTesseractScript(){
 //  OCR SESSION
 // ══════════════════════════════════════════════════════════
 function ocrScheduleSave(){clearTimeout(ocrSaveTimer);ocrSaveTimer=setTimeout(ocrSaveSession,900);}
-async function ocrSaveSession(){
-  if(!db)return;
-  try{await dbPut('session',{key:'tav',value:{asset:{locked:tav.asset.locked},serial:{locked:tav.serial.locked}}});}catch(e){}
-}
+
 async function ocrRestoreSession(){
   if(!db)return;
   try{
@@ -1385,9 +1417,9 @@ async function ocrHandleFiles(fileList){
     ocrImageHashes.add(hash);
     const id='img_'+Date.now()+'_'+Math.random().toString(36).slice(2);
     const dataUrl=await blobToDataUrl(blob);
-    const entry={id,name:file.name,blob,dataUrl,hash,sessionId:ocrActiveSessionId};
+    const entry={id,name:file.name,blob,dataUrl,hash,bucketId:ocrActiveBucketId};
     ocrImages.push(entry);
-    if(db)await dbPut('images',{id,name:file.name,blob,hash,sessionId:ocrActiveSessionId}).catch(()=>{});
+    if(db)await dbPut('images',{id,name:file.name,blob,hash,bucketId:ocrActiveBucketId}).catch(()=>{});
   }
   renderOcrThumbList();
   if(ocrMode==='dual'){
@@ -1405,7 +1437,7 @@ async function ocrHandleFiles(fileList){
   }
   renderBothPanes();
   if(dupCount>0)alert(`${dupCount} duplicate image${dupCount>1?'s were':' was'} skipped.`);
-  updateOcrStorage();ocrScheduleSave();
+  updateOcrStorage();saveBuckets();
 }
 let heic2anyLoaded=null;
 async function loadHeic2Any(){
@@ -1492,8 +1524,7 @@ async function deleteOcrImage(id){
     }
 
     // Select next image or clear canvas
-    if(ocrActiveId===id){
-      ocrActiveId=null;
+    {
       if(ocrImages.length>0){
         selectOcrImage(ocrImages[Math.min(imgIdx,ocrImages.length-1)].id);
       }else{
@@ -1516,7 +1547,6 @@ async function deleteOcrImage(id){
 //  OCR CANVAS (manual draw only — no auto bounding boxes)
 // ══════════════════════════════════════════════════════════
 function selectOcrImage(id){
-  ocrActiveId=id;
   if(ocrMode==='single'){
     // Single mode: both panes always show same image
     ocrCurrentPair.assetImageId=id;
@@ -1536,53 +1566,11 @@ function selectOcrImage(id){
     setDrawMode(field);
   }
   renderBothPanes();
-  updateThumbHighlights();
+  renderOcrThumbList();
   updateFieldImageLinks();
 }
 
-// Update thumb borders and field badges in-place — no DOM rebuild, no reorder
-function updateThumbHighlights(){
-  const wraps=document.querySelectorAll('#ocrThumbList .thumb-wrapper');
-  if(!wraps.length)return;
-  const allOcrEntries=[...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr'));
-  const imgToEntry=new Map();
-  allOcrEntries.forEach(e=>(e.imageIds||[]).forEach(id=>{if(!imgToEntry.has(id))imgToEntry.set(id,e);}));
 
-  wraps.forEach(wrap=>{
-    const id=wrap.dataset.id;
-    const thumb=wrap.querySelector('.image-thumb');
-    if(!thumb)return;
-
-    // Border state
-    thumb.className='image-thumb';
-    const e=imgToEntry.get(id);
-    const isAt=ocrCurrentPair.assetImageId===id;
-    const isSn=ocrCurrentPair.serialImageId===id;
-    if(e){
-      const hasAt=e.asset!==SKIP,hasSn=e.serial!==SKIP;
-      if(hasAt&&hasSn)thumb.classList.add('assigned-both');
-      else if(hasAt)thumb.classList.add('assigned-asset');
-      else thumb.classList.add('assigned-serial');
-    } else if(isAt&&isSn){
-      thumb.classList.add('active-both');
-    } else if(isAt){
-      thumb.classList.add('active-asset');
-    } else if(isSn){
-      thumb.classList.add('active-serial');
-    }
-
-    // Field badges — remove old, add fresh
-    wrap.querySelectorAll('.thumb-field-badge').forEach(b=>b.remove());
-    if(!e){
-      if(isAt||isSn){
-        const b=document.createElement('div');
-        b.className='thumb-field-badge '+(isAt&&isSn?'for-both':isAt?'for-asset':'for-serial');
-        b.textContent=isAt&&isSn?'AT+SN':isAt?'AT':'SN';
-        wrap.appendChild(b);
-      }
-    }
-  });
-}
 
 function findOcrEntryForImage(imgId){
   for(const p of [...pallets,damagedPallet]){
@@ -1677,21 +1665,26 @@ function initPanes(){
 }
 
 function renderBothPanes(){
+  // Keep pane imageId in sync with ocrCurrentPair before every render
+  ocrPanes.asset.imageId=ocrCurrentPair.assetImageId||null;
+  ocrPanes.serial.imageId=ocrCurrentPair.serialImageId||null;
   renderPane(ocrPanes.asset);
   renderPane(ocrPanes.serial);
   updatePaneLabels();
-  updateThumbHighlights();
 }
 
 function renderPane(p, overlayOnly){
+  // Always resolve from ocrCurrentPair — p.imageId may be stale
+  p.imageId = p.field==='asset' ? ocrCurrentPair.assetImageId : ocrCurrentPair.serialImageId;
   const imgId=p.imageId;
   const img=imgId?ocrImages.find(i=>i.id===imgId):null;
   const wrap=document.getElementById(p.wrapId);
-  if(!img){p.canvas.style.display='none';wrap.classList.remove('has-image');return;}
-  p.canvas.style.display='block';wrap.classList.add('has-image');
+  const emptyEl=document.getElementById(p.field==='asset'?'ocrEmptyA':'ocrEmptyB');
+  if(!img){p.canvas.style.display='none';wrap.classList.remove('has-image');if(emptyEl)emptyEl.style.display='flex';return;}
+  p.canvas.style.display='block';wrap.classList.add('has-image');if(emptyEl)emptyEl.style.display='none';
 
   function drawOverlay(){
-    const activeField=(ocrMode==='single'&&currentDrawMode)?currentDrawMode:p.field;
+    const activeField=currentDrawMode||p.field;
     const color=activeField==='asset'?'rgba(232,255,0,.85)':'rgba(0,229,255,.85)';
     p.ctx.fillStyle=color;p.ctx.font='bold 10px Share Tech Mono, monospace';
     p.ctx.fillText(activeField==='asset'?'▸ ASSET TAG':'▸ SERIAL #',5,14);
@@ -1722,7 +1715,7 @@ function renderPane(p, overlayOnly){
 function drawPaneRect(p){
   if(!p.drawRect)return;
   const{x0,y0,x1,y1}=p.drawRect;const s=p.scale;
-  const activeField=(ocrMode==='single'&&currentDrawMode)?currentDrawMode:p.field;
+  const activeField=currentDrawMode||p.field;
   const color=activeField==='asset'?'#e8ff00':'#00e5ff';
   p.ctx.save();p.ctx.strokeStyle=color;p.ctx.lineWidth=2;p.ctx.setLineDash([5,3]);
   p.ctx.strokeRect(x0*s,y0*s,(x1-x0)*s,(y1-y0)*s);
@@ -1750,11 +1743,11 @@ function updatePaneLabels(){
 
 function attachPaneEvents(p){
   const c=p.canvas;
-  // Only force draw mode on click in dual mode — in single mode the toolbar buttons control it
-  c.addEventListener('click',()=>{ if(ocrMode==='dual') setDrawMode(p.field); });
+  // Toolbar draw-mode buttons (AT / SN) control which field you draw for.
+  // Drawing on a pane does NOT force-switch the field — pick AT or SN first, draw on either image.
   c.addEventListener('mousedown',e=>{
     if(!p.imageId)return;
-    if(ocrMode==='dual') setDrawMode(p.field);
+    if(!currentDrawMode) setDrawMode('asset'); // default if nothing selected yet
     p.pointerDown=true;p.didDrag=false;p.drawRect=null;p.pointerStart=paneXY(p,e);
   });
   c.addEventListener('mousemove',e=>{
@@ -1779,7 +1772,7 @@ function attachPaneEvents(p){
         document.getElementById('selPreview').textContent='OCR engine loading -- try again in a moment.';
         p.drawRect=null;renderPane(p);p.didDrag=false;return;
       }
-      const field=(ocrMode==='single'&&currentDrawMode)?currentDrawMode:p.field;
+      const field=currentDrawMode||p.field;
       const{x0,y0,x1,y1}=p.drawRect;
       const cw=Math.round(x1-x0),ch=Math.round(y1-y0);
       if(cw<4||ch<4){p.drawRect=null;p.didDrag=false;return;}
@@ -1797,7 +1790,7 @@ function attachPaneEvents(p){
           document.getElementById(field==='asset'?'atInput':'snInput').value=text;
           if(field==='asset'){ocrCurrentPair.assetImageId=imgId;ocrCurrentPair.assetCrop=cc;updateOcrPreview('asset');}
           else{ocrCurrentPair.serialImageId=imgId;ocrCurrentPair.serialCrop=cc;updateOcrPreview('serial');}
-          ocrOnFieldInput(field);updateFieldImageLinks();updateThumbHighlights();updatePaneLabels();
+          ocrOnFieldInput(field);updateFieldImageLinks();renderOcrThumbList();updatePaneLabels();
           const atV=document.getElementById('atInput').value.trim();
           const snV=document.getElementById('snInput').value.trim();
           if(atV&&snV){document.getElementById('selPreview').textContent='AT: '+atV+' | SN: '+snV;setOcrStatus('ready','AT: '+atV+' / SN: '+snV+' — press Save Pair');}
@@ -1893,7 +1886,8 @@ function ocrFinalizePair(){
       assetImageId:ocrCurrentPair.assetImageId,
       serialImageId:ocrCurrentPair.serialImageId,
       bypassAsset:tav.asset.active,bypassSerial:tav.serial.active,
-      isDamaged,storageNone:!storageLogDefault
+      isDamaged,storageNone:!storageLogDefault,
+      bucketId:ocrActiveBucketId
     };
     if(atVal!==SKIP)globalAssetTags.add(atVal);
     if(snVal!==SKIP)globalSerials.add(snVal);
@@ -1950,15 +1944,19 @@ function ocrClearPair(){
   drawRect=null;
   autoSetDrawMode();
   renderOcrCanvas();
-  updateThumbHighlights();
+  renderOcrThumbList();
 }
 
 function renderOcrPairsList(){
   const list=document.getElementById('ocrPairsList');
   const allOcr=[...pallets,damagedPallet].flatMap(p=>p.entries.filter(e=>e.type==='ocr').map(e=>({...e,palletName:p.name})));
-  document.getElementById('ocrPairsCount').textContent=allOcr.length;
-  if(!allOcr.length){list.innerHTML='<div style="color:var(--muted);font-family:Share Tech Mono,monospace;font-size:.58rem;padding:8px;">No OCR pairs yet</div>';return;}
-  list.innerHTML=allOcr.slice().reverse().map(e=>`<div class="ocr-pair-card">
+  // Filter to current bucket — if no bucket loaded yet, show all
+  const sessionOcr=ocrActiveBucketId
+    ? allOcr.filter(e=>e.bucketId===ocrActiveBucketId||(!e.bucketId&&ocrActiveBucketId==='bucket_default'))
+    : allOcr;
+  document.getElementById('ocrPairsCount').textContent=sessionOcr.length;
+  if(!sessionOcr.length){list.innerHTML='<div style="color:var(--muted);font-family:Share Tech Mono,monospace;font-size:.58rem;padding:8px;">No OCR pairs yet</div>';return;}
+  list.innerHTML=sessionOcr.slice().reverse().map(e=>`<div class="ocr-pair-card">
     <div><div class="opc-at">AT: ${escHtml(e.asset)}</div><div class="opc-sn">SN: ${escHtml(e.serial)}</div><div class="opc-pallet">📦 ${escHtml(e.palletName)}</div></div>
     <div style="display:flex;flex-direction:column;gap:3px;align-items:flex-end;">
       <span class="opc-edit" onclick="editOcrEntry('${e.id}')">✎</span>
@@ -1978,269 +1976,209 @@ function addOcrThumb(img){
 function updateOcrThumbBadges(){ renderOcrThumbList(); }
 function updateThumbFieldBadges(){ renderOcrThumbList(); }
 
-// Track which thumb groups are collapsed (by a stable key)
-const collapsedGroups=new Set();
-function toggleThumbGroup(key){
-  if(collapsedGroups.has(key)) collapsedGroups.delete(key);
-  else collapsedGroups.add(key);
-  renderOcrThumbList();
-}
-
-// Build the complete thumb list with grouping
+// Build the queue — numbered cards, clear pending/active/done states
 function renderOcrThumbList(){
   const list=document.getElementById('ocrThumbList');
   list.innerHTML='';
 
-  // Sort images by filename (natural sort so photo_9 comes before photo_10)
-  const sortedImages=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
-
-  // Gather all finalized OCR entries for lookup
-  const allOcrEntries=[...pallets,damagedPallet].flatMap(p=>
-    p.entries.filter(e=>e.type==='ocr').map(e=>({...e,palletName:p.name,palletObj:p}))
-  );
-
-  // Build a map: imageId → finalized entry (if any)
-  const imgToEntry=new Map();
-  allOcrEntries.forEach(e=>{
-    (e.imageIds||[]).forEach(id=>{ if(!imgToEntry.has(id)) imgToEntry.set(id,e); });
-  });
-
-  // Build groups — each group is an array of image ids that belong together
-  // Rules:
-  //   • In-progress pair: deduplicated [assetImageId, serialImageId]
-  //     - same image for both → 1 id, show AT+SN badge
-  //     - different images   → 2 ids, show AT / SN badges separately
-  //   • Finalized pair: all imageIds in that entry (1 or 2)
-  //   • Unassigned: solo (no wrapper)
-  const grouped=[];
-  const placed=new Set();
-
-  // 1. In-progress pair group
-  const ipRaw=[ocrCurrentPair.assetImageId,ocrCurrentPair.serialImageId].filter(Boolean);
-  const ipIds=[...new Set(ipRaw)]; // deduplicated
-  const ipSameImage=ipRaw.length===2&&ipRaw[0]===ipRaw[1]; // both fields → same image
-  if(ipIds.length){
-    grouped.push({type:'inprogress',ids:ipIds,sameImage:ipSameImage});
-    ipIds.forEach(id=>placed.add(id));
+  const sorted=[...ocrImages].sort((a,b)=>a.name.localeCompare(b.name,undefined,{numeric:true,sensitivity:'base'}));
+  if(!sorted.length){
+    const emptyDiv=document.createElement('div');
+    emptyDiv.style.cssText='display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;height:140px;border:2px dashed rgba(255,255,255,.1);border-radius:5px;cursor:pointer;transition:border-color .15s;';
+    emptyDiv.innerHTML='<div style="font-size:22px;opacity:.5;">📷</div><div style="font-family:Share Tech Mono,monospace;font-size:.5rem;color:var(--muted);text-align:center;line-height:1.8;opacity:.7;">Drop images here<br>or click 📥 on a folder</div>';
+    emptyDiv.ondragover=ev=>{ev.preventDefault();emptyDiv.style.borderColor='var(--ocr-accent)';};
+    emptyDiv.ondragleave=()=>{emptyDiv.style.borderColor='';};
+    emptyDiv.ondrop=ev=>{ev.preventDefault();emptyDiv.style.borderColor='';ocrHandleFiles(ev.dataTransfer.files);};
+    emptyDiv.onclick=()=>document.getElementById('ocrFileInput').click();
+    list.appendChild(emptyDiv);
+    return;
   }
 
-  // 2. Finalized pair groups (in sorted order)
+  // Build imageId → finalized entry map
+  const allOcrEntries=[...pallets,damagedPallet].flatMap(p=>
+    p.entries.filter(e=>e.type==='ocr').map(e=>({...e,palletName:p.name}))
+  );
+  const imgToEntry=new Map();
+  allOcrEntries.forEach(e=>(e.imageIds||[]).forEach(id=>{if(!imgToEntry.has(id))imgToEntry.set(id,e);}));
+
+  // Build queue items — each item is one or two images depending on mode
+  const items=[]; // [{ids:[id,...], entry|null}]
+  const placed=new Set();
+
+  // All finalized entries first (preserving sort order of first image)
   const seenEntries=new Set();
-  sortedImages.forEach(img=>{
-    if(placed.has(img.id))return;
+  sorted.forEach(img=>{
     const e=imgToEntry.get(img.id);
     if(e&&!seenEntries.has(e.id)){
       seenEntries.add(e.id);
       const ids=(e.imageIds||[img.id]).filter(id=>ocrImages.find(i=>i.id===id));
       const dedupIds=[...new Set(ids)];
-      const sameImage=dedupIds.length===1&&e.asset!==SKIP&&e.serial!==SKIP;
-      grouped.push({type:'finalized',ids:dedupIds,entry:e,sameImage});
+      items.push({ids:dedupIds,entry:e});
       dedupIds.forEach(id=>placed.add(id));
-    } else if(e){
-      placed.add(img.id);
-    }
+    } else if(e){placed.add(img.id);}
   });
 
-  // 3. Solo/auto-pair unassigned images (sorted)
+  // Unassigned images — pair up in dual mode
+  const unplaced=sorted.filter(i=>!placed.has(i.id));
   if(ocrMode==='dual'){
-    // Auto-group consecutive unfinalized images as pairs: [0+1, 2+3, ...]
-    const unplaced=sortedImages.filter(i=>!placed.has(i.id));
     for(let i=0;i<unplaced.length;i+=2){
       const pair=[unplaced[i],unplaced[i+1]].filter(Boolean);
-      if(pair.length===2){
-        grouped.push({type:'autopair',ids:pair.map(p=>p.id)});
-      } else {
-        grouped.push({type:'solo',ids:[pair[0].id]});
-      }
+      items.push({ids:pair.map(p=>p.id),entry:null});
     }
   } else {
-    sortedImages.forEach(img=>{
-      if(!placed.has(img.id)) grouped.push({type:'solo',ids:[img.id]});
-    });
+    unplaced.forEach(img=>items.push({ids:[img.id],entry:null}));
   }
 
-  // Render each group
-  grouped.forEach(group=>{
-    const isPair=group.type==='inprogress'||group.type==='finalized'||group.type==='autopair';
-    let groupEl=null;
-    if(isPair){
-      groupEl=document.createElement('div');
-      groupEl.className='thumb-group thumb-group-'+group.type;
+  // Sort items so pending/active come before done
+  const isActive=item=>!item.entry&&item.ids.some(id=>id===ocrCurrentPair.assetImageId||id===ocrCurrentPair.serialImageId);
+  const isDone=item=>!!item.entry;
+  items.sort((a,b)=>{
+    const ai=isActive(a)?0:isDone(a)?2:1;
+    const bi=isActive(b)?0:isDone(b)?2:1;
+    // Within same bucket, preserve natural order
+    return ai-bi;
+  });
 
-      // Stable key for collapse state
-      const groupKey=group.type==='finalized'&&group.entry?'fin_'+group.entry.id
-                    :group.type==='autopair'?'auto_'+group.ids.join('_')
-                    :'inprogress';
-      // Finalized and autopair default to collapsed
-      if((group.type==='finalized'||group.type==='autopair')&&!collapsedGroups.has(groupKey)&&!collapsedGroups.has('_opened_'+groupKey)){
-        collapsedGroups.add(groupKey);
-      }
-      const isCollapsed=collapsedGroups.has(groupKey);
+  let activeCard=null;
+  let cardNum=0;
 
-      const lbl=document.createElement('div');
-      lbl.className='thumb-group-label'+(group.type==='inprogress'?' inprogress':group.type==='autopair'?' autopair':'');
-      lbl.style.cursor='pointer';
-      lbl.title='Click to expand/collapse';
+  items.forEach(item=>{
+    cardNum++;
+    const done=isDone(item);
+    const active=isActive(item);
+    const state=done?'q-done':active?'q-active':'q-pending';
 
-      // Collapse chevron
-      const chev=document.createElement('span');
-      chev.style.cssText='font-size:.5rem;opacity:.5;flex-shrink:0;';
-      chev.textContent=isCollapsed?'▶':'▼';
-      lbl.appendChild(chev);
+    const card=document.createElement('div');
+    card.className='q-card '+state;
+    card.dataset.ids=item.ids.join(',');
 
-      if(group.type==='autopair'){
-        const imgs=group.ids.map(id=>ocrImages.find(i=>i.id===id)).filter(Boolean);
-        const isCurrentPair=group.ids.includes(ocrCurrentPair.assetImageId)||group.ids.includes(ocrCurrentPair.serialImageId);
-        const nameSpan=document.createElement('span');
-        nameSpan.textContent=imgs.map(i=>i.name).join(' + ');
-        lbl.appendChild(nameSpan);
-        if(isCurrentPair) lbl.classList.add('inprogress');
-        const assignBtn=document.createElement('button');
-        assignBtn.textContent='▶ Use';assignBtn.title='Load this pair into AT/SN panes';
-        assignBtn.style.cssText='margin-left:auto;background:none;border:1px solid rgba(232,255,0,.3);border-radius:3px;font-family:inherit;font-size:.44rem;padding:1px 5px;cursor:pointer;color:var(--ocr-accent);flex-shrink:0;';
-        assignBtn.onclick=(ev)=>{
-          ev.stopPropagation();
-          const [atId,snId]=group.ids;
-          ocrCurrentPair.assetImageId=atId||null;
-          ocrCurrentPair.serialImageId=snId||atId||null;
-          ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
-          ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
-          setDrawMode('asset');
-          renderBothPanes();updateThumbHighlights();updateFieldImageLinks();
-        };
-        lbl.style.display='flex';lbl.style.alignItems='center';lbl.style.gap='4px';
-        lbl.appendChild(assignBtn);
-      }else if(group.type==='inprogress'){
-        const span=document.createElement('span');
-        span.textContent=group.sameImage?'IN PROGRESS · AT+SN':'IN PROGRESS';
-        lbl.appendChild(span);
-        lbl.style.display='flex';lbl.style.alignItems='center';lbl.style.gap='4px';
-      }else if(group.entry){
-        const at=group.entry.asset===SKIP?'(skip)':group.entry.asset;
-        const sn=group.entry.serial===SKIP?'(skip)':group.entry.serial;
-        const span=document.createElement('span');
-        span.textContent=group.sameImage?`✓ ${at} / ${sn} · 1 img`:`✓ ${at} / ${sn}`;
-        span.style.cssText='overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;';
-        lbl.appendChild(span);
-        const editBtn=document.createElement('button');
-        editBtn.textContent='✎';editBtn.title='Edit this pair';
-        editBtn.style.cssText='background:none;border:none;color:rgba(255,179,71,.7);cursor:pointer;font-size:.6rem;padding:0 2px;flex-shrink:0;';
-        editBtn.onclick=(ev)=>{ev.stopPropagation();editOcrEntry(group.entry.id);};
-        lbl.style.display='flex';lbl.style.alignItems='center';lbl.style.gap='4px';
-        lbl.appendChild(editBtn);
-      }
+    // Header row: number + status + label
+    const header=document.createElement('div');
+    header.className='q-header';
 
-      // Toggle collapse on label click
-      lbl.onclick=()=>{
-        if(collapsedGroups.has(groupKey)){
-          collapsedGroups.delete(groupKey);
-          collapsedGroups.add('_opened_'+groupKey); // remember user explicitly opened it
-        } else {
-          collapsedGroups.add(groupKey);
-          collapsedGroups.delete('_opened_'+groupKey);
-        }
-        renderOcrThumbList();
-      };
+    const numEl=document.createElement('span');
+    numEl.className='q-num';
+    numEl.textContent='#'+String(cardNum).padStart(2,'0');
+    header.appendChild(numEl);
 
-      groupEl.appendChild(lbl);
-      list.appendChild(groupEl);
+    const icon=document.createElement('span');
+    icon.className='q-status-icon';
+    icon.textContent=done?'✓':active?'▶':'○';
+    header.appendChild(icon);
 
-      // If collapsed, skip rendering thumbs
-      if(isCollapsed) return; // skip rest of this group in forEach
+    const lbl=document.createElement('span');
+    lbl.className='q-label';
+    if(done){
+      const at=item.entry.asset===SKIP?'(skip)':item.entry.asset;
+      const sn=item.entry.serial===SKIP?'(skip)':item.entry.serial;
+      lbl.textContent=at+' / '+sn;
+    } else {
+      const names=item.ids.map(id=>ocrImages.find(i=>i.id===id)?.name||'').filter(Boolean);
+      lbl.textContent=names.length===1?names[0]:names.map(n=>n.replace(/\.[^.]+$/,'')).join(' + ');
     }
+    header.appendChild(lbl);
 
-    group.ids.forEach(id=>{
+    // Delete button
+    const delBtn=document.createElement('button');
+    delBtn.className='q-del';delBtn.textContent='🗑';delBtn.title='Delete image(s)';
+    delBtn.onclick=async ev=>{
+      ev.stopPropagation();
+      for(const id of item.ids){
+        if(_deletingImage)return;
+        const img=ocrImages.find(i=>i.id===id);if(!img)continue;
+        const linked=[...[...pallets,damagedPallet].flatMap(p=>
+          p.entries.filter(en=>en.type==='ocr'&&(en.imageIds||[]).includes(id)).map(en=>({entry:en,palletName:p.name}))
+        )];
+        let msg=`Delete "${img.name}"?`;
+        if(linked.length)msg+='\n\nLinked pair will also be deleted:\n'+linked.map(l=>`  • ${l.entry.asset} / ${l.entry.serial} (${l.palletName})`).join('\n');
+        if(confirm(msg))await deleteOcrImage(id);
+      }
+    };
+    header.appendChild(delBtn);
+    card.appendChild(header);
+
+    // Thumbnails
+    const thumbsRow=document.createElement('div');
+    thumbsRow.className='q-thumbs';
+
+    const dual=ocrMode==='dual'&&item.ids.length===2;
+    const single=item.ids.length===1&&ocrMode==='single';
+    const sameImg=item.ids.length===1&&ocrMode==='dual';// single image carrying both in dual
+
+    item.ids.forEach((id,idx)=>{
       const img=ocrImages.find(i=>i.id===id);if(!img)return;
-      const wrap=document.createElement('div');wrap.className='thumb-wrapper';wrap.dataset.id=id;
+      const wrap=document.createElement('div');wrap.className='q-thumb-wrap';
+      const thumb=document.createElement('img');
+      thumb.src=img.dataUrl;thumb.title=img.name;thumb.alt='';
+      wrap.appendChild(thumb);
 
-      const thumb=document.createElement('img');thumb.className='image-thumb';thumb.dataset.id=id;
-      thumb.src=img.dataUrl;thumb.title=img.name;
-
-      // Border color
-      const e=imgToEntry.get(id);
-      const isFinalized=!!e;
-      if(e){
-        const hasAt=e.asset!==SKIP,hasSn=e.serial!==SKIP;
-        if(hasAt&&hasSn) thumb.classList.add('assigned-both');
-        else if(hasAt) thumb.classList.add('assigned-asset');
-        else thumb.classList.add('assigned-serial');
+      // Field label
+      const fieldLbl=document.createElement('div');
+      fieldLbl.className='q-thumb-label';
+      if(done){
+        if(sameImg||single){fieldLbl.className+=' both';fieldLbl.textContent='AT+SN';}
+        else{fieldLbl.className+=(idx===0?' at':' sn');fieldLbl.textContent=idx===0?'AT':'SN';}
+      } else if(active){
+        const isAt=id===ocrCurrentPair.assetImageId;
+        const isSn=id===ocrCurrentPair.serialImageId;
+        if(isAt&&isSn){fieldLbl.className+=' both';fieldLbl.textContent='AT+SN';}
+        else if(isAt){fieldLbl.className+=' at';fieldLbl.textContent='AT';}
+        else if(isSn){fieldLbl.className+=' sn';fieldLbl.textContent='SN';}
+        else{fieldLbl.className+=(dual&&idx===0?' at':' sn');fieldLbl.textContent=dual&&idx===0?'AT':'SN';}
       } else {
-        const isAt=ocrCurrentPair.assetImageId===id;
-        const isSn=ocrCurrentPair.serialImageId===id;
-        if(isAt&&isSn) thumb.classList.add('active-both');
-        else if(isAt) thumb.classList.add('active-asset');
-        else if(isSn) thumb.classList.add('active-serial');
+        // Pending: show expected assignment
+        if(single||sameImg){fieldLbl.className+=' both';fieldLbl.textContent='AT+SN';}
+        else{fieldLbl.className+=(idx===0?' at':' sn');fieldLbl.textContent=idx===0?'AT':'SN';}
       }
+      wrap.appendChild(fieldLbl);
 
-      // Field badge for in-progress / finalized
-      if(group.type==='inprogress'){
-        const isAt=ocrCurrentPair.assetImageId===id;
-        const isSn=ocrCurrentPair.serialImageId===id;
-        if(isAt||isSn){
-          const b=document.createElement('div');
-          b.className='thumb-field-badge '+(isAt&&isSn?'for-both':isAt?'for-asset':'for-serial');
-          b.textContent=isAt&&isSn?'AT+SN':isAt?'AT':'SN';
-          wrap.appendChild(b);
-        }
-      } else if(group.type==='finalized'&&e){
-        const b=document.createElement('div');
-        if(group.sameImage){
-          b.className='thumb-field-badge for-both';b.textContent='AT+SN';
-        } else {
-          const isAt=e.assetImageId===id;
-          b.className='thumb-field-badge '+(isAt?'for-asset':'for-serial');
-          b.textContent=isAt?'AT':'SN';
-        }
-        wrap.appendChild(b);
-      }
-
-      // AT / SN assignment buttons — shown on hover for unfinalized images
-      if(!isFinalized){
-        const assignBar=document.createElement('div');assignBar.className='thumb-assign-bar';
-        const atBtn=document.createElement('button');
-        atBtn.className='thumb-assign-btn at';atBtn.textContent='AT';atBtn.title='Use for Asset Tag';
-        atBtn.onclick=(ev)=>{
+      // Assign buttons (only for non-done, dual mode only — in single mode AT is always first)
+      if(!done&&ocrMode==='dual'){
+        const assignBar=document.createElement('div');assignBar.className='q-assign-bar';
+        const atBtn=document.createElement('button');atBtn.className='q-assign-btn at';atBtn.textContent='AT';
+        atBtn.onclick=ev=>{
           ev.stopPropagation();
           ocrCurrentPair.assetImageId=id;
           ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
-          setDrawMode('asset');
-          renderBothPanes();updateThumbHighlights();updateFieldImageLinks();
+          setDrawMode('asset');renderBothPanes();renderOcrThumbList();updateFieldImageLinks();
         };
-        const snBtn=document.createElement('button');
-        snBtn.className='thumb-assign-btn sn';snBtn.textContent='SN';snBtn.title='Use for Serial #';
-        snBtn.onclick=(ev)=>{
+        const snBtn=document.createElement('button');snBtn.className='q-assign-btn sn';snBtn.textContent='SN';
+        snBtn.onclick=ev=>{
           ev.stopPropagation();
           ocrCurrentPair.serialImageId=id;
           ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
-          setDrawMode('serial');
-          renderBothPanes();updateThumbHighlights();updateFieldImageLinks();
+          setDrawMode('serial');renderBothPanes();renderOcrThumbList();updateFieldImageLinks();
         };
         assignBar.appendChild(atBtn);assignBar.appendChild(snBtn);
         wrap.appendChild(assignBar);
       }
 
-      const delBtn=document.createElement('button');delBtn.className='thumb-del-btn';delBtn.textContent='🗑';delBtn.title='Delete image';
-      delBtn.onclick=async(ev)=>{
-        ev.stopPropagation();
-        if(_deletingImage)return;
-        const linked=[];
-        [...pallets,damagedPallet].forEach(p=>{
-          p.entries.forEach(en=>{
-            if(en.type==='ocr'&&Array.isArray(en.imageIds)&&en.imageIds.includes(id))
-              linked.push({entry:en,palletName:p.name});
-          });
-        });
-        let msg=`Delete image "${img.name}"?`;
-        if(linked.length) msg+=`\n\nLinked OCR pair${linked.length>1?'s':''} will also be deleted:\n`+linked.map(l=>`  • AT: ${l.entry.asset} / SN: ${l.entry.serial} (${l.palletName})`).join('\n');
-        else msg+='\n\nNo OCR pairs linked.';
-        if(confirm(msg+'\n\nAre you sure?'))await deleteOcrImage(id);
-      };
-
-      wrap.appendChild(thumb);wrap.appendChild(delBtn);
-      (groupEl||list).appendChild(wrap);
+      thumbsRow.appendChild(wrap);
     });
+    card.appendChild(thumbsRow);
+
+    // Click card to load it (pending → active, done → re-edit)
+    card.addEventListener('click',()=>{
+      if(done){
+        editOcrEntry(item.entry.id);
+      } else {
+        const [atId,snId]=item.ids;
+        ocrCurrentPair.assetImageId=atId||null;
+        ocrCurrentPair.serialImageId=ocrMode==='dual'?(snId||null):(atId||null);
+        ocrPanes.asset.cachedImg=null;ocrPanes.asset.cachedImgId=null;
+        ocrPanes.serial.cachedImg=null;ocrPanes.serial.cachedImgId=null;
+        setDrawMode('asset');renderBothPanes();renderOcrThumbList();updateFieldImageLinks();
+      }
+    });
+
+    if(active) activeCard=card;
+    list.appendChild(card);
   });
+
+  // Scroll active card into view
+  if(activeCard) setTimeout(()=>activeCard.scrollIntoView({block:'nearest',behavior:'smooth'}),50);
 }
+
 
 // ══════════════════════════════════════════════════════════
 //  RECYCLING BIN
@@ -2617,7 +2555,7 @@ function toggleStorageLog(){storageLogDefault=!storageLogDefault;renderPresetBar
 // ══════════════════════════════════════════════════════════
 function openPalletModal(){document.getElementById('newPalletName').value='';document.getElementById('palletModal').classList.add('open');setTimeout(()=>document.getElementById('newPalletName').focus(),50);}
 function closePalletModal(){document.getElementById('palletModal').classList.remove('open');}
-function confirmNewPallet(){const name=document.getElementById('newPalletName').value.trim();if(!name)return;const pallet={id:'p_'+Date.now(),name,entries:[]};pallets.push(pallet);closePalletModal();selectPallet(pallet.id);renderPalletList();if(ocrTopPanelOpen)renderOcrInlinePallets();scheduleSave();}
+function confirmNewPallet(){const name=document.getElementById('newPalletName').value.trim();if(!name)return;const pallet={id:'p_'+Date.now(),name,entries:[]};pallets.push(pallet);closePalletModal();selectPallet(pallet.id);renderPalletList();scheduleSave();}
 function selectPallet(id){
   activePalletId=id;assetPending=null;dupeCount=0;errorCount=0;_lastOverweightAlerted=false;rebuildGlobalSets();
   document.getElementById('noPalletScreen').style.display='none';document.getElementById('palletWorkspace').style.display='flex';
@@ -2629,7 +2567,7 @@ function selectPallet(id){
   document.getElementById('assetInput').className='scan-input active-field';document.getElementById('serialInput').className='scan-input';document.getElementById('serialInput').placeholder='Waiting for asset tag…';
   document.getElementById('scanLog').innerHTML='<div class="log-entry" style="color:var(--muted);padding:4px 6px;">Switched pallet — awaiting scan…</div>';
   if(currentMode==='scan'){renderPresetBar();if(activePresetId)document.getElementById('assetInput').focus();}
-  else{updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePallets();}
+  else{updateActiveFolderLabel();}
   renderOcrPairsList();
 }
 function rebuildGlobalSets(){
@@ -2645,7 +2583,7 @@ function deletePallet(id){
   });
   pallets=pallets.filter(p=>p.id!==id);rebuildGlobalSets();
   if(activePalletId===id){activePalletId=null;document.getElementById('palletWorkspace').style.display='none';document.getElementById('noPalletScreen').style.display='flex';}
-  renderPalletList();updateTiles();updateBinBadge();if(ocrTopPanelOpen)renderOcrInlinePallets();scheduleSave();
+  renderPalletList();updateTiles();updateBinBadge();scheduleSave();
 }
 function renderPalletList(){
   const list=document.getElementById('palletsList');
@@ -2698,19 +2636,19 @@ function savePreset(){
   const noStorage=document.getElementById('pm_no_storage').checked;const wtRaw=document.getElementById('pm_weight').value.trim();const weight=wtRaw?parseFloat(wtRaw):null;
   if(!wtRaw&&!document.getElementById('pm_weight').getAttribute('data-nagged')){document.getElementById('weightHint').className='form-hint wh';document.getElementById('weightHint').textContent='⚠ No weight — click Save again to proceed.';document.getElementById('pm_weight').classList.add('wb');document.getElementById('pm_weight').setAttribute('data-nagged','1');return;}
   const data={name,mfr:document.getElementById('pm_mfr').value.trim(),cpu:document.getElementById('pm_cpu').value.trim(),ram:document.getElementById('pm_ram').value.trim(),storage:noStorage?'':document.getElementById('pm_storage').value.trim(),noStorage,weight};
-  if(editingPresetId){const idx=presets.findIndex(p=>p.id===editingPresetId);if(idx!==-1)presets[idx]={...presets[idx],...data};closePresetModal();renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}
-  else{const preset={id:'pr_'+Date.now(),...data};presets.push(preset);activePresetId=preset.id;storageLogDefault=!noStorage;closePresetModal();renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}
+  if(editingPresetId){const idx=presets.findIndex(p=>p.id===editingPresetId);if(idx!==-1)presets[idx]={...presets[idx],...data};closePresetModal();renderPresetList();renderPresetBar();updateActiveFolderLabel();scheduleSave();}
+  else{const preset={id:'pr_'+Date.now(),...data};presets.push(preset);activePresetId=preset.id;storageLogDefault=!noStorage;closePresetModal();renderPresetList();renderPresetBar();updateActiveFolderLabel();scheduleSave();}
 }
-function selectPreset(id){activePresetId=id;storageLogDefault=true;renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();const ai=document.getElementById('assetInput');if(ai&&!ai.disabled&&currentMode==='scan')setTimeout(()=>ai.focus(),50);}
-function clearActivePreset(){activePresetId=null;renderPresetList();renderPresetBar();updateOcrActiveInfo();if(ocrTopPanelOpen)renderOcrInlinePresets();}
-function deletePreset(id){if(!confirm('Delete this preset?'))return;presets=presets.filter(p=>p.id!==id);if(activePresetId===id){activePresetId=null;renderPresetBar();updateOcrActiveInfo();}renderPresetList();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}
+function selectPreset(id){activePresetId=id;storageLogDefault=true;renderPresetList();renderPresetBar();updateActiveFolderLabel();const ai=document.getElementById('assetInput');if(ai&&!ai.disabled&&currentMode==='scan')setTimeout(()=>ai.focus(),50);}
+function clearActivePreset(){activePresetId=null;renderPresetList();renderPresetBar();updateActiveFolderLabel();}
+function deletePreset(id){if(!confirm('Delete this preset?'))return;presets=presets.filter(p=>p.id!==id);if(activePresetId===id){activePresetId=null;renderPresetBar();updateActiveFolderLabel();}renderPresetList();scheduleSave();}
 function renderPresetList(){
   const list=document.getElementById('presetsList');const q=(document.getElementById('presetSearch').value||'').toLowerCase().trim();const all=getAllPresets();const filtered=q?all.filter(p=>p.name.toLowerCase().includes(q)||(p.mfr&&p.mfr.toLowerCase().includes(q))):all;
   if(filtered.length===0){list.innerHTML=`<div style="color:var(--muted);font-size:.66rem;padding:4px 8px;font-family:Share Tech Mono,monospace;">${q?'No matches':'No presets yet'}</div>`;return;}
   list.innerHTML=filtered.map(p=>{const isBuiltin=p.isDamaged;const noW=!isBuiltin&&!p.weight;return `<div class="preset-item${p.id===activePresetId?' active':''}${p.isDamaged?' damaged-preset':''}" onclick="selectPreset('${p.id}')"><span class="preset-name">${escHtml(p.name)}</span>${noW?'<span class="no-weight-warn" title="No weight set">⚠</span>':''}${!isBuiltin?`<button class="edit-btn" onclick="event.stopPropagation();openEditPresetModal('${p.id}')" title="Edit">✎</button><button class="del-btn" onclick="event.stopPropagation();deletePreset('${p.id}')" title="Delete">✕</button>`:''}</div>`;}).join('');
 }
 function exportPresets(){if(presets.length===0){alert('No custom presets to export.');return;}download('AssetPresets_'+new Date().toISOString().slice(0,10)+'.json',JSON.stringify(presets,null,2),'application/json');}
-function importPresets(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const imp=JSON.parse(e.target.result);if(!Array.isArray(imp))throw new Error('Expected JSON array');let added=0;imp.forEach(p=>{if(p.name){p.id='pr_'+Date.now()+'_'+Math.random().toString(36).slice(2);presets.push(p);added++;}});alert(`Imported ${added} preset${added!==1?'s':''}.`);renderPresetList();if(ocrTopPanelOpen)renderOcrInlinePresets();scheduleSave();}catch(err){alert('Import failed: '+err.message);}};reader.readAsText(file);event.target.value='';}
+function importPresets(event){const file=event.target.files[0];if(!file)return;const reader=new FileReader();reader.onload=function(e){try{const imp=JSON.parse(e.target.result);if(!Array.isArray(imp))throw new Error('Expected JSON array');let added=0;imp.forEach(p=>{if(p.name){p.id='pr_'+Date.now()+'_'+Math.random().toString(36).slice(2);presets.push(p);added++;}});alert(`Imported ${added} preset${added!==1?'s':''}.`);renderPresetList();scheduleSave();}catch(err){alert('Import failed: '+err.message);}};reader.readAsText(file);event.target.value='';}
 
 // ══════════════════════════════════════════════════════════
 //  XLSX EXPORT
@@ -2870,7 +2808,7 @@ function clearSession(){
   pallets=[];presets=[];damagedPallet={id:DAMAGED_PALLET_ID,name:'Damaged',entries:[],isDamaged:true};recycleBin=[];
   activePalletId=null;activePresetId=null;globalAssetTags=new Set();globalSerials=new Set();
   dupeCount=0;errorCount=0;assetPending=null;ocrImageHashes=new Set();
-  ocrImages=[];ocrActiveId=null;ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
+  ocrImages=[];ocrCurrentPair={assetImageId:null,serialImageId:null,assetCrop:null,serialCrop:null};
   document.getElementById('ocrThumbList').innerHTML='';
   renderPalletList();renderDamagedPalletList();renderPresetList();renderPresetBar();updateTiles();updateSessionStatus();updateBinBadge();
   document.getElementById('noPalletScreen').style.display='flex';document.getElementById('palletWorkspace').style.display='none';
