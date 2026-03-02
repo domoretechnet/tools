@@ -260,8 +260,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .dell-serial-link.hidden{display:none;}
 
 /* ── OCR PANEL STYLES ── */
-.ocr-layout{display:grid;grid-template-columns:210px 1fr 290px;gap:0;border:none;overflow:hidden;height:100%;}
-.ocr-images{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;height:100%;}
+.ocr-layout{display:grid;grid-template-columns:210px 1fr 290px;grid-template-rows:100%;gap:0;border:none;overflow:hidden;height:100%;}
+.ocr-images{border-right:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;min-height:0;}
 .ocr-images-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;}
 .ocr-thumb-list{flex:1;overflow-y:auto;padding:6px;}
 .ocr-storage{padding:5px 10px;border-top:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;color:var(--muted);flex-shrink:0;}
@@ -363,8 +363,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
 .draw-mode-btn.active-serial{border-color:var(--accent);background:rgba(0,229,255,.08);color:var(--accent);}
 .draw-mode-hint{font-family:'Share Tech Mono',monospace;font-size:.54rem;color:var(--muted);margin-left:auto;}
 
-.ocr-right{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;height:100%;}
-.ocr-canvas-wrap{display:flex;flex-direction:column;background:#060809;overflow:hidden;height:100%;}.ocr-right-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
+.ocr-right{border-left:1px solid var(--border);display:flex;flex-direction:column;background:var(--surface);overflow:hidden;min-height:0;}
+.ocr-canvas-wrap{display:flex;flex-direction:column;background:#060809;overflow:hidden;min-height:0;}.ocr-right-header{padding:8px 10px;border-bottom:1px solid var(--border);font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--muted);}
 .ocr-fields{padding:10px;border-bottom:1px solid var(--border);flex-shrink:0;}
 .ocr-field{margin-bottom:8px;}
 .ocr-field-label{font-family:'Share Tech Mono',monospace;font-size:.52rem;letter-spacing:2px;text-transform:uppercase;margin-bottom:4px;display:flex;align-items:center;gap:5px;}
@@ -681,8 +681,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
             </div>
           </div>
           <!-- OCR body -->
-          <div style="flex:1;overflow:hidden;display:flex;">
-          <div class="ocr-layout" style="flex:1;height:100%;border:none;border-radius:0;">
+          <div style="flex:1;overflow:hidden;display:flex;min-height:0;">
+          <div class="ocr-layout" style="flex:1;min-height:0;border:none;border-radius:0;">
             <!-- Left: image queue + folder explorer -->
             <div class="ocr-images">
               <!-- Queue header: active folder name + add images -->
