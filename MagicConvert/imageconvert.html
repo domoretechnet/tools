@@ -473,6 +473,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script type="module">
   // ─── State ───────────────────────────────────────────────────────────────
   const files = []; // { id, file, type, status, blob, outputName }
@@ -790,14 +791,40 @@
   });
 
   // ─── Download all ─────────────────────────────────────────────────────────
-  btnDlAll.addEventListener('click', () => {
+  btnDlAll.addEventListener('click', async () => {
     const done = files.filter(f => f.status === 'done' && f.blob);
-    for (const entry of done) {
+    if (done.length === 0) return;
+
+    if (done.length === 1) {
+      // Single file — direct download
+      const entry = done[0];
       const url = URL.createObjectURL(entry.blob);
       const a = document.createElement('a');
       a.href = url; a.download = entry.outputName;
       a.click();
       setTimeout(() => URL.revokeObjectURL(url), 5000);
+    } else {
+      // Multiple files — bundle as ZIP
+      btnDlAll.disabled = true;
+      btnDlAll.textContent = '⏳ Zipping…';
+      try {
+        const zip = new JSZip();
+        for (const entry of done) {
+          zip.file(entry.outputName, entry.blob);
+        }
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } });
+        const timestamp = new Date().toISOString().slice(0,19).replace(/[:T]/g, '-');
+        const url = URL.createObjectURL(zipBlob);
+        const a = document.createElement('a');
+        a.href = url; a.download = `converted-${timestamp}.zip`;
+        a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+      } catch(err) {
+        console.error('ZIP error:', err);
+        alert('Failed to create ZIP. Try downloading files individually.');
+      }
+      btnDlAll.textContent = '↓ Download All';
+      updateButtons();
     }
   });
 
