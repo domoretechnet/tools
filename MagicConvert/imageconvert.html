@@ -1,0 +1,808 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>HEIF · HEVC Converter</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --surface2: #1a1a1a;
+    --border: #2a2a2a;
+    --accent: #e8ff47;
+    --accent2: #ff6b35;
+    --text: #f0f0f0;
+    --muted: #666;
+    --success: #47ff8a;
+    --error: #ff4757;
+    --warning: #ffa502;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Grid background */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image:
+      linear-gradient(var(--border) 1px, transparent 1px),
+      linear-gradient(90deg, var(--border) 1px, transparent 1px);
+    background-size: 60px 60px;
+    opacity: 0.3;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  .container {
+    max-width: 960px;
+    margin: 0 auto;
+    padding: 48px 24px;
+    position: relative;
+    z-index: 1;
+  }
+
+  header {
+    margin-bottom: 48px;
+  }
+
+  .tag {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--accent);
+    background: rgba(232,255,71,0.1);
+    border: 1px solid rgba(232,255,71,0.3);
+    display: inline-block;
+    padding: 4px 12px;
+    margin-bottom: 16px;
+  }
+
+  h1 {
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    font-weight: 800;
+    line-height: 0.95;
+    letter-spacing: -0.03em;
+    margin-bottom: 16px;
+  }
+
+  h1 span { color: var(--accent); }
+
+  .subtitle {
+    font-family: 'Space Mono', monospace;
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.6;
+  }
+
+  /* Drop Zone */
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 4px;
+    padding: 64px 32px;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--surface);
+    margin-bottom: 32px;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .drop-zone::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: radial-gradient(ellipse at center, rgba(232,255,71,0.03) 0%, transparent 70%);
+    pointer-events: none;
+  }
+
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: rgba(232,255,71,0.04);
+  }
+
+  .drop-zone.dragover { transform: scale(1.01); }
+
+  .drop-icon {
+    font-size: 3rem;
+    margin-bottom: 16px;
+    display: block;
+  }
+
+  .drop-label {
+    font-size: 1.3rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 8px;
+  }
+
+  .drop-sub {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+  }
+
+  #fileInput { display: none; }
+
+  /* Controls bar */
+  .controls-bar {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+    padding: 16px 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+  }
+
+  .control-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  label.ctrl-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--muted);
+  }
+
+  select, .quality-input {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    padding: 6px 12px;
+    appearance: none;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  select:focus, .quality-input:focus { border-color: var(--accent); }
+
+  .quality-input { width: 60px; text-align: center; }
+
+  .spacer { flex: 1; }
+
+  .btn-convert {
+    background: var(--accent);
+    color: #000;
+    border: none;
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-convert:hover { background: #fff; }
+  .btn-convert:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .btn-dl-all {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+    font-family: 'Syne', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    padding: 10px 24px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-dl-all:hover { background: rgba(232,255,71,0.1); }
+  .btn-dl-all:disabled { opacity: 0.3; cursor: not-allowed; }
+
+  /* FFmpeg status */
+  #ffmpegStatus {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-left: 3px solid var(--warning);
+    color: var(--warning);
+    margin-bottom: 24px;
+    display: none;
+  }
+
+  /* File list */
+  #fileList { display: flex; flex-direction: column; gap: 2px; }
+
+  .file-item {
+    display: grid;
+    grid-template-columns: 48px 1fr auto auto;
+    gap: 12px;
+    align-items: center;
+    padding: 12px 16px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    transition: border-color 0.2s;
+    animation: slideIn 0.2s ease;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(-4px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .file-item:hover { border-color: #333; }
+
+  .file-thumb {
+    width: 48px;
+    height: 48px;
+    object-fit: cover;
+    background: var(--surface2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    border: 1px solid var(--border);
+    overflow: hidden;
+  }
+
+  .file-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+  .file-info {}
+  .file-name {
+    font-weight: 700;
+    font-size: 14px;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 400px;
+  }
+
+  .file-meta {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    color: var(--muted);
+    margin-top: 3px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .file-status {
+    font-family: 'Space Mono', monospace;
+    font-size: 11px;
+    white-space: nowrap;
+    padding: 4px 10px;
+    letter-spacing: 0.05em;
+  }
+
+  .status-pending { color: var(--muted); }
+  .status-processing { color: var(--warning); }
+  .status-done { color: var(--success); }
+  .status-error { color: var(--error); }
+  .status-skip { color: var(--muted); font-style: italic; }
+
+  .file-action { }
+
+  .btn-dl {
+    background: transparent;
+    border: 1px solid var(--success);
+    color: var(--success);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    padding: 5px 12px;
+    cursor: pointer;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+
+  .btn-dl:hover { background: rgba(71,255,138,0.1); }
+
+  .btn-remove {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    padding: 5px 10px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .btn-remove:hover { border-color: var(--error); color: var(--error); }
+
+  /* Progress bar */
+  .progress-bar-wrap {
+    height: 2px;
+    background: var(--border);
+    margin-top: 6px;
+    display: none;
+  }
+
+  .progress-bar {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.3s;
+    width: 0%;
+  }
+
+  /* Empty state */
+  #emptyState {
+    text-align: center;
+    padding: 48px;
+    font-family: 'Space Mono', monospace;
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    display: none;
+  }
+
+  /* Footer info */
+  .info-strip {
+    margin-top: 40px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2px;
+  }
+
+  .info-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 20px;
+  }
+
+  .info-card .ic-label {
+    font-family: 'Space Mono', monospace;
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 0.15em;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+
+  .info-card p {
+    font-size: 13px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+
+  .spinner {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border: 2px solid rgba(255,165,2,0.3);
+    border-top-color: var(--warning);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+    vertical-align: middle;
+    margin-right: 5px;
+  }
+
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  @media (max-width: 600px) {
+    .file-item { grid-template-columns: 40px 1fr auto; }
+    .file-status { display: none; }
+    .info-strip { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <div class="tag">Local · No Upload · No Server</div>
+    <h1>HEIF <span>&amp;</span> HEVC<br>Converter</h1>
+    <p class="subtitle">
+      Drop .heic .heif images and .hevc .mp4 videos → convert to JPEG / PNG / MP4 (H.264)<br>
+      Everything runs in your browser. Nothing leaves your machine.
+    </p>
+  </header>
+
+  <div class="drop-zone" id="dropZone">
+    <input type="file" id="fileInput" multiple accept=".heic,.heif,.hevc,.mp4,.mov,.mkv,image/*,video/*">
+    <span class="drop-icon">⬇</span>
+    <div class="drop-label">Drop files here or click to browse</div>
+    <div class="drop-sub">HEIC · HEIF · HEVC · MP4 · MOV · MKV</div>
+  </div>
+
+  <div class="controls-bar">
+    <div class="control-group">
+      <label class="ctrl-label">Image →</label>
+      <select id="imgFormat">
+        <option value="jpeg">JPEG</option>
+        <option value="png">PNG</option>
+        <option value="webp">WebP</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label class="ctrl-label">Quality</label>
+      <input type="number" class="quality-input" id="imgQuality" value="92" min="10" max="100">
+    </div>
+    <div class="control-group">
+      <label class="ctrl-label">Video →</label>
+      <select id="vidFormat">
+        <option value="mp4">MP4 (H.264)</option>
+        <option value="webm">WebM (VP9)</option>
+      </select>
+    </div>
+    <div class="spacer"></div>
+    <button class="btn-dl-all" id="btnDlAll" disabled>↓ Download All</button>
+    <button class="btn-convert" id="btnConvert" disabled>Convert All</button>
+  </div>
+
+  <div id="ffmpegStatus"></div>
+
+  <div id="fileList"></div>
+  <div id="emptyState">No files added yet. Drop some HEIF/HEVC files above.</div>
+
+  <div class="info-strip">
+    <div class="info-card">
+      <div class="ic-label">Images</div>
+      <p>HEIC &amp; HEIF converted instantly using heic2any. No quality loss in the decoding pipeline.</p>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">Videos</div>
+      <p>FFmpeg.wasm runs in your browser tab. First use downloads ~30MB engine once, then it's cached.</p>
+    </div>
+    <div class="info-card">
+      <div class="ic-label">Privacy</div>
+      <p>Zero data sent to any server. All processing happens locally in JavaScript &amp; WebAssembly.</p>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/heic2any@0.0.4/dist/heic2any.min.js"></script>
+<script type="module">
+  // ─── State ───────────────────────────────────────────────────────────────
+  const files = []; // { id, file, type, status, blob, outputName }
+  let ffmpeg = null;
+  let ffmpegLoading = false;
+  let nextId = 0;
+
+  // ─── DOM ─────────────────────────────────────────────────────────────────
+  const dropZone   = document.getElementById('dropZone');
+  const fileInput  = document.getElementById('fileInput');
+  const fileList   = document.getElementById('fileList');
+  const emptyState = document.getElementById('emptyState');
+  const btnConvert = document.getElementById('btnConvert');
+  const btnDlAll   = document.getElementById('btnDlAll');
+  const ffStatus   = document.getElementById('ffmpegStatus');
+  const imgFormat  = document.getElementById('imgFormat');
+  const imgQuality = document.getElementById('imgQuality');
+  const vidFormat  = document.getElementById('vidFormat');
+
+  // ─── Drop zone events ────────────────────────────────────────────────────
+  dropZone.addEventListener('click', () => fileInput.click());
+  fileInput.addEventListener('change', e => addFiles(Array.from(e.target.files)));
+  dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault();
+    dropZone.classList.remove('dragover');
+    addFiles(Array.from(e.dataTransfer.files));
+  });
+
+  // ─── Helpers ─────────────────────────────────────────────────────────────
+  function isHEIF(file) {
+    const ext = file.name.split('.').pop().toLowerCase();
+    return ['heic','heif'].includes(ext) || file.type === 'image/heic' || file.type === 'image/heif';
+  }
+
+  function isVideo(file) {
+    return file.type.startsWith('video/') || ['mp4','mov','mkv','hevc','avi','wmv'].includes(file.name.split('.').pop().toLowerCase());
+  }
+
+  function formatBytes(b) {
+    if (b < 1024) return b + ' B';
+    if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
+    return (b/1048576).toFixed(1) + ' MB';
+  }
+
+  function updateButtons() {
+    const hasPending = files.some(f => f.status === 'pending');
+    const hasDone    = files.some(f => f.status === 'done');
+    btnConvert.disabled = !hasPending;
+    btnDlAll.disabled   = !hasDone;
+    if (files.length === 0) emptyState.style.display = 'block';
+    else emptyState.style.display = 'none';
+  }
+
+  // ─── Add files ───────────────────────────────────────────────────────────
+  function addFiles(incoming) {
+    for (const file of incoming) {
+      const id = nextId++;
+      const type = isHEIF(file) ? 'image' : isVideo(file) ? 'video' : 'unknown';
+      files.push({ id, file, type, status: 'pending', blob: null, outputName: null });
+      renderItem(files[files.length - 1]);
+    }
+    updateButtons();
+  }
+
+  // ─── Render file item ─────────────────────────────────────────────────────
+  function renderItem(entry) {
+    const row = document.createElement('div');
+    row.className = 'file-item';
+    row.id = `row-${entry.id}`;
+
+    const thumbEl = document.createElement('div');
+    thumbEl.className = 'file-thumb';
+    if (entry.type === 'image' && !isHEIF(entry.file)) {
+      const img = new Image();
+      img.src = URL.createObjectURL(entry.file);
+      thumbEl.appendChild(img);
+    } else {
+      thumbEl.textContent = entry.type === 'video' ? '🎬' : '🖼️';
+    }
+
+    const infoEl = document.createElement('div');
+    infoEl.className = 'file-info';
+    infoEl.innerHTML = `
+      <div class="file-name">${entry.file.name}</div>
+      <div class="file-meta">${entry.type.toUpperCase()} · ${formatBytes(entry.file.size)}</div>
+      <div class="progress-bar-wrap" id="prog-${entry.id}"><div class="progress-bar" id="bar-${entry.id}"></div></div>
+    `;
+
+    const statusEl = document.createElement('div');
+    statusEl.className = 'file-status status-pending';
+    statusEl.id = `status-${entry.id}`;
+    statusEl.textContent = '— PENDING';
+
+    const actionEl = document.createElement('div');
+    actionEl.className = 'file-action';
+    actionEl.id = `action-${entry.id}`;
+    const rmBtn = document.createElement('button');
+    rmBtn.className = 'btn-remove';
+    rmBtn.textContent = '✕';
+    rmBtn.title = 'Remove';
+    rmBtn.onclick = () => {
+      const idx = files.findIndex(f => f.id === entry.id);
+      if (idx > -1) files.splice(idx, 1);
+      row.remove();
+      updateButtons();
+    };
+    actionEl.appendChild(rmBtn);
+
+    row.appendChild(thumbEl);
+    row.appendChild(infoEl);
+    row.appendChild(statusEl);
+    row.appendChild(actionEl);
+    fileList.appendChild(row);
+  }
+
+  function setStatus(id, cls, text) {
+    const el = document.getElementById(`status-${id}`);
+    if (el) { el.className = `file-status ${cls}`; el.innerHTML = text; }
+  }
+
+  function setProgress(id, pct) {
+    const wrap = document.getElementById(`prog-${id}`);
+    const bar  = document.getElementById(`bar-${id}`);
+    if (wrap && bar) { wrap.style.display = 'block'; bar.style.width = pct + '%'; }
+  }
+
+  function offerDownload(id, blob, name) {
+    const action = document.getElementById(`action-${id}`);
+    if (!action) return;
+    action.innerHTML = '';
+    const a = document.createElement('button');
+    a.className = 'btn-dl';
+    a.textContent = '↓ Save';
+    a.onclick = () => {
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url; link.download = name;
+      link.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    };
+    action.appendChild(a);
+  }
+
+  // ─── Image conversion ─────────────────────────────────────────────────────
+  async function convertImage(entry) {
+    setStatus(entry.id, 'status-processing', '<span class="spinner"></span> Converting…');
+    setProgress(entry.id, 30);
+    try {
+      const fmt  = imgFormat.value;
+      const qual = parseInt(imgQuality.value) / 100;
+      let   blob;
+
+      if (isHEIF(entry.file)) {
+        // Use heic2any
+        blob = await heic2any({ blob: entry.file, toType: `image/${fmt}`, quality: qual });
+        if (Array.isArray(blob)) blob = blob[0];
+      } else {
+        // Canvas re-encode for other images
+        blob = await new Promise((res, rej) => {
+          const img = new Image();
+          img.onload = () => {
+            const c = document.createElement('canvas');
+            c.width = img.naturalWidth; c.height = img.naturalHeight;
+            c.getContext('2d').drawImage(img, 0, 0);
+            c.toBlob(b => b ? res(b) : rej(new Error('Canvas toBlob failed')), `image/${fmt}`, qual);
+          };
+          img.onerror = rej;
+          img.src = URL.createObjectURL(entry.file);
+        });
+      }
+
+      setProgress(entry.id, 100);
+      const ext = fmt === 'jpeg' ? 'jpg' : fmt;
+      const outName = entry.file.name.replace(/\.[^.]+$/, `.${ext}`);
+      entry.blob = blob; entry.outputName = outName; entry.status = 'done';
+      setStatus(entry.id, 'status-done', '✓ DONE');
+      offerDownload(entry.id, blob, outName);
+    } catch (err) {
+      entry.status = 'error';
+      setStatus(entry.id, 'status-error', '✕ FAILED');
+      console.error(err);
+    }
+  }
+
+  // ─── FFmpeg load ──────────────────────────────────────────────────────────
+  async function loadFFmpeg() {
+    if (ffmpeg) return true;
+    if (ffmpegLoading) return false;
+    ffmpegLoading = true;
+
+    ffStatus.style.display = 'block';
+    ffStatus.innerHTML = '<span class="spinner"></span> Loading FFmpeg.wasm (~30MB, cached after first use)…';
+
+    try {
+      const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+      const { toBlobURL } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+
+      ffmpeg = new FFmpeg();
+      ffmpeg.on('log', ({ message }) => {
+        if (message.includes('Error') || message.includes('error')) console.warn(message);
+      });
+
+      const baseURL = 'https://unpkg.com/@ffmpeg/core-mt@0.12.6/dist/esm';
+      await ffmpeg.load({
+        coreURL: await toBlobURL(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+        wasmURL: await toBlobURL(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        workerURL: await toBlobURL(`${baseURL}/ffmpeg-core.worker.js`, 'text/javascript'),
+      });
+
+      ffStatus.style.borderLeftColor = 'var(--success)';
+      ffStatus.style.color = 'var(--success)';
+      ffStatus.textContent = '✓ FFmpeg ready — video conversion available';
+      ffmpegLoading = false;
+      return true;
+    } catch (e) {
+      // Try single-threaded fallback
+      try {
+        const { FFmpeg } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+        const { toBlobURL } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+        if (!ffmpeg) {
+          const { FFmpeg: FF2 } = await import('https://unpkg.com/@ffmpeg/ffmpeg@0.12.10/dist/esm/index.js');
+          ffmpeg = new FF2();
+        }
+        const baseURL = 'https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm';
+        const { toBlobURL: toBU } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+        await ffmpeg.load({
+          coreURL: await toBU(`${baseURL}/ffmpeg-core.js`, 'text/javascript'),
+          wasmURL: await toBU(`${baseURL}/ffmpeg-core.wasm`, 'application/wasm'),
+        });
+        ffStatus.style.borderLeftColor = 'var(--success)';
+        ffStatus.style.color = 'var(--success)';
+        ffStatus.textContent = '✓ FFmpeg ready (single-thread mode)';
+        ffmpegLoading = false;
+        return true;
+      } catch(e2) {
+        ffStatus.style.borderLeftColor = 'var(--error)';
+        ffStatus.style.color = 'var(--error)';
+        ffStatus.textContent = '✕ FFmpeg failed to load. Video conversion unavailable. Try Chrome/Edge with no extensions blocking scripts.';
+        ffmpegLoading = false;
+        ffmpeg = null;
+        return false;
+      }
+    }
+  }
+
+  // ─── Video conversion ─────────────────────────────────────────────────────
+  async function convertVideo(entry) {
+    setStatus(entry.id, 'status-processing', '<span class="spinner"></span> Loading FFmpeg…');
+    const ok = await loadFFmpeg();
+    if (!ok) {
+      entry.status = 'error';
+      setStatus(entry.id, 'status-error', '✕ FFmpeg unavailable');
+      return;
+    }
+
+    try {
+      const { fetchFile } = await import('https://unpkg.com/@ffmpeg/util@0.12.1/dist/esm/index.js');
+      setStatus(entry.id, 'status-processing', '<span class="spinner"></span> Transcoding…');
+
+      const fmt = vidFormat.value;
+      const inputName  = `input_${entry.id}.${entry.file.name.split('.').pop()}`;
+      const outputName = `output_${entry.id}.${fmt}`;
+
+      ffmpeg.on('progress', ({ progress }) => setProgress(entry.id, Math.round(progress * 100)));
+
+      await ffmpeg.writeFile(inputName, await fetchFile(entry.file));
+
+      const args = fmt === 'mp4'
+        ? ['-i', inputName, '-c:v', 'libx264', '-preset', 'fast', '-crf', '23', '-c:a', 'aac', outputName]
+        : ['-i', inputName, '-c:v', 'libvpx-vp9', '-b:v', '0', '-crf', '33', '-c:a', 'libopus', outputName];
+
+      await ffmpeg.exec(args);
+
+      const data = await ffmpeg.readFile(outputName);
+      await ffmpeg.deleteFile(inputName);
+      await ffmpeg.deleteFile(outputName);
+
+      const mimeType = fmt === 'mp4' ? 'video/mp4' : 'video/webm';
+      const blob = new Blob([data.buffer], { type: mimeType });
+      const outName = entry.file.name.replace(/\.[^.]+$/, `.${fmt}`);
+
+      entry.blob = blob; entry.outputName = outName; entry.status = 'done';
+      setProgress(entry.id, 100);
+      setStatus(entry.id, 'status-done', '✓ DONE');
+      offerDownload(entry.id, blob, outName);
+    } catch(err) {
+      entry.status = 'error';
+      setStatus(entry.id, 'status-error', '✕ FAILED');
+      console.error(err);
+    }
+  }
+
+  // ─── Convert all ─────────────────────────────────────────────────────────
+  btnConvert.addEventListener('click', async () => {
+    btnConvert.disabled = true;
+    const pending = files.filter(f => f.status === 'pending');
+
+    // Pre-load ffmpeg if any videos present
+    const hasVideos = pending.some(f => f.type === 'video');
+    if (hasVideos) await loadFFmpeg();
+
+    for (const entry of pending) {
+      if (entry.type === 'image') await convertImage(entry);
+      else if (entry.type === 'video') await convertVideo(entry);
+      else {
+        // Try image anyway
+        entry.type = 'image';
+        await convertImage(entry);
+      }
+    }
+
+    updateButtons();
+  });
+
+  // ─── Download all ─────────────────────────────────────────────────────────
+  btnDlAll.addEventListener('click', () => {
+    const done = files.filter(f => f.status === 'done' && f.blob);
+    for (const entry of done) {
+      const url = URL.createObjectURL(entry.blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = entry.outputName;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(url), 5000);
+    }
+  });
+
+  // init
+  updateButtons();
+</script>
+</body>
+</html>
