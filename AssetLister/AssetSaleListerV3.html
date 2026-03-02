@@ -1747,7 +1747,10 @@ function renderPane(p, overlayOnly){
   const image=new Image();
   image.onload=()=>{
     const wrapEl=document.getElementById(p.wrapId);
+    // Hide canvas before measuring so its own size doesn't pollute clientHeight
+    p.canvas.style.display='none';
     const maxW=wrapEl.clientWidth-4,maxH=wrapEl.clientHeight-4;
+    p.canvas.style.display='block';
     if(maxW<=0||maxH<=0)return;
     const scale=Math.min(maxW/image.width,maxH/image.height,1);
     p.scale=scale;
