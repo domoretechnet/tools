@@ -764,7 +764,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
                   <div class="img-field-link" id="atImageLink"><div class="ifl-dot"></div><span id="atImageLinkText">no image linked</span></div>
                   <input type="text" id="atInput" placeholder="000000" maxlength="12"
                     oninput="ocrOnFieldInput('asset')" onblur="ocrValidateField('asset')"
-                    onclick="setDrawMode('asset')" autocomplete="off" spellcheck="false">
+                    onclick="setDrawMode('asset')" onkeydown="ocrFieldKeydown(event)"
+                    autocomplete="off" spellcheck="false">
                   <div class="field-error" id="atError"></div>
                   <div class="tav-row">
                     <button class="tav-btn" id="tavBtnAt" onclick="toggleTAV('asset')">TAV</button>
@@ -780,7 +781,8 @@ table.entry-table{width:100%;border-collapse:collapse;font-size:.76rem;}
                   <div class="img-field-link" id="snImageLink"><div class="ifl-dot"></div><span id="snImageLinkText">no image linked</span></div>
                   <input type="text" id="snInput" placeholder="A000000" maxlength="14"
                     oninput="ocrOnFieldInput('serial')" onblur="ocrValidateField('serial')"
-                    onclick="setDrawMode('serial')" autocomplete="off" spellcheck="false">
+                    onclick="setDrawMode('serial')" onkeydown="ocrFieldKeydown(event)"
+                    autocomplete="off" spellcheck="false">
                   <div class="field-error" id="snError"></div>
                   <div class="tav-row">
                     <button class="tav-btn" id="tavBtnSn" onclick="toggleTAV('serial')">TAV</button>
@@ -1047,16 +1049,23 @@ function ocrValidateFieldForEdit(field,editEntry){
 }
 function ocrOnFieldInput(field){ocrValidateField(field);updateOcrPreview(field);const o=field==='asset'?'serial':'asset';if(document.getElementById(o==='asset'?'atInput':'snInput').value.trim())ocrValidateField(o);}
 
+function ocrFieldKeydown(e){
+  if(e.key!=='Enter')return;
+  const atOk=!document.getElementById('atError').textContent&&document.getElementById('atInput').value.trim();
+  const snOk=!document.getElementById('snError').textContent&&document.getElementById('snInput').value.trim();
+  if(atOk&&snOk) ocrFinalizePair();
+}
+
 // ══════════════════════════════════════════════════════════
 //  TAV
 // ══════════════════════════════════════════════════════════
 // OCR TAV
 function toggleTAV(f){if(tav[f].locked)return;tav[f].active=!tav[f].active;updateTAVUI(f);ocrValidateField(f);}
-function toggleTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);ocrValidateField(f);saveBuckets();}
+function toggleTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);ocrValidateField(f);saveFolders();}
 function resetTAV(f){if(!tav[f].locked){tav[f].active=false;updateTAVUI(f);}}
 // Scan TAV — shares same tav state, updates both scan and OCR UI
 function toggleScanTAV(f){if(tav[f].locked)return;tav[f].active=!tav[f].active;updateTAVUI(f);updateScanTAVUI(f);updateBypassUI();}
-function toggleScanTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);updateScanTAVUI(f);saveBuckets();updateBypassUI();}
+function toggleScanTAVLock(f){tav[f].locked=!tav[f].locked;if(tav[f].locked)tav[f].active=true;updateTAVUI(f);updateScanTAVUI(f);saveFolders();updateBypassUI();}
 function updateScanTAVUI(f){
   const t=tav[f];
   const btn=document.getElementById(f==='asset'?'scanTavBtnAt':'scanTavBtnSn');
@@ -1156,8 +1165,10 @@ async function ocrLoadFolders(){
     const rec=await dbGet('session','ocrFolders').catch(()=>null);
     ocrBuckets=rec?.value||[];
     if(!ocrBuckets.length){
-      const def={id:'folder_'+Date.now(),name:'Folder 1'};
+      const def={id:'folder_default',name:'Folder 1'};
       ocrBuckets=[def];
+      // Save immediately so the ID is stable across refreshes
+      await dbPut('session',{key:'ocrFolders',value:ocrBuckets}).catch(()=>{});
     }
     const lastRec=await dbGet('session','ocrActiveFolder').catch(()=>null);
     const lastId=lastRec?.value;
@@ -1437,7 +1448,7 @@ async function ocrHandleFiles(fileList){
   }
   renderBothPanes();
   if(dupCount>0)alert(`${dupCount} duplicate image${dupCount>1?'s were':' was'} skipped.`);
-  updateOcrStorage();saveBuckets();
+  updateOcrStorage();saveFolders();
 }
 let heic2anyLoaded=null;
 async function loadHeic2Any(){
